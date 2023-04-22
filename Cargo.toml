@@ -1,0 +1,11 @@
+[package]
+name = "NomExML"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+keywords = ["XML","parsing","nom","parsing","encoding"]
+categories = ["parsing","parser-implementations", "encoding"]
+description = "A Rust Crate for parsing XML."
+
+[dependencies]
+nom.workspace = true
