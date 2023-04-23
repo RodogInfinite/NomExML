@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till, take_until, take_while1},
-    character::complete::{alpha1, alphanumeric1},
+    bytes::complete::{tag, take_until, take_while1},
+    character::complete::{alpha1},
     combinator::{map, opt, recognize},
     multi::many0,
-    sequence::{delimited, pair, preceded, tuple},
+    sequence::{delimited, pair},
     IResult,
 };
 
@@ -116,8 +116,8 @@ fn parse_recursive(input: &str) -> IResult<&str, Element, nom::error::Error<&str
 }
 
 fn main() {
-    let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3></root>";
+    let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3><tst:inner_tag4><inner_inner_tag1>inner_inner_tag1 content</inner_inner_tag1><header>header contents></header><inner_inner_tag1>inner_inner_tag1 content2</inner_inner_tag1></tst:inner_tag4></root>";
     let (tail, result) = parse_recursive(input).unwrap();
-    println!("result: {:?}", result);
+    println!("result: {:#?}", result);
     println!("tail: {:?}", tail);
 }
