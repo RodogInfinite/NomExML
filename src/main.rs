@@ -9,27 +9,24 @@ use nom::{
 #[derive(Clone, Debug, PartialEq)]
 enum Namespace<'ns> {
     Prefix(&'ns str),
-    LocalName(&'ns str),
     URI(&'ns str),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum Tag<'tag> {
+enum Tag<'tag,'ns> {
     Open(&'tag str),
     Close(&'tag str),
-    NS(Namespace<'tag>)
+    // NS(Prefix, Tag::Open or Tag::Close)
+    NS(Namespace<'ns>, Box<Tag<'tag,'ns>>)
 }
 
-#[derive(Debug, PartialEq)]
-enum Element<'tag, 'a> {
-    Node(Tag<'tag>, Vec<Element<'tag, 'a>>, Tag<'tag>),
-    Content(&'a str),
+#[derive(Clone,Debug, PartialEq)]
+enum Element<'tag,'ns, 'elem> {
+    Node(Tag<'tag,'ns>, Box<Element<'tag,'ns,'elem>>, Tag<'tag,'ns>),
+    Content(&'elem str),
+    Nested(Vec<Element<'tag,'ns,'elem>>)
 }
 
-
-fn parse_processing_instructions(input: &str) -> IResult<&str, &str> {
-    delimited(tag("<?"), take_until("?>"), tag("?>"))(input)
-}
 
 // Parse XML tags (both opening and closing)
 fn parse_tag(input: &str) -> IResult<&str, Tag> {
@@ -52,7 +49,7 @@ fn parse_tag(input: &str) -> IResult<&str, Tag> {
                 // Check if there's a namespace prefix
                 let mut parts = tag_name.split(':');
                 if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                    Tag::NS(Namespace::Prefix(prefix))
+                    Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Open(local_name)))
                 } else {
                     Tag::Open(tag_name)
                 }
@@ -63,8 +60,8 @@ fn parse_tag(input: &str) -> IResult<&str, Tag> {
             delimited(tag("</"), take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == ':'), tag(">")),
             |tag_name: &str| {
                 let mut parts = tag_name.split(':');
-                if let (Some(_prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                    Tag::Close(local_name)
+                if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
+                    Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Close(local_name)))
                 } else {
                     Tag::Close(tag_name)
                 }
@@ -79,42 +76,60 @@ fn parse_content(input: &str) -> IResult<&str, &str> {
     take_until("<")(input)
 }
 
-fn parse_recursive(input: &str) -> IResult<&str, Vec<Element>> {
-    let mut elements = vec![];
+// Modify parse_recursive function to handle Element::Node structure correctly
+fn parse_recursive(mut input: &str) -> IResult<&str, Element> {
+    println!("Entering parse_recursive with input: {:?}", input);
 
-    let (mut input, _) = opt(parse_processing_instructions)(input).unwrap_or((input, None));
+    let (tail, open_tag) = parse_tag(input)?;
+    println!("Parsed open tag: {:?}", open_tag);
+    let mut children = Vec::new();
+    input = tail;
 
-    loop {
-        println!("Current input: {:?}", input);
-
-        if let Ok((tail, open_tag)) = parse_tag(input) {
-            println!("Parsed tag: {:?}", open_tag);
-            input = tail;
-
-            let (tail, children) = parse_recursive(input).unwrap_or((tail, vec![]));
-            println!("Parsed children: {:?}", children);
-
-            if let Ok((tail, close_tag)) = parse_tag(tail) {
-                println!("Parsed closing tag: {:?}", close_tag);
-                elements.push(Element::Node(open_tag.clone(), children, close_tag));
-                input = tail;
-            } else {
-                println!("Error parsing closing tag");
-                break;
-            }
-        } else if let Ok((tail, content)) = parse_content(input) {
-            println!("Parsed content: {:?}", content);
-            input = tail;
-
-            elements.push(Element::Content(content));
-        } else {
-            println!("Reached the end of the input");
-            break;
-        }
+    while let Ok((tail, child)) = parse_recursive(input) {
+        println!("Parsed child: {:?}", child);
+        input = tail;
+        children.push(child);
     }
 
-    Ok((input, elements))
+    let (input, content) = parse_content(input)?;
+    println!("Parsed content: {:?}", content);
+
+    if !content.is_empty() {
+        children.push(Element::Content(content));
+    }
+
+    let (input, close_tag) = parse_tag(input)?;
+    println!("Parsed close tag: {:?}", close_tag);
+
+    match (&open_tag, &close_tag) {
+        (Tag::Open(open_name), Tag::Close(close_name)) | (Tag::NS(Namespace::Prefix(open_name), _), Tag::NS(Namespace::Prefix(close_name), _)) => {
+            if open_name == close_name {
+                let node = if children.len() == 1 {
+                    Element::Node(open_tag, Box::new(children.remove(0)), close_tag)
+                } else {
+                    Element::Node(open_tag, Box::new(Element::Nested(children)), close_tag)
+                };
+                println!("Parsed node: {:?}", node);
+                Ok((input, node))
+            } else {
+                let content = Element::Content("Mismatched tags");
+                println!("Parsed content: {:?}", content);
+                Ok((input, content))
+            }
+        }
+        _ => {
+            let content = Element::Content("Invalid tag state");
+            println!("Parsed content: {:?}", content);
+            Ok((input, content))
+        }
+    }
 }
+
+
+
+
+
+
 
 
 
