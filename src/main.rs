@@ -79,9 +79,9 @@ impl<'a> Element<'a> {
         take_until("</")(input)
     }
 
-    fn parse_recursive(input: &'a str) -> IResult<&'a str, Self> {
+    fn parse(input: &'a str) -> IResult<&'a str, Self> {
         let (input, open_tag) = Tag::parse(input)?;
-        let (input, children) = many0(Self::parse_recursive)(input)?;
+        let (input, children) = many0(Self::parse)(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, close_tag) = Tag::parse(input)?;
 
@@ -114,7 +114,7 @@ impl<'a> Element<'a> {
 
 fn main() {
     let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3><tst:inner_tag4><inner_inner_tag1>inner_inner_tag1 content</inner_inner_tag1><header>header contents></header><inner_inner_tag1>inner_inner_tag1 content2</inner_inner_tag1></tst:inner_tag4></root>";
-    let (tail, result) = Element::parse_recursive(input).unwrap();
+    let (tail, result) = Element::parse(input).unwrap();
     println!("result: {:#?}", result);
     println!("tail: {:?}", tail);
 }
