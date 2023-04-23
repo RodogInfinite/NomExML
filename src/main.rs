@@ -77,7 +77,7 @@ fn parse_tag(input: &str) -> IResult<&str, Tag> {
 }
 
 fn parse_content(input: &str) -> IResult<&str, &str> {
-    take_until("<")(input)
+    take_until("</")(input)
 }
 
 // Modify parse_recursive function to handle Element::Node structure correctly
