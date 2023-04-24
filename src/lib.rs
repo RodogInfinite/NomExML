@@ -1,14 +1,17 @@
 mod debug;
 
+use std::{fs::File, io::Read};
+
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until, take_while1},
+    bytes::complete::{tag, take_until, take_while, take_while1},
     character::complete::alpha1,
     combinator::{map, opt, recognize},
     multi::many0,
     sequence::{delimited, pair},
     IResult,
 };
+use std::io::BufReader;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Namespace<'ns> {
@@ -79,11 +82,27 @@ impl<'a> Element<'a> {
         take_until("</")(input)
     }
 
+    fn parse_whitespace(input: &str) -> IResult<&str, &str> {
+        take_while(|c: char| c.is_whitespace())(input)
+    }
+
+    // Helper function to combine parsing and ignoring whitespace
+    fn parse_element_with_whitespace<F, O>(input: &'a str, parser: F) -> IResult<&'a str, O>
+    where
+        F: Fn(&'a str) -> IResult<&'a str, O>,
+    {
+        let (input, _) = Self::parse_whitespace(input)?;
+        let (input, result) = parser(input)?;
+        let (input, _) = Self::parse_whitespace(input)?;
+        Ok((input, result))
+    }
+
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Self> {
-        let (input, open_tag) = Tag::parse(input)?;
-        let (input, children) = many0(Self::parse_xml_str)(input)?;
-        let (input, content) = Self::parse_content(input)?;
-        let (input, close_tag) = Tag::parse(input)?;
+        let (input, open_tag) = Self::parse_element_with_whitespace(input, Tag::parse)?;
+        let (input, children) =
+            Self::parse_element_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
+        let (input, content) = Self::parse_element_with_whitespace(input, Self::parse_content)?;
+        let (input, close_tag) = Self::parse_element_with_whitespace(input, Tag::parse)?;
 
         if tags_match(&open_tag, &close_tag) {
             let child_element = determine_child_element(&content, children);
@@ -97,6 +116,21 @@ impl<'a> Element<'a> {
                 nom::error::ErrorKind::Verify,
             )))
         }
+    }
+
+    pub fn parse_file(file: &mut File, buffer: &'a mut String) -> IResult<&'a str, Self> {
+        let mut reader = BufReader::new(file);
+
+        // Read the entire file content into the buffer
+        if let Err(e) = reader.read_to_string(buffer) {
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                "",
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+
+        // Parse the XML string using the parse_xml_str function
+        Self::parse_xml_str(buffer)
     }
 }
 
