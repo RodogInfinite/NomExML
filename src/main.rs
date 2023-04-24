@@ -1,3 +1,3 @@
-use NomExML::{Element, Namespace, Tag};
+use nomexml::{Element, Namespace, Tag};
 
 fn main() {}

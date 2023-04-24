@@ -1,4 +1,4 @@
-use NomExML::{Element, Namespace, Tag};
+use nomexml::{Element, Namespace, Tag};
 
 #[test]
 fn test_nested_recursion() {
