@@ -2,9 +2,9 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while1},
     character::complete::alpha1,
-    combinator::{map, opt},
+    combinator::{map, opt, recognize},
     multi::many0,
-    sequence::{delimited, preceded, tuple},
+    sequence::{delimited, preceded, tuple, pair},
     IResult,
 };
 
@@ -39,29 +39,38 @@ impl<'a> Tag<'a> {
             map(
                 delimited(
                     tag("<"),
-                    // Look for an optional namespace prefix and the local name of the tag.
-                    tuple((
-                        opt(preceded(alpha1, tag(":"))),
+                    recognize(pair(
+                        // Look for an optional namespace prefix
+                        opt(pair(alpha1, tag(":"))),
                         take_while1(|c: char| c.is_alphanumeric() || c == '_'),
                     )),
                     tag(">"),
                 ),
-                // Use the create_ns_tag helper function to create an opening tag (Tag::Open).
-                |(prefix, local_name)| create_ns_tag(prefix, local_name, Tag::Open),
+                |tag_name: &str| {
+                    // Check if there's a namespace prefix
+                    let mut parts = tag_name.split(':');
+                    if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
+                        Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Open(local_name)))
+                    } else {
+                        Tag::Open(tag_name)
+                    }
+                },
             ),
             // Parse closing tags
             map(
                 delimited(
                     tag("</"),
-                    // Look for an optional namespace prefix and the local name of the tag.
-                    tuple((
-                        opt(preceded(alpha1, tag(":"))),
-                        take_while1(|c: char| c.is_alphanumeric() || c == '_'),
-                    )),
+                    take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == ':'),
                     tag(">"),
                 ),
-                // Use the create_ns_tag helper function to create a closing tag (Tag::Close).
-                |(prefix, local_name)| create_ns_tag(prefix, local_name, Tag::Close),
+                |tag_name: &str| {
+                    let mut parts = tag_name.split(':');
+                    if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
+                        Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Close(local_name)))
+                    } else {
+                        Tag::Close(tag_name)
+                    }
+                },
             ),
         ))(input)
     }
@@ -84,33 +93,41 @@ impl<'a> Element<'a> {
         let (input, children) = many0(Self::parse_xml_str)(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, close_tag) = Tag::parse(input)?;
-
-        match (&open_tag, &close_tag) {
-            (Tag::Open(open_name), Tag::Close(close_name))
-            | (
-                Tag::NS(Namespace::Prefix(open_name), _),
-                Tag::NS(Namespace::Prefix(close_name), _),
-            ) if open_name == close_name => {
-                let child_element = if !content.is_empty() {
-                    Element::Content(content)
-                } else if children.len() == 1 {
-                    children.into_iter().next().unwrap()
-                } else {
-                    Element::Nested(children)
-                };
-
-                Ok((
-                    input,
-                    Element::Node(open_tag, Box::new(child_element), close_tag),
-                ))
-            }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
+    
+        if tags_match(&open_tag, &close_tag) {
+            let child_element = determine_child_element(&content, children);
+            Ok((input, Element::Node(open_tag, Box::new(child_element), close_tag)))
+        } else {
+            Err(nom::Err::Error(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Verify,
-            ))),
+            )))
         }
     }
 }
+
+// Helper function to determine the child element type
+fn determine_child_element<'a>(content: &'a str, children: Vec<Element<'a>>) -> Element<'a> {
+    if !content.is_empty() {
+        Element::Content(content)
+    } else if children.len() == 1 {
+        children.into_iter().next().unwrap()
+    } else {
+        Element::Nested(children)
+    }
+}
+// Helper function to verify if open and close tags match
+fn tags_match(open_tag: &Tag, close_tag: &Tag) -> bool {
+    match (open_tag, close_tag) {
+        (Tag::Open(open_name), Tag::Close(close_name))
+        | (
+            Tag::NS(Namespace::Prefix(open_name), _),
+            Tag::NS(Namespace::Prefix(close_name), _),
+        ) => open_name == close_name,
+        _ => false,
+    }
+}
+
 
 fn main() {
     let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3><tst:inner_tag4><inner_inner_tag1>inner_inner_tag1 content</inner_inner_tag1><header>header contents></header><inner_inner_tag1>inner_inner_tag1 content2</inner_inner_tag1></tst:inner_tag4></root>";
