@@ -1,4 +1,4 @@
-pub mod debug;
+mod debug;
 
 use nom::{
     branch::alt,
@@ -6,7 +6,7 @@ use nom::{
     character::complete::alpha1,
     combinator::{map, opt, recognize},
     multi::many0,
-    sequence::{delimited, preceded, tuple, pair},
+    sequence::{delimited, pair},
     IResult,
 };
 
@@ -21,17 +21,6 @@ pub enum Tag<'a> {
     Open(&'a str),
     Close(&'a str),
     NS(Namespace<'a>, Box<Tag<'a>>), // NS(Prefix, Tag::Open | Tag::Close)
-}
-
-fn create_ns_tag<'a>(
-    prefix: Option<&'a str>,
-    local_name: &'a str,
-    tag_type: fn(&'a str) -> Tag<'a>,
-) -> Tag<'a> {
-    match prefix {
-        Some(p) => Tag::NS(Namespace::Prefix(p), Box::new(tag_type(local_name))),
-        None => tag_type(local_name),
-    }
 }
 
 impl<'a> Tag<'a> {
@@ -95,10 +84,13 @@ impl<'a> Element<'a> {
         let (input, children) = many0(Self::parse_xml_str)(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, close_tag) = Tag::parse(input)?;
-    
+
         if tags_match(&open_tag, &close_tag) {
             let child_element = determine_child_element(&content, children);
-            Ok((input, Element::Node(open_tag, Box::new(child_element), close_tag)))
+            Ok((
+                input,
+                Element::Node(open_tag, Box::new(child_element), close_tag),
+            ))
         } else {
             Err(nom::Err::Error(nom::error::Error::new(
                 input,
@@ -122,10 +114,9 @@ fn determine_child_element<'a>(content: &'a str, children: Vec<Element<'a>>) -> 
 fn tags_match(open_tag: &Tag, close_tag: &Tag) -> bool {
     match (open_tag, close_tag) {
         (Tag::Open(open_name), Tag::Close(close_name))
-        | (
-            Tag::NS(Namespace::Prefix(open_name), _),
-            Tag::NS(Namespace::Prefix(close_name), _),
-        ) => open_name == close_name,
+        | (Tag::NS(Namespace::Prefix(open_name), _), Tag::NS(Namespace::Prefix(close_name), _)) => {
+            open_name == close_name
+        }
         _ => false,
     }
 }

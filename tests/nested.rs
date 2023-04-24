@@ -1,5 +1,4 @@
-use NomExML::{Element, Tag, Namespace};
-
+use NomExML::{Element, Namespace, Tag};
 
 #[test]
 fn test_nested_recursion() {
@@ -55,7 +54,6 @@ fn test_nested_recursion() {
                             )),
                             Tag::Close("inner_inner_tag2")
                         ),
-                        
                     ])),
                     Tag::NS(Namespace::Prefix("tst"), Box::new(Tag::Close("inner_tag4")))
                 ),

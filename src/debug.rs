@@ -1,5 +1,5 @@
+use crate::{Element, Namespace, Tag};
 use std::fmt::{self, Formatter};
-use crate::{Namespace, Tag, Element};
 
 fn fmt_indented(f: &mut String, indent: usize, s: &str) {
     f.push_str(&" ".repeat(indent));

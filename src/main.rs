@@ -1,6 +1,3 @@
-use NomExML::{Element, Tag, Namespace};
+use NomExML::{Element, Namespace, Tag};
 
-
-fn main() {
-    
-}
+fn main() {}
