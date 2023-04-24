@@ -15,4 +15,8 @@ Cargo.lock
 *.pdb
 
 # Prevent large files from being uploaded
-data/
+# Ignore everything in the 'data' directory
+data/*
+
+# Except for the 'test.xml' file
+!data/test.xml
