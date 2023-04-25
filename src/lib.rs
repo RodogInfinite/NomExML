@@ -7,27 +7,52 @@ use nom::{
     bytes::complete::{tag, take_until, take_while, take_while1},
     character::complete::alpha1,
     combinator::{map, opt, recognize},
+    error::convert_error,
     multi::many0,
     sequence::{delimited, pair},
     IResult,
 };
+
+use rayon::prelude::*;
+use std::fs::{self, DirEntry};
+use std::io::Error as IoError;
+use std::path::Path;
+
 use std::io::BufReader;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Namespace<'ns> {
-    Prefix(&'ns str),
-    URI(&'ns str),
+pub struct Namespace<'a> {
+    pub prefix: &'a str,
+    pub uri: Option<&'a str>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Tag<'a> {
-    Open(&'a str),
-    Close(&'a str),
-    NS(Namespace<'a>, Box<Tag<'a>>), // NS(Prefix, Tag::Open | Tag::Close)
+pub enum ExternalID {
+    Public,
+    System,
 }
 
-impl<'a> Tag<'a> {
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+#[derive(Clone, PartialEq)]
+pub enum Element<'a> {
+    DocType {
+        name: &'a str,
+        external_id: Option<ExternalID>,
+        int_subset: Option<&'a str>,
+    },
+    Tag {
+        open: bool,
+        close: bool,
+        name: &'a str,
+        namespace: Option<Namespace<'a>>,
+    },
+    Node(Box<Element<'a>>, Box<Element<'a>>, Box<Element<'a>>),
+    Content(Option<&'a str>),
+    Nested(Vec<Element<'a>>),
+    Comment(Option<&'a str>), //	Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
+}
+
+impl<'a> Element<'a> {
+    fn parse_tag(input: &'a str) -> IResult<&'a str, Element<'a>> {
         alt((
             // Parse opening tags
             map(
@@ -44,9 +69,19 @@ impl<'a> Tag<'a> {
                     // Check if there's a namespace prefix
                     let mut parts = tag_name.split(':');
                     if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                        Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Open(local_name)))
+                        Element::Tag {
+                            open: true,
+                            close: false,
+                            name: local_name,
+                            namespace: Some(Namespace { prefix, uri: None }),
+                        }
                     } else {
-                        Tag::Open(tag_name)
+                        Element::Tag {
+                            open: true,
+                            close: false,
+                            name: tag_name,
+                            namespace: None,
+                        }
                     }
                 },
             ),
@@ -60,26 +95,31 @@ impl<'a> Tag<'a> {
                 |tag_name: &str| {
                     let mut parts = tag_name.split(':');
                     if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                        Tag::NS(Namespace::Prefix(prefix), Box::new(Tag::Close(local_name)))
+                        Element::Tag {
+                            open: false,
+                            close: true,
+                            name: local_name,
+                            namespace: Some(Namespace { prefix, uri: None }),
+                        }
                     } else {
-                        Tag::Close(tag_name)
+                        Element::Tag {
+                            open: false,
+                            close: true,
+                            name: tag_name,
+                            namespace: None,
+                        }
                     }
                 },
             ),
         ))(input)
     }
-}
-
-#[derive(Clone, PartialEq)]
-pub enum Element<'a> {
-    Node(Tag<'a>, Box<Element<'a>>, Tag<'a>),
-    Content(&'a str),
-    Nested(Vec<Element<'a>>),
-}
-
-impl<'a> Element<'a> {
-    fn parse_content(input: &'a str) -> IResult<&'a str, &'a str> {
-        take_until("</")(input)
+    fn parse_content(input: &'a str) -> IResult<&'a str, Option<&'a str>> {
+        let (tail, content) = take_until("</")(input)?;
+        if content.is_empty() {
+            Ok((tail, None))
+        } else {
+            Ok((tail, Some(content)))
+        }
     }
 
     fn parse_whitespace(input: &str) -> IResult<&str, &str> {
@@ -98,45 +138,98 @@ impl<'a> Element<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Self> {
-        let (input, open_tag) = Self::parse_element_with_whitespace(input, Tag::parse)?;
+        let (input, open_element) = Self::parse_element_with_whitespace(input, Self::parse_tag)?;
         let (input, children) =
             Self::parse_element_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
         let (input, content) = Self::parse_element_with_whitespace(input, Self::parse_content)?;
-        let (input, close_tag) = Self::parse_element_with_whitespace(input, Tag::parse)?;
+        let (input, close_element) = Self::parse_element_with_whitespace(input, Self::parse_tag)?;
 
-        if tags_match(&open_tag, &close_tag) {
-            let child_element = determine_child_element(&content, children);
-            Ok((
-                input,
-                Element::Node(open_tag, Box::new(child_element), close_tag),
-            ))
-        } else {
-            Err(nom::Err::Error(nom::error::Error::new(
+        match (&open_element, &close_element) {
+            (
+                Element::Tag {
+                    open: true,
+                    close: false,
+                    ..
+                },
+                Element::Tag {
+                    open: false,
+                    close: true,
+                    ..
+                },
+            ) => {
+                if tags_match(&open_element, &close_element) {
+                    let child_element = determine_child_element(content, children);
+
+                    // Modify open and close tags to have both open and close set to true
+                    let modified_open_element = match open_element {
+                        Element::Tag {
+                            open: true,
+                            close: false,
+                            name,
+                            namespace,
+                        } => Element::Tag {
+                            open: true,
+                            close: true,
+                            name,
+                            namespace,
+                        },
+                        _ => unreachable!(),
+                    };
+                    let modified_close_element = match close_element {
+                        Element::Tag {
+                            open: false,
+                            close: true,
+                            name,
+                            namespace,
+                        } => Element::Tag {
+                            open: true,
+                            close: true,
+                            name,
+                            namespace,
+                        },
+                        _ => unreachable!(),
+                    };
+
+                    Ok((
+                        input,
+                        Element::Node(
+                            Box::new(modified_open_element),
+                            Box::new(child_element),
+                            Box::new(modified_close_element),
+                        ),
+                    ))
+                } else {
+                    Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )))
+                }
+            }
+            (
+                Element::Tag {
+                    open: false,
+                    close: true,
+                    ..
+                },
+                _,
+            ) => Err(nom::Err::Error(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Verify,
-            )))
-        }
-    }
-
-    pub fn parse_file(file: &mut File, buffer: &'a mut String) -> IResult<&'a str, Self> {
-        let mut reader = BufReader::new(file);
-
-        // Read the entire file content into the buffer
-        if let Err(e) = reader.read_to_string(buffer) {
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                "",
+            ))),
+            _ => Err(nom::Err::Error(nom::error::Error::new(
+                input,
                 nom::error::ErrorKind::Verify,
-            )));
+            ))),
         }
-
-        // Parse the XML string using the parse_xml_str function
-        Self::parse_xml_str(buffer)
     }
 }
 
 // Helper function to determine the child element type
-fn determine_child_element<'a>(content: &'a str, children: Vec<Element<'a>>) -> Element<'a> {
-    if !content.is_empty() {
+fn determine_child_element<'a>(
+    content: Option<&'a str>,
+    children: Vec<Element<'a>>,
+) -> Element<'a> {
+    if content.is_some() {
         Element::Content(content)
     } else if children.len() == 1 {
         children.into_iter().next().unwrap()
@@ -144,13 +237,55 @@ fn determine_child_element<'a>(content: &'a str, children: Vec<Element<'a>>) -> 
         Element::Nested(children)
     }
 }
+
 // Helper function to verify if open and close tags match
-fn tags_match(open_tag: &Tag, close_tag: &Tag) -> bool {
+fn tags_match(open_tag: &Element, close_tag: &Element) -> bool {
     match (open_tag, close_tag) {
-        (Tag::Open(open_name), Tag::Close(close_name))
-        | (Tag::NS(Namespace::Prefix(open_name), _), Tag::NS(Namespace::Prefix(close_name), _)) => {
-            open_name == close_name
+        (
+            Element::Tag {
+                open: true,
+                close: false,
+                name: open_name,
+                namespace: open_ns,
+            },
+            Element::Tag {
+                open: false,
+                close: true,
+                name: close_name,
+                namespace: close_ns,
+            },
+        ) => {
+            // Check if names and namespaces match
+            open_name == close_name && open_ns == close_ns
         }
         _ => false,
     }
+}
+
+pub fn parse_file(
+    file: &mut File,
+) -> Result<Element<'static>, nom::Err<nom::error::Error<String>>> {
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    let content = Box::leak(content.into_boxed_str());
+    let (_, element) = Element::parse_xml_str(content).map_err(|err| {
+        err.map(|inner_err| nom::error::Error::new(inner_err.input.to_string(), inner_err.code))
+    })?;
+    Ok(element)
+}
+
+pub fn parse_directory(
+    path: &Path,
+) -> Result<Vec<Result<Element, nom::Err<nom::error::Error<String>>>>, IoError> {
+    let entries = fs::read_dir(path)?;
+    let results = entries
+        .par_bridge()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml")) // Fix the E0369 error by adding `to_str()` here.
+        .map(|entry| {
+            let mut file = File::open(entry.path()).unwrap();
+            parse_file(&mut file)
+        })
+        .collect::<Vec<_>>();
+    Ok(results)
 }

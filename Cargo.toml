@@ -9,3 +9,4 @@ description = "A Rust Crate for parsing XML."
 
 [dependencies]
 nom.workspace = true
+rayon = "1.7.0"

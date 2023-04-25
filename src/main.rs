@@ -1,19 +1,20 @@
-use std::fs::File;
+use std::{error::Error, fs::File, path::Path};
 
-use nomexml::{Element, Namespace, Tag};
+use nomexml::{parse_directory, parse_file, Element, Namespace};
 
-fn main() {
-    let mut file = File::open("data/test.xml").unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    // let mut file = File::open("data/xmltest/valid/sa/001.xml")?;
+    // //let mut dir = Path::new("data/xmltest/valid/sa");
 
-    let mut buffer = String::new();
-    let result = Element::parse_file(&mut file, &mut buffer);
+    // //let elements = parse_directory(dir)?;
+    //  let element = parse_file(&mut file)?;
 
-    match result {
-        Ok((_rest, element)) => {
-            println!("Parsed XML: {:?}", element);
-        }
-        Err(e) => {
-            eprintln!("Error parsing XML: {:?}", e);
-        }
-    }
+    //  println!("Parsed XML: {:?}", element);
+
+    let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3><tst:inner_tag4><inner_inner_tag1>inner_inner_tag1 content</inner_inner_tag1><header>header contents</header><inner_inner_tag1>inner_inner_tag1 content2</inner_inner_tag1><inner_inner_tag2><inner_inner_inner_tag1>inner_inner_inner_tag1 content</inner_inner_inner_tag1></inner_inner_tag2></tst:inner_tag4></root>";
+    let (tail, result) = Element::parse_xml_str(input).unwrap();
+    println!("result:\n{result:?}");
+    println!("tail: {tail:?}");
+
+    Ok(())
 }
