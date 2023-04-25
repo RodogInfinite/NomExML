@@ -1,6 +1,6 @@
 use std::{error::Error, fs::File, path::Path};
 
-use nomexml::{parse_directory, parse_file, Element, Namespace};
+use nomexml::{Element};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let mut file = File::open("data/xmltest/valid/sa/001.xml")?;
