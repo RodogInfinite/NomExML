@@ -157,53 +157,46 @@ impl<'a> Element<'a> {
                     ..
                 },
             ) => {
-                if tags_match(&open_element, &close_element) {
-                    let child_element = determine_child_element(content, children);
+                let child_element = determine_child_element(content, children);
 
-                    // Modify open and close tags to have both open and close set to true
-                    let modified_open_element = match open_element {
-                        Element::Tag {
-                            open: true,
-                            close: false,
-                            name,
-                            namespace,
-                        } => Element::Tag {
-                            open: true,
-                            close: true,
-                            name,
-                            namespace,
-                        },
-                        _ => unreachable!(),
-                    };
-                    let modified_close_element = match close_element {
-                        Element::Tag {
-                            open: false,
-                            close: true,
-                            name,
-                            namespace,
-                        } => Element::Tag {
-                            open: true,
-                            close: true,
-                            name,
-                            namespace,
-                        },
-                        _ => unreachable!(),
-                    };
+                // Modify open and close tags to have both open and close set to true
+                let modified_open_element = match open_element {
+                    Element::Tag {
+                        open: true,
+                        close: false,
+                        name,
+                        namespace,
+                    } => Element::Tag {
+                        open: true,
+                        close: true,
+                        name,
+                        namespace,
+                    },
+                    _ => unreachable!(),
+                };
+                let modified_close_element = match close_element {
+                    Element::Tag {
+                        open: false,
+                        close: true,
+                        name,
+                        namespace,
+                    } => Element::Tag {
+                        open: true,
+                        close: true,
+                        name,
+                        namespace,
+                    },
+                    _ => unreachable!(),
+                };
 
-                    Ok((
-                        input,
-                        Element::Node(
-                            Box::new(modified_open_element),
-                            Box::new(child_element),
-                            Box::new(modified_close_element),
-                        ),
-                    ))
-                } else {
-                    Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Verify,
-                    )))
-                }
+                Ok((
+                    input,
+                    Element::Node(
+                        Box::new(modified_open_element),
+                        Box::new(child_element),
+                        Box::new(modified_close_element),
+                    ),
+                ))
             }
             (
                 Element::Tag {
@@ -235,30 +228,6 @@ fn determine_child_element<'a>(
         children.into_iter().next().unwrap()
     } else {
         Element::Nested(children)
-    }
-}
-
-// Helper function to verify if open and close tags match
-fn tags_match(open_tag: &Element, close_tag: &Element) -> bool {
-    match (open_tag, close_tag) {
-        (
-            Element::Tag {
-                open: true,
-                close: false,
-                name: open_name,
-                namespace: open_ns,
-            },
-            Element::Tag {
-                open: false,
-                close: true,
-                name: close_name,
-                namespace: close_ns,
-            },
-        ) => {
-            // Check if names and namespaces match
-            open_name == close_name && open_ns == close_ns
-        }
-        _ => false,
     }
 }
 
