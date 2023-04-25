@@ -1,24 +1,19 @@
 mod debug;
 
-use std::{fs::File, io::Read};
-
+use std::{fs::{File, self}, io::Read};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while, take_while1},
     character::complete::alpha1,
     combinator::{map, opt, recognize},
-    error::convert_error,
     multi::many0,
     sequence::{delimited, pair},
     IResult,
 };
-
-use rayon::prelude::*;
-use std::fs::{self, DirEntry};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::io::Error as IoError;
 use std::path::Path;
 
-use std::io::BufReader;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace<'a> {
