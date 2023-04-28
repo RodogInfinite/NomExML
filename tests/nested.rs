@@ -1,175 +1,157 @@
-use nomexml::{Element, Namespace};
+use nomexml::{Document, Namespace, Tag, TagState};
 
 #[test]
 fn test_nested_recursion() {
     let input = "<root><inner_tag1>inner_tag1 content</inner_tag1><inner_tag2>2</inner_tag2><tst:inner_tag3>3</tst:inner_tag3><tst:inner_tag4><inner_inner_tag1>inner_inner_tag1 content</inner_inner_tag1><header>header contents</header><inner_inner_tag1>inner_inner_tag1 content2</inner_inner_tag1><inner_inner_tag2><inner_inner_inner_tag1>inner_inner_inner_tag1 content</inner_inner_inner_tag1></inner_inner_tag2></tst:inner_tag4></root>";
 
-    let (_, result) = Element::parse_xml_str(input).unwrap();
+    let (_, result) = Document::parse_xml_str(input).unwrap();
 
     assert_eq!(
         result,
-        Element::Node(
-            Box::new(Element::Tag {
-                open: true,
-                close: true,
-                name: "root",
+        Document::Element(
+            Tag::Tag {
+                name: "root".into(),
                 namespace: None,
-            }),
-            Box::new(Element::Nested(vec![
-                Element::Node(
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag1",
+                state: TagState::Start,
+            },
+            Box::new(Document::Nested(vec![
+                Document::Element(
+                    Tag::Tag {
+                        name: "inner_tag1".into(),
                         namespace: None,
-                    }),
-                    Box::new(Element::Content(Some("inner_tag1 content"))),
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag1",
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Content(Some("inner_tag1 content".into()))),
+                    Tag::Tag {
+                        name: "inner_tag1".into(),
                         namespace: None,
-                    })
+                        state: TagState::End,
+                    },
                 ),
-                Element::Node(
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag2",
+                Document::Element(
+                    Tag::Tag {
+                        name: "inner_tag2".into(),
                         namespace: None,
-                    }),
-                    Box::new(Element::Content(Some("2"))),
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag2",
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Content(Some("2".into()))),
+                    Tag::Tag {
+                        name: "inner_tag2".into(),
                         namespace: None,
-                    })
+                        state: TagState::End,
+                    },
                 ),
-                Element::Node(
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag3",
+                Document::Element(
+                    Tag::Tag {
+                        name: "inner_tag3".into(),
                         namespace: Some(Namespace {
-                            prefix: "tst",
-                            uri: None
+                            prefix: "tst".into(),
+                            uri: None,
                         }),
-                    }),
-                    Box::new(Element::Content(Some("3"))),
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag3",
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Content(Some("3".into()))),
+                    Tag::Tag {
+                        name: "inner_tag3".into(),
                         namespace: Some(Namespace {
-                            prefix: "tst",
-                            uri: None
+                            prefix: "tst".into(),
+                            uri: None,
                         }),
-                    })
+                        state: TagState::End,
+                    },
                 ),
-                Element::Node(
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag4",
+                Document::Element(
+                    Tag::Tag {
+                        name: "inner_tag4".into(),
                         namespace: Some(Namespace {
-                            prefix: "tst",
-                            uri: None
+                            prefix: "tst".into(),
+                            uri: None,
                         }),
-                    }),
-                    Box::new(Element::Nested(vec![
-                        Element::Node(
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag1",
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Nested(vec![
+                        Document::Element(
+                            Tag::Tag {
+                                name: "inner_inner_tag1".into(),
                                 namespace: None,
-                            }),
-                            Box::new(Element::Content(Some("inner_inner_tag1 content"))),
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag1",
+                                state: TagState::Start,
+                            },
+                            Box::new(Document::Content(Some("inner_inner_tag1 content".into()))),
+                            Tag::Tag {
+                                name: "inner_inner_tag1".into(),
                                 namespace: None,
-                            })
+                                state: TagState::End,
+                            },
                         ),
-                        Element::Node(
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "header",
+                        Document::Element(
+                            Tag::Tag {
+                                name: "header".into(),
                                 namespace: None,
-                            }),
-                            Box::new(Element::Content(Some("header contents"))),
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "header",
+                                state: TagState::Start,
+                            },
+                            Box::new(Document::Content(Some("header contents".into()))),
+                            Tag::Tag {
+                                name: "header".into(),
                                 namespace: None,
-                            })
+                                state: TagState::End,
+                            },
                         ),
-                        Element::Node(
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag1",
+                        Document::Element(
+                            Tag::Tag {
+                                name: "inner_inner_tag1".into(),
                                 namespace: None,
-                            }),
-                            Box::new(Element::Content(Some("inner_inner_tag1 content2"))),
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag1",
+                                state: TagState::Start,
+                            },
+                            Box::new(Document::Content(Some("inner_inner_tag1 content2".into()))),
+                            Tag::Tag {
+                                name: "inner_inner_tag1".into(),
                                 namespace: None,
-                            })
+                                state: TagState::End,
+                            },
                         ),
-                        Element::Node(
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag2",
+                        Document::Element(
+                            Tag::Tag {
+                                name: "inner_inner_tag2".into(),
                                 namespace: None,
-                            }),
-                            Box::new(Element::Node(
-                                Box::new(Element::Tag {
-                                    open: true,
-                                    close: true,
-                                    name: "inner_inner_inner_tag1",
+                                state: TagState::Start,
+                            },
+                            Box::new(Document::Element(
+                                Tag::Tag {
+                                    name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
-                                }),
-                                Box::new(Element::Content(Some("inner_inner_inner_tag1 content"))),
-                                Box::new(Element::Tag {
-                                    open: true,
-                                    close: true,
-                                    name: "inner_inner_inner_tag1",
+                                    state: TagState::Start,
+                                },
+                                Box::new(Document::Content(Some(
+                                    "inner_inner_inner_tag1 content".into()
+                                ))),
+                                Tag::Tag {
+                                    name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
-                                })
-                            )),
-                            Box::new(Element::Tag {
-                                open: true,
-                                close: true,
-                                name: "inner_inner_tag2",
+                                    state: TagState::End,
+                                },
+                            ),),
+                            Tag::Tag {
+                                name: "inner_inner_tag2".into(),
                                 namespace: None,
-                            })
+                                state: TagState::End,
+                            },
                         ),
                     ])),
-                    Box::new(Element::Tag {
-                        open: true,
-                        close: true,
-                        name: "inner_tag4",
+                    Tag::Tag {
+                        name: "inner_tag4".into(),
                         namespace: Some(Namespace {
-                            prefix: "tst",
-                            uri: None
+                            prefix: "tst".into(),
+                            uri: None,
                         }),
-                    })
+                        state: TagState::End,
+                    },
                 ),
             ])),
-            Box::new(Element::Tag {
-                open: true,
-                close: true,
-                name: "root",
+            Tag::Tag {
+                name: "root".into(),
                 namespace: None,
-            }),
+                state: TagState::End,
+            },
         )
     );
 }
