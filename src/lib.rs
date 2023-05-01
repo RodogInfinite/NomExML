@@ -63,7 +63,7 @@ pub enum Document<'a> {
 }
 
 impl<'a> Document<'a> {
-    fn parse_tag(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
+    fn parse_tag_name(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         alt((
             // Parse starting tags
             map(
@@ -139,13 +139,13 @@ impl<'a> Document<'a> {
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         //let (input, declaration) = Self::parse_with_whitespace(input, opt(Self::parse_declaration))?;
         //println!("ParseDeclaration {declaration:?}");
-        let (input, start_tag) = Self::parse_tag(input)?;
+        let (input, start_tag) = Self::parse_tag_name(input)?;
         let (input, _) = space0(input)?;
         let (input, children) =
             Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
         let (input, content) = Self::parse_content(input)?;
         let (input, _) = space0(input)?;
-        let (input, end_tag) = Self::parse_tag(input)?;
+        let (input, end_tag) = Self::parse_tag_name(input)?;
 
         match (start_tag, end_tag) {
             ((start_name, start_namespace), (end_name, end_namespace)) => {
@@ -176,7 +176,8 @@ impl<'a> Document<'a> {
         }
     }
 
-    pub fn parse_tag_contents(
+
+    pub fn parse_tag(
         input: &'a str,
         xml_tag: &'a str,
     ) -> IResult<&'a str, Vec<Document<'a>>> {
@@ -186,7 +187,33 @@ impl<'a> Document<'a> {
 
         Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))
     }
+    
+    pub fn get_tags(&'a self, tag_name: &'a str) -> Vec<&Self> {
+        let mut results = Vec::new();
+        self.get_internal_tags(tag_name, &mut results);
+        results
+    }
+
+    fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
+        match self {
+            Document::Element(Tag::Tag { name, .. }, content, _) => {
+                if name == tag_name {
+                    results.push(self);
+                }
+                content.get_internal_tags(tag_name, results);
+            }
+            Document::Nested(docs) => {
+                let mut docs_iter = docs.iter();
+                while let Some(doc) = docs_iter.next() {
+                    doc.get_internal_tags(tag_name, results);
+                }
+            }
+            _ => (),
+        }
+    }
+    
 }
+
 
 // Helper function to determine the child Document type
 fn determine_child_document<'a>(
