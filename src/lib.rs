@@ -54,7 +54,6 @@ pub enum Tag<'a> {
 pub enum Document<'a> {
     Declaration(Option<Declaration<'a>>),
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
-    //Text(Cow<'a, str>),
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
