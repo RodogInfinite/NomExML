@@ -1,21 +1,20 @@
 mod debug;
 mod declaration;
+mod error;
 
 use declaration::Declaration;
+use error::CustomError;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while1},
-    character::{
-        complete::{alpha1, space0}
-    },
+    character::complete::{alpha1, multispace0},
     combinator::{map, opt, recognize},
     multi::many0,
     sequence::{delimited, pair},
     IResult,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use std::path::Path;
-use std::{borrow::Cow, io::Error as IoError};
+use std::{borrow::Cow, io::Error as IoError, path::Path};
 use std::{
     fs::{self, File},
     io::Read,
@@ -61,7 +60,9 @@ pub enum Document<'a> {
 }
 
 impl<'a> Document<'a> {
-    fn parse_tag_and_namespace(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
+    fn parse_tag_and_namespace(
+        input: &'a str,
+    ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         map(
             recognize(pair(
                 // Look for an optional namespace prefix
@@ -88,30 +89,12 @@ impl<'a> Document<'a> {
     fn parse_tag_name(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         alt((
             // Parse starting tags
-            map(
-                delimited(
-                    tag("<"),
-                    Self::parse_tag_and_namespace,
-                    tag(">"),
-                ),
-                |(tag_name, namespace)| {
-                    (tag_name, namespace)
-                },
-            ),
+            delimited(tag("<"), Self::parse_tag_and_namespace, tag(">")),
             // Parse closing tags
-            map(
-                delimited(
-                    tag("</"),
-                    Self::parse_tag_and_namespace,
-                    tag(">"),
-                ),
-                |(tag_name, namespace)| {
-                    (tag_name, namespace)
-                },
-            ),
+            delimited(tag("</"), Self::parse_tag_and_namespace, tag(">")),
         ))(input)
     }
-    
+
     fn parse_content(input: &'a str) -> IResult<&'a str, Option<&'a str>> {
         let (tail, content) = take_until("</")(input)?;
         if content.is_empty() {
@@ -126,41 +109,51 @@ impl<'a> Document<'a> {
     where
         F: FnMut(&'a str) -> IResult<&'a str, O>,
     {
-        let (input, _) = space0(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, result) = parser(input)?;
-        let (input, _) = space0(input)?;
+        let (input, _) = multispace0(input)?;
         Ok((input, result))
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, declaration) =
+            Self::parse_with_whitespace(input, opt(Self::parse_declaration))?;
+
         let (input, start_tag) = Self::parse_tag_name(input)?;
-        let (input, _) = space0(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, children) =
             Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
         let (input, content) = Self::parse_content(input)?;
-        let (input, _) = space0(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, end_tag) = Self::parse_tag_name(input)?;
-    
+
         match (start_tag, end_tag) {
             ((start_name, start_namespace), (end_name, end_namespace)) => {
                 if start_name == end_name && start_namespace == end_namespace {
-                    let child_document = determine_child_document(content, children).map_err(|e| {
-                        nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Verify))
-                    })?;
-    
-                    let element = Document::Element(
-                        Tag::Tag {
-                            name: start_name,
-                            namespace: start_namespace,
-                            state: TagState::Start,
-                        },
-                        Box::new(child_document),
-                        Tag::Tag {
-                            name: end_name,
-                            namespace: end_namespace,
-                            state: TagState::End,
-                        },
-                    );
+                    let child_document =
+                        determine_child_document(content, children).map_err(|e| {
+                            nom::Err::Failure(nom::error::Error::new(
+                                input,
+                                nom::error::ErrorKind::Verify,
+                            ))
+                        })?;
+
+                    let element = Document::Nested(vec![
+                        Document::Declaration(declaration),
+                        Document::Element(
+                            Tag::Tag {
+                                name: start_name,
+                                namespace: start_namespace,
+                                state: TagState::Start,
+                            },
+                            Box::new(child_document),
+                            Tag::Tag {
+                                name: end_name,
+                                namespace: end_namespace,
+                                state: TagState::End,
+                            },
+                        ),
+                    ]);
                     Ok((input, element))
                 } else {
                     Err(nom::Err::Error(nom::error::Error::new(
@@ -171,19 +164,15 @@ impl<'a> Document<'a> {
             }
         }
     }
-    
 
-    pub fn parse_tag(
-        input: &'a str,
-        xml_tag: &'a str,
-    ) -> IResult<&'a str, Vec<Document<'a>>> {
+    pub fn parse_tag(input: &'a str, xml_tag: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
         let start_tag = format!("<{xml_tag}");
         let end_tag = format!("</{xml_tag}");
         let (input, _) = take_until(start_tag.as_str())(input)?;
 
         Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))
     }
-    
+
     pub fn get_tags(&'a self, tag_name: &'a str) -> Elements<'a> {
         let mut results = Vec::new();
         self.get_internal_tags(tag_name, &mut results);
@@ -192,7 +181,13 @@ impl<'a> Document<'a> {
 
     fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
         match self {
-            Document::Element(Tag::Tag { name, namespace, .. }, content, _) => {
+            Document::Element(
+                Tag::Tag {
+                    name, namespace, ..
+                },
+                content,
+                _,
+            ) => {
                 if let Some(namespace) = namespace {
                     if tag_name == &(namespace.prefix.to_string() + ":" + name) {
                         results.push(self);
@@ -211,7 +206,7 @@ impl<'a> Document<'a> {
             _ => (),
         }
     }
-    
+
     fn extract_content(&'a self) -> Option<&'a str> {
         match self {
             Document::Element(_, content, _) => content.extract_content(),
@@ -219,7 +214,6 @@ impl<'a> Document<'a> {
             _ => None,
         }
     }
-    
 }
 
 pub struct Elements<'a> {
@@ -231,9 +225,6 @@ impl<'a> Elements<'a> {
         self.tags.iter().map(|tag| tag.extract_content()).collect()
     }
 }
-
-
-// Helper function to determine the child Document type
 // Helper function to determine the child Document type
 fn determine_child_document<'a>(
     content: Option<&'a str>,
@@ -253,29 +244,32 @@ fn determine_child_document<'a>(
     }
 }
 
-
-pub fn parse_file(
-    file: &mut File,
-) -> Result<Document<'static>, nom::Err<nom::error::Error<String>>> {
+pub fn read_file(file: &mut File) -> Result<String, IoError> {
     let mut content = String::new();
-    file.read_to_string(&mut content).unwrap();
+    file.read_to_string(&mut content)?;
+    Ok(content)
+}
+
+pub fn parse_file(file: &mut File) -> Result<Document<'static>, CustomError> {
+    let content = read_file(file)?;
     let content = Box::leak(content.into_boxed_str());
-    let (_, document) = Document::parse_xml_str(content).map_err(|err| {
-        err.map(|inner_err| nom::error::Error::new(inner_err.input.to_string(), inner_err.code))
+    let (_, document) = Document::parse_xml_str(content).map_err(|err| match err {
+        nom::Err::Error(e) | nom::Err::Failure(e) => {
+            CustomError::NomError(format!("error: {:?}, input: {}", e.code, e.input))
+        }
+        nom::Err::Incomplete(_) => CustomError::NomError("Incomplete parsing".to_string()),
     })?;
     Ok(document)
 }
 
-pub fn parse_directory(
-    path: &Path,
-) -> Result<Vec<Result<Document, nom::Err<nom::error::Error<String>>>>, IoError> {
+pub fn parse_directory(path: &Path) -> Result<Vec<Result<Document, CustomError>>, CustomError> {
     let entries = fs::read_dir(path)?;
     let results = entries
         .par_bridge()
         .filter_map(Result::ok)
         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml")) // Fix the E0369 error by adding `to_str()` here.
         .map(|entry| {
-            let mut file = File::open(entry.path()).unwrap();
+            let mut file = File::open(entry.path())?;
             parse_file(&mut file)
         })
         .collect::<Vec<_>>();

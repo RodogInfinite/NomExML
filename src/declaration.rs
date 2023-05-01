@@ -5,7 +5,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while, take_while1},
     character::{
-        complete::{alpha1, space0},
+        complete::{alpha1, multispace0, space0},
         is_alphanumeric,
     },
     combinator::{map, opt, recognize, value},
@@ -61,12 +61,10 @@ pub enum Declaration<'a> {
 }
 
 impl<'a> Document<'a> {
-    fn parse_declaration(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
+    pub fn parse_declaration(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
         let (input, _) = tag("<!")(input)?;
         let (input, decl) = opt(alpha1)(input)?;
-        println!("Decl?{decl:?} {input:?}");
         let (input, _) = space0(input)?;
-
         match decl {
             Some("DOCTYPE") => {
                 let (input, name) = opt(alpha1)(input)?;
@@ -77,11 +75,10 @@ impl<'a> Document<'a> {
                 )))(input)?;
                 let (input, _) = space0(input)?;
                 let (input, _) = tag("[")(input)?;
-                let (input, _) = space0(input)?;
+                let (input, _) = multispace0(input)?;
                 let (input, int_subset) = opt(many0(Self::parse_declaration))(input)?;
-                println!("HERE INPUT: {input:?}"); // prints: "<!ELEMENT doc (#PCDATA|TEST) >]><doc></doc>\n        "
+                let (input, _) = multispace0(input)?;
                 let (input, _) = tag("]")(input)?;
-                println!("Never Reaches here"); // never reaches here
                 let (input, _) = tag(">")(input)?;
                 if int_subset.is_some() {
                     Ok((
@@ -105,7 +102,6 @@ impl<'a> Document<'a> {
             }
             Some("ELEMENT") => {
                 let (input, element_name) = opt(alpha1)(input)?;
-                println!("ELEMENT?{element_name:?} {input:?}");
                 let (input, _) = space0(input)?;
 
                 let (input, content_spec) = Self::parse_spec(input)?;
@@ -231,7 +227,6 @@ impl<'a> Document<'a> {
 
     pub fn parse_spec(input: &'a str) -> IResult<&'a str, DeclarationContent<'a>> {
         let (input, mixed_content) = Self::parse_mixed(input)?;
-        println!("MC: {mixed_content:?}");
         let (input, children) = opt(Self::parse_children)(input)?;
         Ok((
             input,
