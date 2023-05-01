@@ -1,5 +1,5 @@
 mod debug;
-mod declaration;
+pub mod declaration;
 mod error;
 
 use declaration::Declaration;
@@ -86,7 +86,7 @@ impl<'a> Document<'a> {
             },
         )(input)
     }
-    fn parse_tag_name(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
+    fn parse_tag(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         alt((
             // Parse starting tags
             delimited(
@@ -123,13 +123,13 @@ impl<'a> Document<'a> {
         let (input, declaration) =
             Self::parse_with_whitespace(input, opt(Self::parse_declaration))?;
 
-        let (input, start_tag) = Self::parse_tag_name(input)?;
+        let (input, start_tag) = Self::parse_tag(input)?;
         let (input, _) = multispace0(input)?;
         let (input, children) =
             Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
         let (input, content) = Self::parse_content(input)?;
         let (input, _) = multispace0(input)?;
-        let (input, end_tag) = Self::parse_tag_name(input)?;
+        let (input, end_tag) = Self::parse_tag(input)?;
 
         match (start_tag, end_tag) {
             ((start_name, start_namespace), (end_name, end_namespace)) => {
@@ -137,14 +137,30 @@ impl<'a> Document<'a> {
                     let child_document =
                         determine_child_document(content, children).map_err(|e| {
                             nom::Err::Failure(nom::error::Error::new(
-                                input,
+                                e,
                                 nom::error::ErrorKind::Verify,
                             ))
                         })?;
-
-                    let element = Document::Nested(vec![
-                        Document::Declaration(declaration),
-                        Document::Element(
+                    if declaration.is_some() {
+                        let element = Document::Nested(vec![
+                            Document::Declaration(declaration),
+                            Document::Element(
+                                Tag::Tag {
+                                    name: start_name,
+                                    namespace: start_namespace,
+                                    state: TagState::Start,
+                                },
+                                Box::new(child_document),
+                                Tag::Tag {
+                                    name: end_name,
+                                    namespace: end_namespace,
+                                    state: TagState::End,
+                                },
+                            ),
+                        ]);
+                        Ok((input, element))
+                    } else {
+                        let element = Document::Element(
                             Tag::Tag {
                                 name: start_name,
                                 namespace: start_namespace,
@@ -156,9 +172,9 @@ impl<'a> Document<'a> {
                                 namespace: end_namespace,
                                 state: TagState::End,
                             },
-                        ),
-                    ]);
-                    Ok((input, element))
+                        );
+                        Ok((input, element))
+                    }
                 } else {
                     Err(nom::Err::Error(nom::error::Error::new(
                         input,
@@ -167,14 +183,6 @@ impl<'a> Document<'a> {
                 }
             }
         }
-    }
-
-    pub fn parse_tag(input: &'a str, xml_tag: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
-        let start_tag = format!("<{xml_tag}");
-        let end_tag = format!("</{xml_tag}");
-        let (input, _) = take_until(start_tag.as_str())(input)?;
-
-        Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))
     }
 
     pub fn get_tags(&'a self, tag_name: &'a str) -> Elements<'a> {
