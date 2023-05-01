@@ -4,14 +4,13 @@ mod declaration;
 use declaration::Declaration;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until, take_while, take_while1},
+    bytes::complete::{tag, take_until, take_while1},
     character::{
-        complete::{alpha1, space0},
-        is_alphanumeric,
+        complete::{alpha1, space0}
     },
-    combinator::{map, opt, recognize, value},
-    multi::{many0, separated_list0, separated_list1},
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    combinator::{map, opt, recognize},
+    multi::many0,
+    sequence::{delimited, pair},
     IResult,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -55,7 +54,7 @@ pub enum Tag<'a> {
 pub enum Document<'a> {
     Declaration(Option<Declaration<'a>>),
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
-    Text(Cow<'a, str>),
+    //Text(Cow<'a, str>),
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
@@ -63,59 +62,57 @@ pub enum Document<'a> {
 }
 
 impl<'a> Document<'a> {
+    fn parse_tag_and_namespace(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
+        map(
+            recognize(pair(
+                // Look for an optional namespace prefix
+                opt(pair(alpha1, tag(":"))),
+                take_while1(|c: char| c.is_alphanumeric() || c == '_'),
+            )),
+            |tag_name: &str| {
+                // Check if there's a namespace prefix
+                let mut parts = tag_name.split(':');
+                if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
+                    (
+                        Cow::Borrowed(local_name),
+                        Some(Namespace {
+                            prefix: Cow::Borrowed(prefix),
+                            uri: None,
+                        }),
+                    )
+                } else {
+                    (Cow::Borrowed(tag_name), None)
+                }
+            },
+        )(input)
+    }
     fn parse_tag_name(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         alt((
             // Parse starting tags
             map(
                 delimited(
                     tag("<"),
-                    recognize(pair(
-                        // Look for an optional namespace prefix
-                        opt(pair(alpha1, tag(":"))),
-                        take_while1(|c: char| c.is_alphanumeric() || c == '_'),
-                    )),
+                    Self::parse_tag_and_namespace,
                     tag(">"),
                 ),
-                |tag_name: &str| {
-                    // Check if there's a namespace prefix
-                    let mut parts = tag_name.split(':');
-                    if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                        (
-                            Cow::Borrowed(local_name),
-                            Some(Namespace {
-                                prefix: Cow::Borrowed(prefix),
-                                uri: None,
-                            }),
-                        )
-                    } else {
-                        (Cow::Borrowed(tag_name), None)
-                    }
+                |(tag_name, namespace)| {
+                    (tag_name, namespace)
                 },
             ),
             // Parse closing tags
             map(
                 delimited(
                     tag("</"),
-                    take_while1(|c: char| c.is_alphanumeric() || c == '_' || c == ':'),
+                    Self::parse_tag_and_namespace,
                     tag(">"),
                 ),
-                |tag_name: &str| {
-                    let mut parts = tag_name.split(':');
-                    if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
-                        (
-                            Cow::Borrowed(local_name),
-                            Some(Namespace {
-                                prefix: Cow::Borrowed(prefix),
-                                uri: None,
-                            }),
-                        )
-                    } else {
-                        (Cow::Borrowed(tag_name), None)
-                    }
+                |(tag_name, namespace)| {
+                    (tag_name, namespace)
                 },
             ),
         ))(input)
     }
+    
     fn parse_content(input: &'a str) -> IResult<&'a str, Option<&'a str>> {
         let (tail, content) = take_until("</")(input)?;
         if content.is_empty() {
@@ -137,8 +134,6 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        //let (input, declaration) = Self::parse_with_whitespace(input, opt(Self::parse_declaration))?;
-        //println!("ParseDeclaration {declaration:?}");
         let (input, start_tag) = Self::parse_tag_name(input)?;
         let (input, _) = space0(input)?;
         let (input, children) =
@@ -146,12 +141,14 @@ impl<'a> Document<'a> {
         let (input, content) = Self::parse_content(input)?;
         let (input, _) = space0(input)?;
         let (input, end_tag) = Self::parse_tag_name(input)?;
-
+    
         match (start_tag, end_tag) {
             ((start_name, start_namespace), (end_name, end_namespace)) => {
                 if start_name == end_name && start_namespace == end_namespace {
-                    let child_document = determine_child_document(content, children);
-
+                    let child_document = determine_child_document(content, children).map_err(|e| {
+                        nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Verify))
+                    })?;
+    
                     let element = Document::Element(
                         Tag::Tag {
                             name: start_name,
@@ -175,7 +172,7 @@ impl<'a> Document<'a> {
             }
         }
     }
-
+    
 
     pub fn parse_tag(
         input: &'a str,
@@ -188,16 +185,20 @@ impl<'a> Document<'a> {
         Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))
     }
     
-    pub fn get_tags(&'a self, tag_name: &'a str) -> Vec<&Self> {
+    pub fn get_tags(&'a self, tag_name: &'a str) -> Elements<'a> {
         let mut results = Vec::new();
         self.get_internal_tags(tag_name, &mut results);
-        results
+        Elements { tags: results }
     }
 
     fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
         match self {
-            Document::Element(Tag::Tag { name, .. }, content, _) => {
-                if name == tag_name {
+            Document::Element(Tag::Tag { name, namespace, .. }, content, _) => {
+                if let Some(namespace) = namespace {
+                    if tag_name == &(namespace.prefix.to_string() + ":" + name) {
+                        results.push(self);
+                    }
+                } else if name == tag_name {
                     results.push(self);
                 }
                 content.get_internal_tags(tag_name, results);
@@ -212,24 +213,47 @@ impl<'a> Document<'a> {
         }
     }
     
+    fn extract_content(&'a self) -> Option<&'a str> {
+        match self {
+            Document::Element(_, content, _) => content.extract_content(),
+            Document::Content(Some(content)) => Some(content),
+            _ => None,
+        }
+    }
+    
+}
+
+pub struct Elements<'a> {
+    tags: Vec<&'a Document<'a>>,
+}
+
+impl<'a> Elements<'a> {
+    pub fn extract_content(&self) -> Vec<Option<&'a str>> {
+        self.tags.iter().map(|tag| tag.extract_content()).collect()
+    }
 }
 
 
 // Helper function to determine the child Document type
+// Helper function to determine the child Document type
 fn determine_child_document<'a>(
     content: Option<&'a str>,
     children: Vec<Document<'a>>,
-) -> Document<'a> {
+) -> Result<Document<'a>, &'static str> {
     if let Some(content) = content {
-        Document::Content(Some(Cow::Borrowed(content)))
+        Ok(Document::Content(Some(Cow::Borrowed(content))))
     } else if children.is_empty() {
-        Document::Empty
+        Ok(Document::Empty)
     } else if children.len() == 1 {
-        children.into_iter().next().unwrap()
+        match children.into_iter().next() {
+            Some(child) => Ok(child),
+            None => Err("Unexpected error: no child found in non-empty children vector"),
+        }
     } else {
-        Document::Nested(children)
+        Ok(Document::Nested(children))
     }
 }
+
 
 pub fn parse_file(
     file: &mut File,
