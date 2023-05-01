@@ -1,14 +1,15 @@
-use std::{fs::File, error::Error};
+use std::{error::Error, fs::File};
 
-use nomexml::{parse_file, Document, Tag, TagState,ConditionalState,{declaration::{Declaration,DeclarationContent,Mixed}}};
+use nomexml::{
+    declaration::{Declaration, DeclarationContent, Mixed},
+    parse_file, ConditionalState, Document, Tag, TagState,
+};
 
-fn test_xml_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>>{
-
+fn test_xml_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
     let document = parse_file(&mut file)?;
     Ok(document)
 }
-
 
 #[test]
 fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
@@ -19,19 +20,17 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
             Document::Declaration(Some(Declaration::DocType {
                 name: Some("doc".into()),
                 external_id: None,
-                int_subset: Some(vec![
-                    Declaration::Element {
-                        name: Some("doc".into()),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                conditional_state: ConditionalState::None,
-                            },
-                            children: None,
-                        }),
-                    },
-                ]),
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },]),
             })),
             Document::Element(
                 Tag::Tag {
@@ -51,9 +50,7 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_valid_sa_002() {
     let document = test_xml_file("002");
-
 }
