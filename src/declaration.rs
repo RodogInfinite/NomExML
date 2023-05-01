@@ -3,14 +3,14 @@ use std::borrow::Cow;
 use crate::{ConditionalState, Document};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until, take_while, take_while1},
+    bytes::complete::{tag, take_while1},
     character::{
         complete::{alpha1, multispace0, space0},
         is_alphanumeric,
     },
-    combinator::{map, opt, recognize, value},
-    multi::{many0, separated_list0, separated_list1},
-    sequence::{delimited, pair, preceded, tuple},
+    combinator::{map, opt, value},
+    multi::{many0, separated_list1},
+    sequence::{delimited, tuple},
     IResult,
 };
 
@@ -24,8 +24,8 @@ pub enum ExternalID {
 pub enum ContentParticle<'a> {
     Particle {
         names: Option<Vec<Cow<'a, str>>>,
-        choice: Option<Vec<ContentParticle<'a>>>, // Vec(Particles)
-        sequence: Option<Vec<ContentParticle<'a>>>, // Vec(Particles)
+        choice: Option<Vec<ContentParticle<'a>>>,
+        sequence: Option<Vec<ContentParticle<'a>>>,
         conditional_state: Option<ConditionalState>,
     },
 }
@@ -43,7 +43,7 @@ pub enum Mixed<'a> {
 pub enum DeclarationContent<'a> {
     Spec {
         mixed: Mixed<'a>,
-        children: Option<Vec<ContentParticle<'a>>>, // Vec(Particles)
+        children: Option<Vec<ContentParticle<'a>>>,
     },
 }
 
@@ -52,7 +52,7 @@ pub enum Declaration<'a> {
     DocType {
         name: Option<Cow<'a, str>>,
         external_id: Option<ExternalID>,
-        int_subset: Option<Vec<Declaration<'a>>>, // Some(Vec<Box<Declaration::Element>>)
+        int_subset: Option<Vec<Declaration<'a>>>,
     },
     Element {
         name: Option<Cow<'a, str>>,
