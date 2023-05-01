@@ -89,7 +89,11 @@ impl<'a> Document<'a> {
     fn parse_tag_name(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         alt((
             // Parse starting tags
-            delimited(tag("<"), Self::parse_tag_and_namespace, tag(">")),
+            delimited(
+                tag("<"),
+                delimited(multispace0, Self::parse_tag_and_namespace, multispace0),
+                tag(">"),
+            ),
             // Parse closing tags
             delimited(tag("</"), Self::parse_tag_and_namespace, tag(">")),
         ))(input)
