@@ -131,7 +131,7 @@ impl<'a> Document<'a> {
         let (input, names) = opt(many0(Self::parse_name))(input)?;
         let (input, choice) = opt(Self::parse_choice)(input)?;
         let (input, sequence) = opt(Self::parse_seq)(input)?;
-        let (input, conditional_state) = opt(Self::parse_particle_state)(input)?;
+        let (input, conditional_state) = opt(Self::parse_conditional_state)(input)?;
 
         let content_particle = ContentParticle::Particle {
             names,
@@ -143,7 +143,7 @@ impl<'a> Document<'a> {
         Ok((input, content_particle))
     }
 
-    fn parse_particle_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
+    fn parse_conditional_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
         alt((
             value(ConditionalState::Optional, tag("?")),
             value(ConditionalState::ZeroOrMore, tag("*")),
