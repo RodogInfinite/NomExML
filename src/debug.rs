@@ -69,9 +69,6 @@ impl<'a> Document<'a> {
                 f.push_str("\n");
                 fmt_indented(f, indent, "),\n");
             }
-            Document::Text(text) => {
-                fmt_indented(f, indent, &format!("Text(\"{}\"),\n", text));
-            }
             Document::Content(content) => {
                 fmt_indented(
                     f,
