@@ -30,7 +30,7 @@ pub enum ContentParticle<'a> {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Mixed<'a> {
     PCDATA {
         names: Option<Vec<Cow<'a, str>>>,
@@ -39,7 +39,7 @@ pub enum Mixed<'a> {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum DeclarationContent<'a> {
     Spec {
         mixed: Mixed<'a>,
