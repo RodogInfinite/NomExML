@@ -104,11 +104,16 @@ impl<'a> DeclarationContent<'a> {
             DeclarationContent::Spec { mixed, children } => {
                 fmt_indented(f, indent, "Spec {\n");
                 mixed.fmt_indented_mixed(f, indent + 4);
-                fmt_indented(f, indent + 4, "children: [\n");
-                for child in children.as_ref().unwrap_or(&Vec::new()).iter() {
-                    child.fmt_indented_content_particle(f, indent + 8);
-                }
-                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(f, indent + 4, "children:");
+                if let Some(children) = children {
+                    fmt_indented(f, indent + 4, "[\n");
+                    for child in children.iter() {
+                        child.fmt_indented_content_particle(f, indent + 8);
+                    }
+                    fmt_indented(f, indent + 4, "],\n");
+                } if let None = children {
+                    f.push_str(" None,\n")
+                }  
                 fmt_indented(f, indent, "},");
             }
         }
