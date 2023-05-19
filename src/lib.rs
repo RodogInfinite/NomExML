@@ -9,8 +9,8 @@ use nom::{
     bytes::complete::{tag, take_until, take_while1},
     character::complete::{alpha1, multispace0},
     combinator::{map, opt, recognize},
-    multi::many0,
-    sequence::{delimited, pair},
+    multi::{many0, self},
+    sequence::{delimited, pair, preceded},
     IResult,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -22,6 +22,7 @@ use std::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace<'a> {
+    pub declaration: Option<Cow<'a, str>>,
     pub prefix: Cow<'a, str>,
     pub uri: Option<Cow<'a, str>>,
 }
@@ -76,6 +77,7 @@ impl<'a> Document<'a> {
                     (
                         Cow::Borrowed(local_name),
                         Some(Namespace {
+                            declaration: None,
                             prefix: Cow::Borrowed(prefix),
                             uri: None,
                         }),
@@ -95,7 +97,7 @@ impl<'a> Document<'a> {
                 tag(">"),
             ),
             // Parse closing tags
-            delimited(tag("</"), Self::parse_tag_and_namespace, tag(">")),
+            delimited(preceded(tag("</"),multispace0), Self::parse_tag_and_namespace, preceded(multispace0,tag(">"))),
         ))(input)
     }
 

@@ -45,6 +45,7 @@ fn test_nested_recursion() {
                     Tag::Tag {
                         name: "inner_tag3".into(),
                         namespace: Some(Namespace {
+                            declaration: None,
                             prefix: "tst".into(),
                             uri: None,
                         }),
@@ -54,6 +55,7 @@ fn test_nested_recursion() {
                     Tag::Tag {
                         name: "inner_tag3".into(),
                         namespace: Some(Namespace {
+                            declaration: None,
                             prefix: "tst".into(),
                             uri: None,
                         }),
@@ -64,6 +66,7 @@ fn test_nested_recursion() {
                     Tag::Tag {
                         name: "inner_tag4".into(),
                         namespace: Some(Namespace {
+                            declaration: None,
                             prefix: "tst".into(),
                             uri: None,
                         }),
@@ -140,6 +143,7 @@ fn test_nested_recursion() {
                     Tag::Tag {
                         name: "inner_tag4".into(),
                         namespace: Some(Namespace {
+                            declaration: None,
                             prefix: "tst".into(),
                             uri: None,
                         }),
