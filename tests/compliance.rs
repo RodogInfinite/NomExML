@@ -5,7 +5,7 @@ use nomexml::{
     parse_file, ConditionalState, Document, Tag, TagState,
 };
 
-fn test_xml_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
+fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
     let document = parse_file(&mut file)?;
     Ok(document)
@@ -13,7 +13,7 @@ fn test_xml_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> 
 
 #[test]
 fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
-    let document = test_xml_file("001")?;
+    let document = test_valid_sa_file("001")?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -52,5 +52,5 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_002() {
-    let document = test_xml_file("002");
+    let document = test_valid_sa_file("002");
 }
