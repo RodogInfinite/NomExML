@@ -41,16 +41,6 @@ pub enum TagState {
     End,
 }
 
-// #[derive(Clone, PartialEq)]
-// pub enum Tag<'a> {
-//     Tag {
-//         name: Cow<'a, str>,
-//         //attributes: Vec<Attribute<'a>>, //Attribute::Instance
-//         namespace: Option<Namespace<'a>>,
-//         state: TagState,
-//     },
-// }
-
 #[derive(Clone, PartialEq)]
 pub struct Tag<'a> {
     pub name: Cow<'a, str>,
@@ -150,77 +140,78 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, declaration) = Self::parse_with_whitespace(input, opt(Declaration::parse))?;
-
+        let (input, declaration) = Self::parse_declaration(input)?;
         let (input, start_tag) = Tag::parse_start_tag(input)?;
-        let (input, _) = multispace0(input)?;
-        let (input, children) =
-            Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
+        let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
-        let (input, _) = multispace0(input)?;
         let (input, end_tag) = Tag::parse_end_tag(input)?;
 
-        match (start_tag, end_tag) {
+        Self::construct_document(input, declaration, start_tag, children, content, end_tag)
+    }
+
+    fn parse_declaration(input: &'a str) -> IResult<&'a str, Option<Declaration<'a>>> {
+        Self::parse_with_whitespace(input, opt(Declaration::parse))
+    }
+
+    fn parse_children(input: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
+        Self::parse_with_whitespace(input, many0(Self::parse_xml_str))
+    }
+
+    fn construct_document_with_declaration(
+        declaration: Option<Declaration<'a>>,
+        start_tag: &Tag<'a>,
+        child_document: Document<'a>,
+        end_tag: &Tag<'a>,
+    ) -> Document<'a> {
+        Document::Nested(vec![
+            Document::Declaration(declaration),
+            Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone()),
+        ])
+    }
+
+    fn construct_element(
+        start_tag: &Tag<'a>,
+        child_document: Document<'a>,
+        end_tag: &Tag<'a>,
+    ) -> Document<'a> {
+        Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone())
+    }
+
+    fn construct_document(
+        input: &'a str,
+        declaration: Option<Declaration<'a>>,
+        start_tag: Tag<'a>,
+        children: Vec<Document<'a>>,
+        content: Option<&'a str>,
+        end_tag: Tag<'a>,
+    ) -> IResult<&'a str, Document<'a>> {
+        match (&start_tag, &end_tag) {
             (
                 Tag {
                     name: start_name,
                     namespace: start_namespace,
-                    state: TagState::Start,
+                    ..
                 },
                 Tag {
                     name: end_name,
                     namespace: end_namespace,
-                    state: TagState::End,
+                    ..
                 },
-            ) => {
-                if start_name == end_name && start_namespace == end_namespace {
-                    let child_document =
-                        determine_child_document(content, children).map_err(|e| {
-                            nom::Err::Failure(nom::error::Error::new(
-                                e,
-                                nom::error::ErrorKind::Verify,
-                            ))
-                        })?;
-                    if declaration.is_some() {
-                        let element = Document::Nested(vec![
-                            Document::Declaration(declaration),
-                            Document::Element(
-                                Tag {
-                                    name: start_name,
-                                    namespace: start_namespace,
-                                    state: TagState::Start,
-                                },
-                                Box::new(child_document),
-                                Tag {
-                                    name: end_name,
-                                    namespace: end_namespace,
-                                    state: TagState::End,
-                                },
-                            ),
-                        ]);
-                        Ok((input, element))
-                    } else {
-                        let element = Document::Element(
-                            Tag {
-                                name: start_name,
-                                namespace: start_namespace,
-                                state: TagState::Start,
-                            },
-                            Box::new(child_document),
-                            Tag {
-                                name: end_name,
-                                namespace: end_namespace,
-                                state: TagState::End,
-                            },
-                        );
-                        Ok((input, element))
-                    }
+            ) if start_name == end_name && start_namespace == end_namespace => {
+                let child_document = determine_child_document(content, children).map_err(|e| {
+                    nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
+                })?;
+                let document = if let Some(declaration) = declaration {
+                    Self::construct_document_with_declaration(
+                        Some(declaration),
+                        &start_tag,
+                        child_document,
+                        &end_tag,
+                    )
                 } else {
-                    Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Verify,
-                    )))
-                }
+                    Self::construct_element(&start_tag, child_document, &end_tag)
+                };
+                Ok((input, document))
             }
             _ => Err(nom::Err::Error(nom::error::Error::new(
                 input,
