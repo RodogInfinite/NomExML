@@ -2,14 +2,14 @@ mod debug;
 pub mod declaration;
 mod error;
 
-use declaration::Declaration;
+use declaration::{Attribute, Declaration};
 use error::CustomError;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_while1},
     character::complete::{alpha1, multispace0},
     combinator::{map, opt, recognize},
-    multi::{many0, self},
+    multi::{self, many0},
     sequence::{delimited, pair, preceded},
     IResult,
 };
@@ -41,13 +41,53 @@ pub enum TagState {
     End,
 }
 
+// #[derive(Clone, PartialEq)]
+// pub enum Tag<'a> {
+//     Tag {
+//         name: Cow<'a, str>,
+//         //attributes: Vec<Attribute<'a>>, //Attribute::Instance
+//         namespace: Option<Namespace<'a>>,
+//         state: TagState,
+//     },
+// }
+
 #[derive(Clone, PartialEq)]
-pub enum Tag<'a> {
-    Tag {
-        name: Cow<'a, str>,
-        namespace: Option<Namespace<'a>>,
-        state: TagState,
-    },
+pub struct Tag<'a> {
+    pub name: Cow<'a, str>,
+    pub namespace: Option<Namespace<'a>>,
+    pub state: TagState,
+}
+
+impl<'a> Tag<'a> {
+    fn parse_start_tag(input: &'a str) -> IResult<&'a str, Self> {
+        map(
+            delimited(
+                tag("<"),
+                delimited(multispace0, Document::parse_tag_and_namespace, multispace0),
+                tag(">"),
+            ),
+            |(name, namespace)| Self {
+                name,
+                namespace,
+                state: TagState::Start,
+            },
+        )(input)
+    }
+
+    fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
+        map(
+            delimited(
+                preceded(tag("</"), multispace0),
+                Document::parse_tag_and_namespace,
+                preceded(multispace0, tag(">")),
+            ),
+            |(name, namespace)| Self {
+                name,
+                namespace,
+                state: TagState::End,
+            },
+        )(input)
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -88,18 +128,6 @@ impl<'a> Document<'a> {
             },
         )(input)
     }
-    fn parse_tag(input: &'a str) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
-        alt((
-            // Parse starting tags
-            delimited(
-                tag("<"),
-                delimited(multispace0, Self::parse_tag_and_namespace, multispace0),
-                tag(">"),
-            ),
-            // Parse closing tags
-            delimited(preceded(tag("</"),multispace0), Self::parse_tag_and_namespace, preceded(multispace0,tag(">"))),
-        ))(input)
-    }
 
     fn parse_content(input: &'a str) -> IResult<&'a str, Option<&'a str>> {
         let (tail, content) = take_until("</")(input)?;
@@ -122,19 +150,29 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, declaration) =
-            Self::parse_with_whitespace(input, opt(Self::parse_declaration))?;
+        let (input, declaration) = Self::parse_with_whitespace(input, opt(Declaration::parse))?;
 
-        let (input, start_tag) = Self::parse_tag(input)?;
+        let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, _) = multispace0(input)?;
         let (input, children) =
             Self::parse_with_whitespace(input, |i| many0(Self::parse_xml_str)(i))?;
         let (input, content) = Self::parse_content(input)?;
         let (input, _) = multispace0(input)?;
-        let (input, end_tag) = Self::parse_tag(input)?;
+        let (input, end_tag) = Tag::parse_end_tag(input)?;
 
         match (start_tag, end_tag) {
-            ((start_name, start_namespace), (end_name, end_namespace)) => {
+            (
+                Tag {
+                    name: start_name,
+                    namespace: start_namespace,
+                    state: TagState::Start,
+                },
+                Tag {
+                    name: end_name,
+                    namespace: end_namespace,
+                    state: TagState::End,
+                },
+            ) => {
                 if start_name == end_name && start_namespace == end_namespace {
                     let child_document =
                         determine_child_document(content, children).map_err(|e| {
@@ -147,13 +185,13 @@ impl<'a> Document<'a> {
                         let element = Document::Nested(vec![
                             Document::Declaration(declaration),
                             Document::Element(
-                                Tag::Tag {
+                                Tag {
                                     name: start_name,
                                     namespace: start_namespace,
                                     state: TagState::Start,
                                 },
                                 Box::new(child_document),
-                                Tag::Tag {
+                                Tag {
                                     name: end_name,
                                     namespace: end_namespace,
                                     state: TagState::End,
@@ -163,13 +201,13 @@ impl<'a> Document<'a> {
                         Ok((input, element))
                     } else {
                         let element = Document::Element(
-                            Tag::Tag {
+                            Tag {
                                 name: start_name,
                                 namespace: start_namespace,
                                 state: TagState::Start,
                             },
                             Box::new(child_document),
-                            Tag::Tag {
+                            Tag {
                                 name: end_name,
                                 namespace: end_namespace,
                                 state: TagState::End,
@@ -184,6 +222,10 @@ impl<'a> Document<'a> {
                     )))
                 }
             }
+            _ => Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            ))),
         }
     }
 
@@ -196,7 +238,7 @@ impl<'a> Document<'a> {
     fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
         match self {
             Document::Element(
-                Tag::Tag {
+                Tag {
                     name, namespace, ..
                 },
                 content,

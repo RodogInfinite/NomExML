@@ -33,13 +33,13 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                 },]),
             })),
             Document::Element(
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::End,
@@ -72,13 +72,13 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
                 },]),
             })),
             Document::Element(
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::End,
@@ -111,13 +111,13 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
                 },]),
             })),
             Document::Element(
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
-                Tag::Tag {
+                Tag {
                     name: "doc".into(),
                     namespace: None,
                     state: TagState::End,
@@ -128,3 +128,41 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[test]
+fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("004")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },]),
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}

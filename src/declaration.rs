@@ -3,14 +3,14 @@ use std::borrow::Cow;
 use crate::{ConditionalState, Document};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while1},
+    bytes::complete::{tag, take_while, take_while1},
     character::{
         complete::{alpha1, multispace0, space0},
         is_alphanumeric,
     },
     combinator::{map, opt, value},
     multi::{many0, separated_list1},
-    sequence::{delimited, tuple},
+    sequence::{delimited, preceded, tuple},
     IResult,
 };
 
@@ -30,98 +30,7 @@ pub enum ContentParticle<'a> {
     },
 }
 
-#[derive(Clone, PartialEq)]
-pub enum Mixed<'a> {
-    PCDATA {
-        names: Option<Vec<Cow<'a, str>>>,
-        parsed: bool,
-        conditional_state: ConditionalState,
-    },
-}
-
-#[derive(Clone, PartialEq)]
-pub enum DeclarationContent<'a> {
-    Spec {
-        mixed: Mixed<'a>,
-        children: Option<Vec<ContentParticle<'a>>>,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Declaration<'a> {
-    DocType {
-        name: Option<Cow<'a, str>>,
-        external_id: Option<ExternalID>,
-        int_subset: Option<Vec<Declaration<'a>>>,
-    },
-    Element {
-        name: Option<Cow<'a, str>>,
-        content_spec: Option<DeclarationContent<'a>>,
-    },
-}
-
-impl<'a> Document<'a> {
-    pub fn parse_declaration(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
-        let (input, _) = tag("<!")(input)?;
-        let (input, decl) = opt(alpha1)(input)?;
-        let (input, _) = space0(input)?;
-        match decl {
-            Some("DOCTYPE") => {
-                let (input, name) = opt(alpha1)(input)?;
-                let (input, _) = space0(input)?;
-                let (input, external_id) = opt(alt((
-                    map(tag("SYSTEM"), |_| ExternalID::System),
-                    map(tag("PUBLIC"), |_| ExternalID::Public),
-                )))(input)?;
-                let (input, _) = space0(input)?;
-                let (input, _) = tag("[")(input)?;
-                let (input, _) = multispace0(input)?;
-                let (input, int_subset) = opt(many0(Self::parse_declaration))(input)?;
-                let (input, _) = multispace0(input)?;
-                let (input, _) = tag("]")(input)?;
-                let (input, _) = tag(">")(input)?;
-                if int_subset.is_some() {
-                    Ok((
-                        input,
-                        Declaration::DocType {
-                            name: name.map(|s| s.into()),
-                            external_id,
-                            int_subset: int_subset,
-                        },
-                    ))
-                } else {
-                    Ok((
-                        input,
-                        Declaration::DocType {
-                            name: name.map(|s| s.into()),
-                            external_id,
-                            int_subset: None,
-                        },
-                    ))
-                }
-            }
-            Some("ELEMENT") => {
-                let (input, element_name) = opt(alpha1)(input)?;
-                let (input, _) = space0(input)?;
-
-                let (input, content_spec) = Self::parse_spec(input)?;
-                let (input, _) = tag(">")(input)?;
-
-                Ok((
-                    input,
-                    Declaration::Element {
-                        name: element_name.map(|s| s.into()),
-                        content_spec: Some(content_spec),
-                    },
-                ))
-            }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            ))),
-        }
-    }
-
+impl<'a> ContentParticle<'a> {
     // cp ::= (Name | choice | seq) ('?' | '*' | '+')?
     fn parse_content_particle(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
         let (input, names) = opt(many0(Self::parse_name))(input)?;
@@ -138,15 +47,6 @@ impl<'a> Document<'a> {
 
         Ok((input, content_particle))
     }
-
-    fn parse_conditional_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
-        alt((
-            value(ConditionalState::Optional, tag("?")),
-            value(ConditionalState::ZeroOrMore, tag("*")),
-            value(ConditionalState::OneOrMore, tag("+")),
-        ))(input)
-    }
-
     fn is_name_char(c: char) -> bool {
         is_alphanumeric(c as u8) || c == '_'
     }
@@ -156,7 +56,6 @@ impl<'a> Document<'a> {
             map(take_while1(Self::is_name_char), |s: &str| Cow::Borrowed(s))(input)?;
         Ok((input, name))
     }
-
     // choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
     fn parse_choice(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
@@ -167,7 +66,6 @@ impl<'a> Document<'a> {
         let (input, choice) = parser(input)?;
         Ok((input, choice))
     }
-
     // seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
     fn parse_seq(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
@@ -178,23 +76,32 @@ impl<'a> Document<'a> {
         let (input, sequence) = parser(input)?;
         Ok((input, sequence))
     }
-
-    //  children ::= (choice | seq) ('?' | '*' | '+')?
-    fn parse_children(
-        input: &'a str,
-    ) -> IResult<&'a str, (Vec<ContentParticle<'a>>, Option<&'a str>)> {
-        let (input, particles) = many0(Self::parse_content_particle)(input)?;
-        let (input, quantifier) = opt(alt((tag("?"), tag("*"), tag("+"))))(input)?;
-        Ok((input, (particles, quantifier)))
+    fn parse_conditional_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
+        alt((
+            value(ConditionalState::Optional, tag("?")),
+            value(ConditionalState::ZeroOrMore, tag("*")),
+            value(ConditionalState::OneOrMore, tag("+")),
+        ))(input)
     }
+}
 
+#[derive(Clone, PartialEq)]
+pub enum Mixed<'a> {
+    PCDATA {
+        names: Option<Vec<Cow<'a, str>>>,
+        parsed: bool,
+        conditional_state: ConditionalState,
+    },
+}
+
+impl<'a> Mixed<'a> {
     // Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
-    pub fn parse_mixed(input: &'a str) -> IResult<&'a str, Mixed<'a>> {
+    pub fn parse(input: &'a str) -> IResult<&'a str, Mixed<'a>> {
         let (input, _) = tuple((tag("("), space0))(input)?;
         let (input, pcdata) = opt(tag("#PCDATA"))(input)?;
         let (input, names) = many0(delimited(
             tuple((space0, tag("|"), space0)),
-            Self::parse_name,
+            ContentParticle::parse_name,
             space0,
         ))(input)?;
         let (input, condition) = tuple((space0, tag(")")))(input)?;
@@ -209,13 +116,13 @@ impl<'a> Document<'a> {
         let parsed = pcdata.is_some();
 
         let mixed = if parsed {
-            Mixed::PCDATA {
+            Self::PCDATA {
                 names: if names.is_empty() { None } else { Some(names) },
                 parsed,
                 conditional_state,
             }
         } else {
-            Mixed::PCDATA {
+            Self::PCDATA {
                 names: None,
                 parsed: false,
                 conditional_state: ConditionalState::None,
@@ -224,9 +131,19 @@ impl<'a> Document<'a> {
 
         Ok((input, mixed))
     }
+}
 
+#[derive(Clone, PartialEq)]
+pub enum DeclarationContent<'a> {
+    Spec {
+        mixed: Mixed<'a>,
+        children: Option<Vec<ContentParticle<'a>>>,
+    },
+}
+
+impl<'a> DeclarationContent<'a> {
     pub fn parse_spec(input: &'a str) -> IResult<&'a str, DeclarationContent<'a>> {
-        let (input, mixed_content) = Self::parse_mixed(input)?;
+        let (input, mixed_content) = Mixed::parse(input)?;
         let (input, children) = opt(Self::parse_children)(input)?;
         Ok((
             input,
@@ -235,5 +152,271 @@ impl<'a> Document<'a> {
                 children: children.map(|(particles, _)| particles),
             },
         ))
+    }
+    //  children ::= (choice | seq) ('?' | '*' | '+')?
+    fn parse_children(
+        input: &'a str,
+    ) -> IResult<&'a str, (Vec<ContentParticle<'a>>, Option<&'a str>)> {
+        let (input, particles) = many0(ContentParticle::parse_content_particle)(input)?;
+        let (input, quantifier) = opt(alt((tag("?"), tag("*"), tag("+"))))(input)?;
+        Ok((input, (particles, quantifier)))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TokenizedType {
+    ID,
+    IDREF,
+    IDREFS,
+    ENTITY,
+    ENTITIES,
+    NMTOKEN,
+    NMTOKENS,
+}
+
+impl TokenizedType {
+    // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-TokenizedType
+    fn parse(input: &str) -> IResult<&str, TokenizedType> {
+        alt((
+            value(TokenizedType::ID, tag("ID")),
+            value(TokenizedType::IDREF, tag("IDREF")),
+            value(TokenizedType::IDREFS, tag("IDREFS")),
+            value(TokenizedType::ENTITY, tag("ENTITY")),
+            value(TokenizedType::ENTITIES, tag("ENTITIES")),
+            value(TokenizedType::NMTOKEN, tag("NMTOKEN")),
+            value(TokenizedType::NMTOKENS, tag("NMTOKENS")),
+        ))(input)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AttType<'a> {
+    CDATA,
+    Tokenized(TokenizedType),
+    Enumerated {
+        notation: Option<Vec<Cow<'a, str>>>,
+        enumeration: Option<Vec<Cow<'a, str>>>,
+    },
+}
+
+impl<'a> AttType<'a> {
+    fn parse_enumerated_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
+        let mut parser = delimited(
+            tag("("),
+            separated_list1(
+                tuple((space0, tag("|"), space0)),
+                ContentParticle::parse_name,
+            ),
+            tag(")"),
+        );
+        let (input, enumeration) = parser(input)?;
+        Ok((
+            input,
+            AttType::Enumerated {
+                notation: None,
+                enumeration: Some(enumeration),
+            },
+        ))
+    }
+
+    fn parse_att_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
+        let (input, att_type) = alt((
+            value(AttType::CDATA, tag("CDATA")),
+            map(TokenizedType::parse, AttType::Tokenized),
+            Self::parse_enumerated_type,
+        ))(input)?;
+        Ok((input, att_type))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum DefaultDecl<'a> {
+    Required,
+    Implied,
+    Fixed(Cow<'a, str>),
+    Value(Cow<'a, str>),
+}
+
+impl<'a> DefaultDecl<'a> {
+    // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-DefaultDecl
+    fn parse(input: &'a str) -> IResult<&'a str, DefaultDecl<'a>> {
+        alt((
+            value(DefaultDecl::Required, tag("#REQUIRED")),
+            value(DefaultDecl::Implied, tag("#IMPLIED")),
+            map(
+                tuple((tag("#FIXED"), space0, Attribute::parse_literal)),
+                |(_, _, lit)| DefaultDecl::Fixed(Cow::Borrowed(lit)),
+            ),
+            map(Attribute::parse_literal, |lit| {
+                DefaultDecl::Value(Cow::Borrowed(lit))
+            }),
+        ))(input)
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub enum Attribute<'a> {
+    Definition {
+        name: Cow<'a, str>,
+        att_type: AttType<'a>,
+        default_decl: DefaultDecl<'a>, // Attribute::DefaultDecl<Attribute::Value> || Attribute::Reference
+    },
+    List {
+        name: Cow<'a, str>,
+        att_defs: Vec<Attribute<'a>>, // Att::Def
+    },
+    Reference {
+        entity: Cow<'a, str>,
+        char: CharRef<'a>,
+    },
+    Required,
+    Implied,
+    // Instance {
+    //     name: Cow<'a, str>,
+    //     value: Cow<'a, str>,
+    // }
+}
+
+impl<'a> Attribute<'a> {
+    // Define parsing for Atttribute::Value
+    fn parse_literal(input: &'a str) -> IResult<&'a str, &'a str> {
+        delimited(
+            tag("\""),
+            take_while(|c: char| c != '\"' && c != '<' && c != '&'),
+            tag("\""),
+        )(input)
+    }
+
+    fn parse_list(input: &'a str) -> IResult<&'a str, Vec<Attribute<'a>>> {
+        let mut parser = many0(delimited(space0, Self::parse_definition, space0));
+        let (input, att_defs) = parser(input)?;
+        Ok((input, att_defs))
+    }
+
+    fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        let (input, name) = ContentParticle::parse_name(input)?;
+        let (input, _) = space0(input)?;
+        let (input, att_type) = AttType::parse_att_type(input)?;
+        let (input, _) = space0(input)?;
+        let (input, default_decl) = DefaultDecl::parse(input)?;
+        let attribute = Attribute::Definition {
+            name: Cow::Owned(name.to_string()), // Change this line
+            att_type,
+            default_decl: default_decl,
+        };
+        Ok((input, attribute))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CharRef<'a> {
+    Decimal(Cow<'a, str>),
+    Hexadecimal(Cow<'a, str>),
+}
+
+#[derive(Clone, PartialEq)]
+pub enum Declaration<'a> {
+    DocType {
+        name: Option<Cow<'a, str>>,
+        external_id: Option<ExternalID>,
+        int_subset: Option<Vec<Declaration<'a>>>,
+    },
+    Element {
+        name: Option<Cow<'a, str>>,
+        content_spec: Option<DeclarationContent<'a>>,
+    },
+    AttList {
+        name: Option<Cow<'a, str>>,
+        att_def: Option<Vec<Attribute<'a>>>, //Attribute::Definition
+    },
+}
+
+impl<'a> Declaration<'a> {
+    fn parse_doctype(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
+        let (input, name) = opt(alpha1)(input)?;
+        let (input, _) = space0(input)?;
+        let (input, external_id) = opt(alt((
+            map(tag("SYSTEM"), |_| ExternalID::System),
+            map(tag("PUBLIC"), |_| ExternalID::Public),
+        )))(input)?;
+        let (input, _) = space0(input)?;
+        let (input, _) = tag("[")(input)?;
+
+        let (input, _) = multispace0(input)?;
+        //ChatGPT HERE, I think int_subset needs to be a list that is
+        let (input, int_subset) = opt(many0(alt((Self::parse, Self::parse_attlist))))(input)?;
+        let (input, _) = multispace0(input)?;
+        let (input, _) = tag("]")(input)?;
+        let (input, _) = tag(">")(input)?;
+        if int_subset.is_some() {
+            Ok((
+                input,
+                Self::DocType {
+                    name: name.map(|s| s.into()),
+                    external_id,
+                    int_subset: int_subset,
+                },
+            ))
+        } else {
+            Ok((
+                input,
+                Self::DocType {
+                    name: name.map(|s| s.into()),
+                    external_id,
+                    int_subset: None,
+                },
+            ))
+        }
+    }
+
+    fn parse_element(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
+        let (input, element_name) = opt(alpha1)(input)?;
+        let (input, _) = space0(input)?;
+
+        let (input, content_spec) = DeclarationContent::parse_spec(input)?;
+        let (input, _) = tag(">")(input)?;
+
+        Ok((
+            input,
+            Declaration::Element {
+                name: element_name.map(|s| s.into()),
+                content_spec: Some(content_spec),
+            },
+        ))
+    }
+
+    pub fn parse_attlist(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
+        let (input, _) = preceded(multispace0, tag("<!ATTLIST"))(input)?;
+        let (input, _) = space0(input)?;
+        let (input, name) = ContentParticle::parse_name(input)?;
+        let (input, _) = space0(input)?;
+
+        let (input, att_defs) =
+            many0(delimited(space0, Attribute::parse_definition, space0))(input)?;
+
+        let (input, _) = tag(">")(input)?;
+
+        Ok((
+            input,
+            Declaration::AttList {
+                name: Some(name),
+                att_def: Some(att_defs),
+            },
+        ))
+    }
+
+    pub fn parse(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
+        let (input, _) = tag("<!")(input)?;
+        let (input, decl) = opt(alpha1)(input)?;
+        let (input, _) = space0(input)?;
+        match decl {
+            Some("DOCTYPE") => Self::parse_doctype(input),
+            Some("ELEMENT") => Self::parse_element(input),
+            Some("ATTLIST") => Self::parse_attlist(input),
+            _ => Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            ))),
+        }
     }
 }

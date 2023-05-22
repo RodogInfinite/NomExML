@@ -1,5 +1,8 @@
 // debug.rs
-use crate::{declaration::{Declaration, DeclarationContent, Mixed, ContentParticle}, Document, Tag, TagState};
+use crate::{
+    declaration::{Attribute, ContentParticle, Declaration, DeclarationContent, Mixed},
+    Document, Tag, TagState,
+};
 
 use std::fmt::{self, Formatter};
 
@@ -11,7 +14,7 @@ fn fmt_indented(f: &mut String, indent: usize, s: &str) {
 impl<'a> Tag<'a> {
     fn fmt_indented_tag(&self, f: &mut String, indent: usize) {
         match self {
-            Tag::Tag {
+            Tag {
                 name,
                 namespace,
                 state,
@@ -80,7 +83,6 @@ impl<'a> Document<'a> {
     }
 }
 
-
 impl<'a> fmt::Debug for Document<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
@@ -97,7 +99,6 @@ impl<'a> fmt::Debug for Tag<'a> {
     }
 }
 
-
 impl<'a> DeclarationContent<'a> {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
@@ -111,15 +112,15 @@ impl<'a> DeclarationContent<'a> {
                         child.fmt_indented_content_particle(f, indent + 8);
                     }
                     fmt_indented(f, indent + 4, "],\n");
-                } if let None = children {
+                }
+                if let None = children {
                     f.push_str(" None,\n")
-                }  
+                }
                 fmt_indented(f, indent, "},");
             }
         }
     }
 }
-
 
 impl<'a> fmt::Debug for DeclarationContent<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -128,7 +129,6 @@ impl<'a> fmt::Debug for DeclarationContent<'a> {
         write!(f, "{}\n", s)
     }
 }
-
 
 impl<'a> Mixed<'a> {
     fn fmt_indented_mixed(&self, f: &mut String, indent: usize) {
@@ -141,9 +141,13 @@ impl<'a> Mixed<'a> {
                 fmt_indented(f, indent, "PCDATA {\n");
                 fmt_indented(f, indent + 4, &format!("names: {:?},\n", names));
                 fmt_indented(f, indent + 4, &format!("parsed: {:?},\n", parsed));
-                fmt_indented(f, indent + 4, &format!("conditional_state: {:?},\n", conditional_state));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("conditional_state: {:?},\n", conditional_state),
+                );
                 fmt_indented(f, indent, "},\n");
-            },
+            }
         }
     }
 }
@@ -182,7 +186,11 @@ impl<'a> ContentParticle<'a> {
                     }
                     fmt_indented(f, indent + 4, "],\n");
                 }
-                fmt_indented(f, indent + 4, &format!("conditional_state: {:?},\n", conditional_state));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("conditional_state: {:?},\n", conditional_state),
+                );
                 fmt_indented(f, indent, "},\n");
             }
         }
@@ -222,6 +230,84 @@ impl<'a> Declaration<'a> {
                 }
                 fmt_indented(f, indent, "},\n");
             }
+            Declaration::AttList { name, att_def } => {
+                fmt_indented(f, indent, "AttList {\n");
+                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, "att_def: [\n");
+                if let Some(def) = att_def {
+                    for def_item in def.iter() {
+                        def_item.fmt_indented_attribute(f, indent + 8);
+                    }
+                }
+                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(f, indent, "},\n");
+            }
         }
+    }
+}
+
+impl<'a> fmt::Debug for Declaration<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_declaration(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
+
+impl<'a> Attribute<'a> {
+    fn fmt_indented_attribute(&self, f: &mut String, indent: usize) {
+        match self {
+            Attribute::Definition {
+                name,
+                att_type,
+                default_decl,
+            } => {
+                fmt_indented(f, indent, "Definition {\n");
+                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, &format!("att_type: {:?},\n", att_type));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("default_decl: {:?},\n", default_decl),
+                );
+                fmt_indented(f, indent, "},\n");
+            }
+            Attribute::List { name, att_defs } => {
+                fmt_indented(f, indent, "List {\n");
+                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, "att_defs: [\n");
+                for attribute in att_defs.iter() {
+                    attribute.fmt_indented_attribute(f, indent + 8);
+                }
+                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(f, indent, "},\n");
+            }
+            // Attribute::Value(value) => {
+            //     fmt_indented(f, indent, &format!("Value({:?}),\n", value));
+            // },
+            Attribute::Reference { entity, char } => {
+                fmt_indented(f, indent, "Reference {\n");
+                fmt_indented(f, indent + 4, &format!("entity: {:?},\n", entity));
+                fmt_indented(f, indent + 4, &format!("char: {:?},\n", char));
+                fmt_indented(f, indent, "},\n");
+            }
+            Attribute::Required => {
+                fmt_indented(f, indent, "REQUIRED,\n");
+            }
+            Attribute::Implied => {
+                fmt_indented(f, indent, "IMPLIED,\n");
+            }
+            // Attribute::Fixed(value) => {
+            //     fmt_indented(f, indent, &format!("Fixed({:?}),\n", value));
+            // },
+        }
+    }
+}
+
+impl<'a> fmt::Debug for Attribute<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_attribute(&mut s, 0);
+        write!(f, "{}", s)
     }
 }

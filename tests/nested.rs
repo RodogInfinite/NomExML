@@ -9,40 +9,40 @@ fn test_nested_recursion() {
     assert_eq!(
         result,
         Document::Element(
-            Tag::Tag {
+            Tag {
                 name: "root".into(),
                 namespace: None,
                 state: TagState::Start,
             },
             Box::new(Document::Nested(vec![
                 Document::Element(
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag1".into(),
                         namespace: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("inner_tag1 content".into()))),
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag1".into(),
                         namespace: None,
                         state: TagState::End,
                     },
                 ),
                 Document::Element(
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag2".into(),
                         namespace: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("2".into()))),
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag2".into(),
                         namespace: None,
                         state: TagState::End,
                     },
                 ),
                 Document::Element(
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag3".into(),
                         namespace: Some(Namespace {
                             declaration: None,
@@ -52,7 +52,7 @@ fn test_nested_recursion() {
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("3".into()))),
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag3".into(),
                         namespace: Some(Namespace {
                             declaration: None,
@@ -63,7 +63,7 @@ fn test_nested_recursion() {
                     },
                 ),
                 Document::Element(
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag4".into(),
                         namespace: Some(Namespace {
                             declaration: None,
@@ -74,52 +74,52 @@ fn test_nested_recursion() {
                     },
                     Box::new(Document::Nested(vec![
                         Document::Element(
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("inner_inner_tag1 content".into()))),
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
                                 state: TagState::End,
                             },
                         ),
                         Document::Element(
-                            Tag::Tag {
+                            Tag {
                                 name: "header".into(),
                                 namespace: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("header contents".into()))),
-                            Tag::Tag {
+                            Tag {
                                 name: "header".into(),
                                 namespace: None,
                                 state: TagState::End,
                             },
                         ),
                         Document::Element(
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("inner_inner_tag1 content2".into()))),
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
                                 state: TagState::End,
                             },
                         ),
                         Document::Element(
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag2".into(),
                                 namespace: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Element(
-                                Tag::Tag {
+                                Tag {
                                     name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
                                     state: TagState::Start,
@@ -127,20 +127,20 @@ fn test_nested_recursion() {
                                 Box::new(Document::Content(Some(
                                     "inner_inner_inner_tag1 content".into()
                                 ))),
-                                Tag::Tag {
+                                Tag {
                                     name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
                                     state: TagState::End,
                                 },
                             ),),
-                            Tag::Tag {
+                            Tag {
                                 name: "inner_inner_tag2".into(),
                                 namespace: None,
                                 state: TagState::End,
                             },
                         ),
                     ])),
-                    Tag::Tag {
+                    Tag {
                         name: "inner_tag4".into(),
                         namespace: Some(Namespace {
                             declaration: None,
@@ -151,7 +151,7 @@ fn test_nested_recursion() {
                     },
                 ),
             ])),
-            Tag::Tag {
+            Tag {
                 name: "root".into(),
                 namespace: None,
                 state: TagState::End,
