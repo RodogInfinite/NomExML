@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::declaration::ContentParticle;
+use crate::{declaration::ContentParticle, Document};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -28,6 +28,7 @@ pub enum Attribute<'a> {
     },
     Required,
     Implied,
+
 }
 
 impl<'a> Attribute<'a> {
@@ -55,7 +56,7 @@ impl<'a> Attribute<'a> {
 
     pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = take_while1(|c: char| c.is_alphanumeric() || c == '_')(input)?;
-        let (input, _) = tag("=")(input)?;
+        let (input, _) = Document::parse_with_whitespace(input,tag("="))?;
         let (input, value) = Self::parse_literal(input)?;
         Ok((
             input,
