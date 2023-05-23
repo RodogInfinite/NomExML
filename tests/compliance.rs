@@ -157,7 +157,7 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                     },
                     Declaration::AttList {
                         name: Some("doc".into()),
-                        att_def: Some(vec![Attribute::Definition {
+                        att_defs: Some(vec![Attribute::Definition {
                             name: "a1".into(),
                             att_type: AttType::CDATA,
                             default_decl: DefaultDecl::Implied,

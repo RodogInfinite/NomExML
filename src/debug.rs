@@ -232,11 +232,11 @@ impl<'a> Declaration<'a> {
                 }
                 fmt_indented(f, indent, "},\n");
             }
-            Declaration::AttList { name, att_def } => {
+            Declaration::AttList { name, att_defs } => {
                 fmt_indented(f, indent, "AttList {\n");
                 fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
                 fmt_indented(f, indent + 4, "att_def: [\n");
-                if let Some(def) = att_def {
+                if let Some(def) = att_defs {
                     for def_item in def.iter() {
                         def_item.fmt_indented_attribute(f, indent + 8);
                     }
@@ -272,16 +272,6 @@ impl<'a> Attribute<'a> {
                     indent + 4,
                     &format!("default_decl: {:?},\n", default_decl),
                 );
-                fmt_indented(f, indent, "},\n");
-            }
-            Attribute::List { name, att_defs } => {
-                fmt_indented(f, indent, "List {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
-                fmt_indented(f, indent + 4, "att_defs: [\n");
-                for attribute in att_defs.iter() {
-                    attribute.fmt_indented_attribute(f, indent + 8);
-                }
-                fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
             Attribute::Reference { entity, char } => {

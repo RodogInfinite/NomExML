@@ -261,10 +261,6 @@ pub enum Attribute<'a> {
         att_type: AttType<'a>,
         default_decl: DefaultDecl<'a>, // Attribute::DefaultDecl<Attribute::Value> || Attribute::Reference
     },
-    List {
-        name: Cow<'a, str>,
-        att_defs: Vec<Attribute<'a>>, // Att::Def
-    },
     Reference {
         entity: Cow<'a, str>,
         char: CharRef<'a>,
@@ -278,19 +274,12 @@ pub enum Attribute<'a> {
 }
 
 impl<'a> Attribute<'a> {
-    // Define parsing for Atttribute::Value
     fn parse_literal(input: &'a str) -> IResult<&'a str, &'a str> {
         delimited(
             tag("\""),
             take_while(|c: char| c != '\"' && c != '<' && c != '&'),
             tag("\""),
         )(input)
-    }
-
-    fn parse_list(input: &'a str) -> IResult<&'a str, Vec<Attribute<'a>>> {
-        let mut parser = many0(delimited(space0, Self::parse_definition, space0));
-        let (input, att_defs) = parser(input)?;
-        Ok((input, att_defs))
     }
 
     fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
@@ -306,6 +295,7 @@ impl<'a> Attribute<'a> {
         };
         Ok((input, attribute))
     }
+
     pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = take_while1(|c: char| c.is_alphanumeric() || c == '_')(input)?;
         let (input, _) = tag("=")(input)?;
@@ -339,7 +329,7 @@ pub enum Declaration<'a> {
     },
     AttList {
         name: Option<Cow<'a, str>>,
-        att_def: Option<Vec<Attribute<'a>>>, //Attribute::Definition
+        att_defs: Option<Vec<Attribute<'a>>>, //Attribute::Definition
     },
 }
 
@@ -412,7 +402,7 @@ impl<'a> Declaration<'a> {
             input,
             Declaration::AttList {
                 name: Some(name),
-                att_def: Some(att_defs),
+                att_defs: Some(att_defs),
             },
         ))
     }
