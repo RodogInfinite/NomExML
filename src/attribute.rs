@@ -22,12 +22,12 @@ pub enum Attribute<'a> {
         entity: Cow<'a, str>,
         char: CharRef<'a>,
     },
-    Required,
-    Implied,
     Instance {
         name: Cow<'a, str>,
         value: Cow<'a, str>,
     },
+    Required,
+    Implied,
 }
 
 impl<'a> Attribute<'a> {
