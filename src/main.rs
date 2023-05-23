@@ -4,11 +4,9 @@ use nomexml::Document;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = "<!DOCTYPE doc [
-        
-        <!ATTLIST doc a1 CDATA #IMPLIED>
+        <!ELEMENT doc (#PCDATA)>
         ]>
-        <doc a1=\"v1\"></doc>
-        
+        <doc>&#32;</doc>
         ";
 
     let (_, doc) = Document::parse_xml_str(input)?;

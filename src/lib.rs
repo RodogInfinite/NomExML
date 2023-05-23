@@ -141,7 +141,7 @@ impl<'a> Document<'a> {
         if content.is_empty() {
             Ok((tail, None))
         } else {
-            let (tail,content) = Self::decode_entities(content)?;
+            let (_, content) = Self::decode_entities(content)?;
             Ok((tail, Some(content)))
         }
     }
@@ -149,7 +149,10 @@ impl<'a> Document<'a> {
         // https://www.w3.org/TR/2008/REC-xml-20081126/#wf-Legalchar
         // ISO/IEC 10646
         let (input, code) = opt(delimited(tag("&#"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
+        println!("inputbefore: {input:?}");
+        
         if let Some(code) = code {
+            println!("Code: {code:?}");
             let decoded_entity = match code {
                 "32" => " ",
                 "38" => "&",
@@ -160,6 +163,7 @@ impl<'a> Document<'a> {
                 _ => {println!("Entity not decoded: {input}"); input}, // If no match found, return the input as it is.
             };
             println!("Decoded entity: {}", decoded_entity);
+            println!("Input: {}", input);
             Ok((input,Cow::Owned(decoded_entity)))
         }
         else {
@@ -184,6 +188,8 @@ impl<'a> Document<'a> {
         let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
+        println!("HERE: {content:?}");
+        println!("HEREINPUT: {input:?}");
         let (input, end_tag) = Tag::parse_end_tag(input)?;
 
         Self::construct_document(input, declaration, start_tag, children, content, end_tag)
@@ -225,6 +231,7 @@ impl<'a> Document<'a> {
         content: Option<Cow<&'a str>>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
+        println!("Constructing document: {start_tag:#?} {end_tag:#?}");
         match (&start_tag, &end_tag) {
             (
                 Tag {
@@ -241,6 +248,7 @@ impl<'a> Document<'a> {
                 let child_document = determine_child_document(content, children).map_err(|e| {
                     nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
                 })?;
+                println!("Child document: {child_document:#?}");
                 let document = if let Some(declaration) = declaration {
                     Self::construct_document_with_declaration(
                         Some(declaration),
