@@ -136,7 +136,7 @@ impl<'a> Document<'a> {
         )(input)
     }
 
-    fn parse_content(input: &'a str) -> IResult<&'a str, Option<Cow<&'a str>>> {
+    fn parse_content(input: &'a str) -> IResult<&'a str, Option<Cow<'a, str>>> {
         let (tail, content) = take_until("</")(input)?;
         if content.is_empty() {
             Ok((tail, None))
@@ -145,31 +145,26 @@ impl<'a> Document<'a> {
             Ok((tail, Some(content)))
         }
     }
-    fn decode_entities(input: &'a str) -> IResult<&'a str,Cow<&'a str>> {
-        // https://www.w3.org/TR/2008/REC-xml-20081126/#wf-Legalchar
-        // ISO/IEC 10646
+    fn decode_entities(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         let (input, code) = opt(delimited(tag("&#"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
-        println!("inputbefore: {input:?}");
-        
+        println!("inputbefore: {:?}", input);
+    
         if let Some(code) = code {
-            println!("Code: {code:?}");
-            let decoded_entity = match code {
-                "32" => " ",
-                "38" => "&",
-                "60" => "<",
-                "62" => ">",
-                "34" => "\"",
-                "39" => "'",
-                _ => {println!("Entity not decoded: {input}"); input}, // If no match found, return the input as it is.
+            println!("Code: {:?}", code);
+            let decoded_entity = match code.parse::<u32>() {
+                Ok(n) => match char::from_u32(n) {
+                    Some(c) => Cow::Owned(c.to_string()),
+                    None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
+                },
+                Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
             };
             println!("Decoded entity: {}", decoded_entity);
             println!("Input: {}", input);
-            Ok((input,Cow::Owned(decoded_entity)))
+            Ok((input, decoded_entity))
         }
         else {
-            Ok((input,Cow::Owned(input)))
+            Ok((input, Cow::Borrowed(input)))
         }
-        
     }
 
     // Helper function to combine parsing and ignoring whitespace
@@ -228,7 +223,7 @@ impl<'a> Document<'a> {
         declaration: Option<Declaration<'a>>,
         start_tag: Tag<'a>,
         children: Vec<Document<'a>>,
-        content: Option<Cow<&'a str>>,
+        content: Option<Cow<'a, str>>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
         println!("Constructing document: {start_tag:#?} {end_tag:#?}");
@@ -322,7 +317,7 @@ impl<'a> Elements<'a> {
 }
 // Helper function to determine the child Document type
 fn determine_child_document<'a>(
-    content: Option<Cow<&'a str>>,
+    content: Option<Cow<'a, str>>,
     children: Vec<Document<'a>>,
 ) -> Result<Document<'a>, &'static str> {
     if let Some(content) = content {
