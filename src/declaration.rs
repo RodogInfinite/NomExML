@@ -47,6 +47,7 @@ impl<'a> ContentParticle<'a> {
 
         Ok((input, content_particle))
     }
+
     fn is_name_char(c: char) -> bool {
         is_alphanumeric(c as u8) || c == '_'
     }
@@ -56,6 +57,7 @@ impl<'a> ContentParticle<'a> {
             map(take_while1(Self::is_name_char), |s: &str| Cow::Borrowed(s))(input)?;
         Ok((input, name))
     }
+
     // choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
     fn parse_choice(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
@@ -66,6 +68,7 @@ impl<'a> ContentParticle<'a> {
         let (input, choice) = parser(input)?;
         Ok((input, choice))
     }
+
     // seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
     fn parse_seq(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
@@ -76,6 +79,7 @@ impl<'a> ContentParticle<'a> {
         let (input, sequence) = parser(input)?;
         Ok((input, sequence))
     }
+
     fn parse_conditional_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
         alt((
             value(ConditionalState::Optional, tag("?")),
@@ -344,10 +348,10 @@ impl<'a> Declaration<'a> {
         let (input, _) = space0(input)?;
         let (input, _) = tag("[")(input)?;
 
-        let (input, _) = multispace0(input)?;
-        //ChatGPT HERE, I think int_subset needs to be a list that is
-        let (input, int_subset) = opt(many0(alt((Self::parse, Self::parse_attlist))))(input)?;
-        let (input, _) = multispace0(input)?;
+        let (input, int_subset) = Document::parse_with_whitespace(
+            input,
+            opt(many0(alt((Self::parse, Self::parse_attlist)))),
+        )?;
         let (input, _) = tag("]")(input)?;
         let (input, _) = tag(">")(input)?;
         if int_subset.is_some() {
@@ -389,10 +393,7 @@ impl<'a> Declaration<'a> {
 
     pub fn parse_attlist(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
         let (input, _) = preceded(multispace0, tag("<!ATTLIST"))(input)?;
-        let (input, _) = space0(input)?;
-        let (input, name) = ContentParticle::parse_name(input)?;
-        let (input, _) = space0(input)?;
-
+        let (input, name) = Document::parse_with_whitespace(input, ContentParticle::parse_name)?;
         let (input, att_defs) =
             many0(delimited(space0, Attribute::parse_definition, space0))(input)?;
 
