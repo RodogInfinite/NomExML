@@ -1,4 +1,4 @@
-use std::{error::Error, fs::File};
+use std::{error::Error, fs::File, borrow::Cow};
 
 use nomexml::{
     attribute::{AttType, Attribute, DefaultDecl},
@@ -286,6 +286,47 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("007")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },]),
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Owned(" ".into())))),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
