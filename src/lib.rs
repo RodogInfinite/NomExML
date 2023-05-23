@@ -141,7 +141,7 @@ impl<'a> Document<'a> {
         if content.is_empty() {
             Ok((tail, None))
         } else {
-            let (input,content) = Self::decode_entities(content)?;
+            let (tail,content) = Self::decode_entities(content)?;
             Ok((tail, Some(content)))
         }
     }
