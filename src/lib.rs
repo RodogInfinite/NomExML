@@ -136,13 +136,36 @@ impl<'a> Document<'a> {
         )(input)
     }
 
-    fn parse_content(input: &'a str) -> IResult<&'a str, Option<&'a str>> {
+    fn parse_content(input: &'a str) -> IResult<&'a str, Option<Cow<&'a str>>> {
         let (tail, content) = take_until("</")(input)?;
         if content.is_empty() {
             Ok((tail, None))
         } else {
+            let (input,content) = Self::decode_entities(content)?;
             Ok((tail, Some(content)))
         }
+    }
+    fn decode_entities(input: &'a str) -> IResult<&'a str,Cow<&'a str>> {
+        // https://www.w3.org/TR/2008/REC-xml-20081126/#wf-Legalchar
+        // ISO/IEC 10646
+        let (input, code) = opt(delimited(tag("&#"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
+        if let Some(code) = code {
+            let decoded_entity = match code {
+                "32" => " ",
+                "38" => "&",
+                "60" => "<",
+                "62" => ">",
+                "34" => "\"",
+                "39" => "'",
+                _ => {println!("Entity not decoded: {input}"); input}, // If no match found, return the input as it is.
+            };
+            println!("Decoded entity: {}", decoded_entity);
+            Ok((input,Cow::Owned(decoded_entity)))
+        }
+        else {
+            Ok((input,Cow::Owned(input)))
+        }
+        
     }
 
     // Helper function to combine parsing and ignoring whitespace
@@ -157,13 +180,11 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, (declaration, start_tag, children, content, end_tag)) = tuple((
-            Self::parse_declaration,
-            Tag::parse_start_tag,
-            Self::parse_children,
-            Self::parse_content,
-            Tag::parse_end_tag,
-        ))(input)?;
+        let (input, declaration) = Self::parse_declaration(input)?;
+        let (input, start_tag) = Tag::parse_start_tag(input)?;
+        let (input, children) = Self::parse_children(input)?;
+        let (input, content) = Self::parse_content(input)?;
+        let (input, end_tag) = Tag::parse_end_tag(input)?;
 
         Self::construct_document(input, declaration, start_tag, children, content, end_tag)
     }
@@ -201,7 +222,7 @@ impl<'a> Document<'a> {
         declaration: Option<Declaration<'a>>,
         start_tag: Tag<'a>,
         children: Vec<Document<'a>>,
-        content: Option<&'a str>,
+        content: Option<Cow<&'a str>>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
         match (&start_tag, &end_tag) {
@@ -293,11 +314,11 @@ impl<'a> Elements<'a> {
 }
 // Helper function to determine the child Document type
 fn determine_child_document<'a>(
-    content: Option<&'a str>,
+    content: Option<Cow<&'a str>>,
     children: Vec<Document<'a>>,
 ) -> Result<Document<'a>, &'static str> {
     if let Some(content) = content {
-        Ok(Document::Content(Some(Cow::Borrowed(content))))
+        Ok(Document::Content(Some(Cow::Owned(content.as_ref().to_string()))))
     } else if children.is_empty() {
         Ok(Document::Empty)
     } else if children.len() == 1 {
