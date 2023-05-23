@@ -1,7 +1,7 @@
 use std::{error::Error, fs::File};
 
 use nomexml::{
-    declaration::{Declaration, DeclarationContent, Mixed},
+    declaration::{AttType, Attribute, Declaration, DeclarationContent, DefaultDecl, Mixed},
     parse_file, ConditionalState, Document, Tag, TagState,
 };
 
@@ -36,12 +36,14 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::End,
                 },
             ),
@@ -75,12 +77,14 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::End,
                 },
             ),
@@ -114,12 +118,14 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::End,
                 },
             ),
@@ -137,28 +143,44 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
             Document::Declaration(Some(Declaration::DocType {
                 name: Some("doc".into()),
                 external_id: None,
-                int_subset: Some(vec![Declaration::Element {
-                    name: Some("doc".into()),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            conditional_state: ConditionalState::None,
-                        },
-                        children: None,
-                    }),
-                },]),
+                int_subset: Some(vec![
+                    Declaration::Element {
+                        name: Some("doc".into()),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                conditional_state: ConditionalState::None,
+                            },
+                            children: None,
+                        }),
+                    },
+                    Declaration::AttList {
+                        name: Some("doc".into()),
+                        att_def: Some(vec![Attribute::Definition {
+                            name: "a1".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
+                    }
+                ])
             })),
             Document::Element(
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: "a1".into(),
+                        value: "v1".into(),
+                    }]),
+
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
+                    attributes: None,
                     state: TagState::End,
                 },
             ),

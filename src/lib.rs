@@ -10,7 +10,7 @@ use nom::{
     character::complete::{alpha1, multispace0},
     combinator::{map, opt, recognize},
     multi::{self, many0},
-    sequence::{delimited, pair, preceded},
+    sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -45,20 +45,35 @@ pub enum TagState {
 pub struct Tag<'a> {
     pub name: Cow<'a, str>,
     pub namespace: Option<Namespace<'a>>,
+    pub attributes: Option<Vec<Attribute<'a>>>, // Attribute::Instance
     pub state: TagState,
 }
 
 impl<'a> Tag<'a> {
+    fn parse_attributes(input: &'a str) -> IResult<&'a str, Option<Vec<Attribute<'a>>>> {
+        let mut parser = many0(Attribute::parse_attribute_instance);
+        let (input, attributes) = parser(input)?;
+        if attributes.is_empty() {
+            Ok((input, None))
+        } else {
+            Ok((input, Some(attributes)))
+        }
+    }
+
     fn parse_start_tag(input: &'a str) -> IResult<&'a str, Self> {
         map(
             delimited(
                 tag("<"),
-                delimited(multispace0, Document::parse_tag_and_namespace, multispace0),
+                tuple((
+                    delimited(multispace0, Document::parse_tag_and_namespace, multispace0),
+                    Self::parse_attributes,
+                )),
                 tag(">"),
             ),
-            |(name, namespace)| Self {
+            |((name, namespace), attributes)| Self {
                 name,
                 namespace,
+                attributes,
                 state: TagState::Start,
             },
         )(input)
@@ -74,6 +89,7 @@ impl<'a> Tag<'a> {
             |(name, namespace)| Self {
                 name,
                 namespace,
+                attributes: None, // Attributes are not parsed for end tags
                 state: TagState::End,
             },
         )(input)
@@ -140,11 +156,13 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, declaration) = Self::parse_declaration(input)?;
-        let (input, start_tag) = Tag::parse_start_tag(input)?;
-        let (input, children) = Self::parse_children(input)?;
-        let (input, content) = Self::parse_content(input)?;
-        let (input, end_tag) = Tag::parse_end_tag(input)?;
+        let (input, (declaration, start_tag, children, content, end_tag)) = tuple((
+            Self::parse_declaration,
+            Tag::parse_start_tag,
+            Self::parse_children,
+            Self::parse_content,
+            Tag::parse_end_tag,
+        ))(input)?;
 
         Self::construct_document(input, declaration, start_tag, children, content, end_tag)
     }
@@ -226,7 +244,7 @@ impl<'a> Document<'a> {
         Elements { tags: results }
     }
 
-    fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
+    pub fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
         match self {
             Document::Element(
                 Tag {

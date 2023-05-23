@@ -3,10 +3,6 @@ use std::{error::Error, fs::File};
 use nomexml::{declaration::Declaration, parse_file, read_file, Document};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let input = "<!ATTLIST doc a1 CDATA #IMPLIED>";
-    let (_, attlist) = Declaration::parse_attlist(input)?;
-    println!("ATTLIST:\n{attlist:?}");
-
     let input = "<!DOCTYPE doc [
         
         <!ATTLIST doc a1 CDATA #IMPLIED>

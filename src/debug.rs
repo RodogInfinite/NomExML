@@ -17,11 +17,13 @@ impl<'a> Tag<'a> {
             Tag {
                 name,
                 namespace,
+                attributes,
                 state,
             } => {
                 fmt_indented(f, indent, &format!("Tag {{\n"));
                 fmt_indented(f, indent + 4, &format!("name: \"{}\",\n", name));
                 fmt_indented(f, indent + 4, &format!("namespace: {:?},\n", namespace));
+                fmt_indented(f, indent + 4, &format!("attributes: {:?},\n", attributes));
                 fmt_indented(f, indent + 4, &format!("state: {:?},\n", state));
                 fmt_indented(f, indent, "},\n");
             }
@@ -282,9 +284,6 @@ impl<'a> Attribute<'a> {
                 fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
-            // Attribute::Value(value) => {
-            //     fmt_indented(f, indent, &format!("Value({:?}),\n", value));
-            // },
             Attribute::Reference { entity, char } => {
                 fmt_indented(f, indent, "Reference {\n");
                 fmt_indented(f, indent + 4, &format!("entity: {:?},\n", entity));
@@ -297,9 +296,12 @@ impl<'a> Attribute<'a> {
             Attribute::Implied => {
                 fmt_indented(f, indent, "IMPLIED,\n");
             }
-            // Attribute::Fixed(value) => {
-            //     fmt_indented(f, indent, &format!("Fixed({:?}),\n", value));
-            // },
+            Attribute::Instance { name, value } => {
+                fmt_indented(f, indent, "Instance {\n");
+                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, &format!("value: {:?},\n", value));
+                fmt_indented(f, indent, "},\n");
+            }
         }
     }
 }

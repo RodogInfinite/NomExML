@@ -12,6 +12,7 @@ fn test_nested_recursion() {
             Tag {
                 name: "root".into(),
                 namespace: None,
+                attributes: None,
                 state: TagState::Start,
             },
             Box::new(Document::Nested(vec![
@@ -19,12 +20,14 @@ fn test_nested_recursion() {
                     Tag {
                         name: "inner_tag1".into(),
                         namespace: None,
+                        attributes: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("inner_tag1 content".into()))),
                     Tag {
                         name: "inner_tag1".into(),
                         namespace: None,
+                        attributes: None,
                         state: TagState::End,
                     },
                 ),
@@ -32,12 +35,14 @@ fn test_nested_recursion() {
                     Tag {
                         name: "inner_tag2".into(),
                         namespace: None,
+                        attributes: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("2".into()))),
                     Tag {
                         name: "inner_tag2".into(),
                         namespace: None,
+                        attributes: None,
                         state: TagState::End,
                     },
                 ),
@@ -49,6 +54,7 @@ fn test_nested_recursion() {
                             prefix: "tst".into(),
                             uri: None,
                         }),
+                        attributes: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Content(Some("3".into()))),
@@ -59,6 +65,7 @@ fn test_nested_recursion() {
                             prefix: "tst".into(),
                             uri: None,
                         }),
+                        attributes: None,
                         state: TagState::End,
                     },
                 ),
@@ -70,6 +77,7 @@ fn test_nested_recursion() {
                             prefix: "tst".into(),
                             uri: None,
                         }),
+                        attributes: None,
                         state: TagState::Start,
                     },
                     Box::new(Document::Nested(vec![
@@ -77,12 +85,14 @@ fn test_nested_recursion() {
                             Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("inner_inner_tag1 content".into()))),
                             Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::End,
                             },
                         ),
@@ -90,12 +100,14 @@ fn test_nested_recursion() {
                             Tag {
                                 name: "header".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("header contents".into()))),
                             Tag {
                                 name: "header".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::End,
                             },
                         ),
@@ -103,12 +115,14 @@ fn test_nested_recursion() {
                             Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Content(Some("inner_inner_tag1 content2".into()))),
                             Tag {
                                 name: "inner_inner_tag1".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::End,
                             },
                         ),
@@ -116,12 +130,14 @@ fn test_nested_recursion() {
                             Tag {
                                 name: "inner_inner_tag2".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::Start,
                             },
                             Box::new(Document::Element(
                                 Tag {
                                     name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
+                                    attributes: None,
                                     state: TagState::Start,
                                 },
                                 Box::new(Document::Content(Some(
@@ -130,12 +146,14 @@ fn test_nested_recursion() {
                                 Tag {
                                     name: "inner_inner_inner_tag1".into(),
                                     namespace: None,
+                                    attributes: None,
                                     state: TagState::End,
                                 },
                             ),),
                             Tag {
                                 name: "inner_inner_tag2".into(),
                                 namespace: None,
+                                attributes: None,
                                 state: TagState::End,
                             },
                         ),
@@ -147,6 +165,7 @@ fn test_nested_recursion() {
                             prefix: "tst".into(),
                             uri: None,
                         }),
+                        attributes: None,
                         state: TagState::End,
                     },
                 ),
@@ -154,6 +173,7 @@ fn test_nested_recursion() {
             Tag {
                 name: "root".into(),
                 namespace: None,
+                attributes: None,
                 state: TagState::End,
             },
         )

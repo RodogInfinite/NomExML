@@ -271,10 +271,10 @@ pub enum Attribute<'a> {
     },
     Required,
     Implied,
-    // Instance {
-    //     name: Cow<'a, str>,
-    //     value: Cow<'a, str>,
-    // }
+    Instance {
+        name: Cow<'a, str>,
+        value: Cow<'a, str>,
+    },
 }
 
 impl<'a> Attribute<'a> {
@@ -305,6 +305,18 @@ impl<'a> Attribute<'a> {
             default_decl: default_decl,
         };
         Ok((input, attribute))
+    }
+    pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        let (input, name) = take_while1(|c: char| c.is_alphanumeric() || c == '_')(input)?;
+        let (input, _) = tag("=")(input)?;
+        let (input, value) = Self::parse_literal(input)?;
+        Ok((
+            input,
+            Attribute::Instance {
+                name: Cow::Borrowed(name),
+                value: Cow::Borrowed(value),
+            },
+        ))
     }
 }
 
