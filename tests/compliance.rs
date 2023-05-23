@@ -1,7 +1,8 @@
 use std::{error::Error, fs::File};
 
 use nomexml::{
-    declaration::{AttType, Attribute, Declaration, DeclarationContent, DefaultDecl, Mixed},
+    attribute::{AttType, Attribute, DefaultDecl},
+    declaration::{Declaration, DeclarationContent, Mixed},
     parse_file, ConditionalState, Document, Tag, TagState,
 };
 

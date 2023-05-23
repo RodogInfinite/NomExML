@@ -1,15 +1,16 @@
+pub mod attribute;
 mod debug;
 pub mod declaration;
 mod error;
 
-use declaration::{Attribute, Declaration};
+use attribute::Attribute;
+use declaration::Declaration;
 use error::CustomError;
 use nom::{
-    branch::alt,
     bytes::complete::{tag, take_until, take_while1},
     character::complete::{alpha1, multispace0},
     combinator::{map, opt, recognize},
-    multi::{self, many0},
+    multi::many0,
     sequence::{delimited, pair, preceded, tuple},
     IResult,
 };

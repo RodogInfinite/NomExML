@@ -1,6 +1,6 @@
-use std::{error::Error, fs::File};
+use std::error::Error;
 
-use nomexml::{declaration::Declaration, parse_file, read_file, Document};
+use nomexml::Document;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = "<!DOCTYPE doc [

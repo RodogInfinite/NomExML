@@ -1,7 +1,8 @@
 // debug.rs
 use crate::{
-    declaration::{Attribute, ContentParticle, Declaration, DeclarationContent, Mixed},
-    Document, Tag, TagState,
+    attribute::Attribute,
+    declaration::{ContentParticle, Declaration, DeclarationContent, Mixed},
+    Document, Tag,
 };
 
 use std::fmt::{self, Formatter};
