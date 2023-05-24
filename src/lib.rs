@@ -162,40 +162,17 @@ impl<'a> Document<'a> {
             tag(";"),
         ))(input)?;
 
-        let (input, hex_code) = opt(delimited(tag("&#x"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
+        let (input, hex_code) = opt(delimited(
+            alt((tag("&#x"), tag("&#X"))),
+            take_while1(|c: char| c.is_numeric()),
+            tag(";"),
+        ))(input)?;
 
         if let Some(code) = digit_code {
-            let decoded_entity = match code.parse::<u32>() {
-                Ok(n) => match char::from_u32(n) {
-                    Some(c) => Cow::Owned(c.to_string()),
-                    None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
-                },
-                Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
-            };
-            println!("Decoded entity1 : {:?}", decoded_entity);
-            if input == decoded_entity {
-                Ok((input, Cow::Borrowed(input)))
-            } else {
-                Ok((input, decoded_entity))
-            }
-        } 
-        else if let Some(code) = hex_code {
-            let decoded_entity = match u32::from_str_radix(code, 16) {
-                Ok(n) => match char::from_u32(n) {
-                    Some(c) => Cow::Owned(c.to_string()),
-                    None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
-                },
-                Err(_) => Cow::Owned(format!("Invalid hexadecimal number: {}", code)),
-            };
-            println!("Decoded entity1 : {:?}", decoded_entity);
-            if input == decoded_entity {
-                Ok((input, Cow::Borrowed(input)))
-            } else {
-                Ok((input, decoded_entity))
-            }
-        }
-        
-        else {
+            Self::decode_digit(input, code)
+        } else if let Some(code) = hex_code {
+            Self::decode_hex(input, code)
+        } else {
             let (input, entity) = opt(delimited(tag("&"), take_until(";"), tag(";")))(input)?;
 
             if let Some(entity) = entity {
@@ -216,6 +193,38 @@ impl<'a> Document<'a> {
             } else {
                 Ok((input, Cow::Borrowed(input)))
             }
+        }
+    }
+
+    fn decode_hex(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        let decoded_entity = match u32::from_str_radix(code, 16) {
+            Ok(n) => match char::from_u32(n) {
+                Some(c) => Cow::Owned(c.to_string()),
+                None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
+            },
+            Err(_) => Cow::Owned(format!("Invalid hexadecimal number: {}", code)),
+        };
+        println!("Decoded entity1 : {:?}", decoded_entity);
+        if input == decoded_entity {
+            Ok((input, Cow::Borrowed(input)))
+        } else {
+            Ok((input, decoded_entity))
+        }
+    }
+
+    fn decode_digit(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        let decoded_entity = match code.parse::<u32>() {
+            Ok(n) => match char::from_u32(n) {
+                Some(c) => Cow::Owned(c.to_string()),
+                None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
+            },
+            Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
+        };
+        println!("Decoded entity1 : {:?}", decoded_entity);
+        if input == decoded_entity {
+            Ok((input, Cow::Borrowed(input)))
+        } else {
+            Ok((input, decoded_entity))
         }
     }
 
