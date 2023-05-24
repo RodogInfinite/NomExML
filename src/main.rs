@@ -6,7 +6,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = "<!DOCTYPE doc [
         <!ELEMENT doc (#PCDATA)>
         ]>
-        <doc>&#32;</doc>
+        <doc>&amp;&lt;&gt;&quot;&apos;</doc>
+        
         ";
 
     let (_, doc) = Document::parse_xml_str(input)?;
