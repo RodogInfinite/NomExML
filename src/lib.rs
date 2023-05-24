@@ -9,10 +9,10 @@ use error::CustomError;
 use nom::{
     bytes::complete::{tag, take_until, take_while1},
     character::complete::{alpha1, multispace0},
-    combinator::{map, opt, recognize},
-    multi::many0,
+    combinator::{map, opt, recognize, peek, not, eof},
+    multi::{many0, many1},
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
+    IResult, branch::alt,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::{borrow::Cow, io::Error as IoError, path::Path};
@@ -138,34 +138,83 @@ impl<'a> Document<'a> {
 
     fn parse_content(input: &'a str) -> IResult<&'a str, Option<Cow<'a, str>>> {
         let (tail, content) = take_until("</")(input)?;
+        println!("Content: {:?}", content);
         if content.is_empty() {
+            println!("Empty content");
             Ok((tail, None))
         } else {
             let (_, content) = Self::decode_entities(content)?;
+            println!("Decoded content: {:?}", content);
             Ok((tail, Some(content)))
+            //Ok((tail, Some(Cow::Borrowed(content))))
         }
     }
-    fn decode_entities(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, code) = opt(delimited(tag("&#"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
-        println!("inputbefore: {:?}", input);
     
-        if let Some(code) = code {
-            println!("Code: {:?}", code);
-            let decoded_entity = match code.parse::<u32>() {
-                Ok(n) => match char::from_u32(n) {
-                    Some(c) => Cow::Owned(c.to_string()),
-                    None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
-                },
-                Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
-            };
-            println!("Decoded entity: {}", decoded_entity);
-            println!("Input: {}", input);
+    fn decode_entity(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    println!("decode_entity input: {:?}", input);
+    if input.is_empty() {
+        return Ok((input, Cow::Borrowed(input)))
+    }
+    let (input, code) = opt(delimited(tag("&#"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
+    if let Some(code) = code {
+        let decoded_entity = match code.parse::<u32>() {
+            Ok(n) => match char::from_u32(n) {
+                Some(c) => Cow::Owned(c.to_string()),
+                None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
+            },
+            Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
+        };
+        println!("Decoded entity1 : {:?}", decoded_entity);
+        if input == decoded_entity {
+            Ok((input, Cow::Borrowed(input)))
+        } else {
             Ok((input, decoded_entity))
         }
-        else {
+    } else {
+        let (input, entity) = opt(delimited(tag("&"), take_until(";"), tag(";")))(input)?;
+        if let Some(entity) = entity {
+            let decoded_entity = match entity {
+                "&amp;" => Cow::Borrowed("&"),
+                "&lt;" => Cow::Borrowed("<"),
+                "&gt;" => Cow::Borrowed(">"),
+                "&quot;" => Cow::Borrowed("\""),
+                "&apos;" => Cow::Borrowed("'"),
+                _ => Cow::Borrowed(input),
+            };
+            println!("Decoded entity2: {:?}", decoded_entity);
+            if input == decoded_entity {
+                Ok((input, Cow::Borrowed(input)))
+            } else {
+                Ok((input, decoded_entity))
+            }
+        } else {
             Ok((input, Cow::Borrowed(input)))
         }
     }
+}
+
+fn decode_entities(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    let mut output = String::new();
+    let mut input = input;
+    loop {
+        if input.is_empty() {
+            break;
+        }
+        let (tail, decoded_entity) = Self::decode_entity(input)?;
+        if decoded_entity == Cow::Borrowed(input) {
+            output.push_str(input);
+            input = "";
+        } else if decoded_entity.is_empty() || tail == input {
+            break;
+        } else {
+            output.push_str(&decoded_entity);
+            input = tail;
+        }
+    }
+    Ok((input, Cow::Owned(output)))
+}
+    
+    
 
     // Helper function to combine parsing and ignoring whitespace
     fn parse_with_whitespace<F, O>(input: &'a str, mut parser: F) -> IResult<&'a str, O>
@@ -183,8 +232,6 @@ impl<'a> Document<'a> {
         let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
-        println!("HERE: {content:?}");
-        println!("HEREINPUT: {input:?}");
         let (input, end_tag) = Tag::parse_end_tag(input)?;
 
         Self::construct_document(input, declaration, start_tag, children, content, end_tag)
@@ -226,7 +273,6 @@ impl<'a> Document<'a> {
         content: Option<Cow<'a, str>>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
-        println!("Constructing document: {start_tag:#?} {end_tag:#?}");
         match (&start_tag, &end_tag) {
             (
                 Tag {
@@ -243,7 +289,6 @@ impl<'a> Document<'a> {
                 let child_document = determine_child_document(content, children).map_err(|e| {
                     nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
                 })?;
-                println!("Child document: {child_document:#?}");
                 let document = if let Some(declaration) = declaration {
                     Self::construct_document_with_declaration(
                         Some(declaration),
