@@ -379,3 +379,44 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
+
+#[test]
+fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("009")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },]),
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Owned(" ".into())))),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}

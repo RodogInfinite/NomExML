@@ -156,12 +156,15 @@ impl<'a> Document<'a> {
         if input.is_empty() {
             return Ok((input, Cow::Borrowed(input)));
         }
-        let (input, code) = opt(delimited(
+        let (input, digit_code) = opt(delimited(
             tag("&#"),
             take_while1(|c: char| c.is_numeric()),
             tag(";"),
         ))(input)?;
-        if let Some(code) = code {
+
+        let (input, hex_code) = opt(delimited(tag("&#x"), take_while1(|c: char| c.is_numeric()), tag(";")))(input)?;
+
+        if let Some(code) = digit_code {
             let decoded_entity = match code.parse::<u32>() {
                 Ok(n) => match char::from_u32(n) {
                     Some(c) => Cow::Owned(c.to_string()),
@@ -175,10 +178,26 @@ impl<'a> Document<'a> {
             } else {
                 Ok((input, decoded_entity))
             }
-        } else {
-            
+        } 
+        else if let Some(code) = hex_code {
+            let decoded_entity = match u32::from_str_radix(code, 16) {
+                Ok(n) => match char::from_u32(n) {
+                    Some(c) => Cow::Owned(c.to_string()),
+                    None => Cow::Owned(format!("Invalid Unicode scalar value: {}", n)),
+                },
+                Err(_) => Cow::Owned(format!("Invalid hexadecimal number: {}", code)),
+            };
+            println!("Decoded entity1 : {:?}", decoded_entity);
+            if input == decoded_entity {
+                Ok((input, Cow::Borrowed(input)))
+            } else {
+                Ok((input, decoded_entity))
+            }
+        }
+        
+        else {
             let (input, entity) = opt(delimited(tag("&"), take_until(";"), tag(";")))(input)?;
-            println!("\n\n HEREEEE: {entity:?}");
+
             if let Some(entity) = entity {
                 let decoded_entity = match entity {
                     "amp" => Cow::Borrowed("&"),
