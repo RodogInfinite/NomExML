@@ -49,7 +49,8 @@ impl<'a> ContentParticle<'a> {
     }
 
     fn is_name_char(c: char) -> bool {
-        is_alphanumeric(c as u8) || c == '_' || c == ':'
+        let valid_chars = ['_', '-', ':', '.'];
+        is_alphanumeric(c as u8) || valid_chars.contains(&c)
     }
 
     pub fn parse_name(input: &'a str) -> IResult<&'a str, Cow<str>> {
