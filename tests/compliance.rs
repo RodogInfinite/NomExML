@@ -420,3 +420,58 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
+
+
+#[test]
+fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("010")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![
+                    Declaration::Element {
+                        name: Some("doc".into()),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                conditional_state: ConditionalState::None,
+                            },
+                            children: None,
+                        }),
+                    },
+                    Declaration::AttList {
+                        name: Some("doc".into()),
+                        att_defs: Some(vec![Attribute::Definition {
+                            name: "a1".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
+                    }
+                ])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: "a1".into(),
+                        value: "v1".into(),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}

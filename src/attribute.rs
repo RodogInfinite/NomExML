@@ -56,7 +56,7 @@ impl<'a> Attribute<'a> {
     pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = take_while1(|c: char| c.is_alphanumeric() || c == '_')(input)?;
         let (input, _) = Document::parse_with_whitespace(input, tag("="))?;
-        let (input, value) = Self::parse_literal(input)?;
+        let (input, value) = Document::parse_with_whitespace(input,Self::parse_literal)?;
         Ok((
             input,
             Attribute::Instance {
