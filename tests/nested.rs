@@ -1,4 +1,7 @@
-use nomexml::{Document, Namespace, Tag, TagState};
+use nomexml::{
+    tag::{Namespace, Tag, TagState},
+    document::Document,
+};
 
 #[test]
 fn test_nested_recursion() {

@@ -1,12 +1,12 @@
 use std::error::Error;
 
-use nomexml::Document;
+use nomexml::document::Document;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = "<!DOCTYPE doc [
         <!ELEMENT doc (#PCDATA)>
         ]>
-        <doc>&#x20;</doc>  
+        <doc><?pi?></doc>
         ";
 
     let (_, doc) = Document::parse_xml_str(input)?;

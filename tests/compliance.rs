@@ -3,7 +3,9 @@ use std::{borrow::Cow, error::Error, fs::File};
 use nomexml::{
     attribute::{AttType, Attribute, DefaultDecl},
     declaration::{Declaration, DeclarationContent, Mixed},
-    parse_file, ConditionalState, Document, Tag, TagState,
+    parse_file,
+    tag::{ConditionalState, Tag, TagState},
+    document::Document,
 };
 
 fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
@@ -421,7 +423,6 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file("010")?;
@@ -543,7 +544,6 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file("012")?;
@@ -567,13 +567,11 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                     },
                     Declaration::AttList {
                         name: Some("doc".into()),
-                        att_defs: Some(vec![
-                            Attribute::Definition {
-                                name: ":".into(),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
-                            },
-                        ]),
+                        att_defs: Some(vec![Attribute::Definition {
+                            name: ":".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
                     }
                 ])
             })),
@@ -581,12 +579,10 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
-                    attributes: Some(vec![
-                        Attribute::Instance {
-                            name: ":".into(),
-                            value: "v1".into(),
-                        },
-                    ]),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: ":".into(),
+                        value: "v1".into(),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -625,13 +621,11 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                     },
                     Declaration::AttList {
                         name: Some("doc".into()),
-                        att_defs: Some(vec![
-                            Attribute::Definition {
-                                name: "_.-0123456789".into(),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
-                            },
-                        ]),
+                        att_defs: Some(vec![Attribute::Definition {
+                            name: "_.-0123456789".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
                     }
                 ])
             })),
@@ -639,12 +633,10 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
-                    attributes: Some(vec![
-                        Attribute::Instance {
-                            name: "_.-0123456789".into(),
-                            value: "v1".into(),
-                        },
-                    ]),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: "_.-0123456789".into(),
+                        value: "v1".into(),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -659,7 +651,6 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
-
 
 #[test]
 fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
@@ -684,13 +675,11 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                     },
                     Declaration::AttList {
                         name: Some("doc".into()),
-                        att_defs: Some(vec![
-                            Attribute::Definition {
-                                name: "abcdefghijklmnopqrstuvwxyz".into(),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
-                            },
-                        ]),
+                        att_defs: Some(vec![Attribute::Definition {
+                            name: "abcdefghijklmnopqrstuvwxyz".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
                     }
                 ])
             })),
@@ -698,12 +687,10 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
-                    attributes: Some(vec![
-                        Attribute::Instance {
-                            name: "abcdefghijklmnopqrstuvwxyz".into(),
-                            value: "v1".into(),
-                        },
-                    ]),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: "abcdefghijklmnopqrstuvwxyz".into(),
+                        value: "v1".into(),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -718,7 +705,6 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
-
 
 #[test]
 fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
@@ -743,13 +729,11 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     },
                     Declaration::AttList {
                         name: Some("doc".into()),
-                        att_defs: Some(vec![
-                            Attribute::Definition {
-                                name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
-                            },
-                        ]),
+                        att_defs: Some(vec![Attribute::Definition {
+                            name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
+                            att_type: AttType::CDATA,
+                            default_decl: DefaultDecl::Implied,
+                        },]),
                     }
                 ])
             })),
@@ -757,12 +741,10 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: "doc".into(),
                     namespace: None,
-                    attributes: Some(vec![
-                        Attribute::Instance {
-                            name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
-                            value: "v1".into(),
-                        },
-                    ]),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
+                        value: "v1".into(),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
