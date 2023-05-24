@@ -41,9 +41,7 @@ impl<'a> Attribute<'a> {
 
     pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = ContentParticle::parse_name(input)?;
-        let (input, _) = space0(input)?;
-        let (input, att_type) = AttType::parse_att_type(input)?;
-        let (input, _) = space0(input)?;
+        let (input, att_type) = Document::parse_with_whitespace(input,AttType::parse_att_type)?;
         let (input, default_decl) = DefaultDecl::parse(input)?;
         let attribute = Attribute::Definition {
             name: Cow::Owned(name.to_string()), // Change this line
