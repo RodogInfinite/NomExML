@@ -1,16 +1,23 @@
 use std::borrow::Cow;
 
+use crate::declaration::Declaration;
+use crate::{
+    decode::decode_entities,
+    tag::{Namespace, Tag},
+    utils::parse_with_whitespace,
+    Elements,
+};
+use nom::branch::alt;
+use nom::multi::many1;
+use nom::sequence::{tuple, delimited};
 use nom::{
-
     bytes::complete::{tag, take_until, take_while1},
-    character::complete::{alpha1},
-    combinator::{ map, opt, recognize},
+    character::complete::alpha1,
+    combinator::{map, opt, recognize},
     multi::many0,
     sequence::pair,
     IResult,
 };
-use crate::{tag::{Namespace, Tag}, decode::decode_entities, utils::parse_with_whitespace, Elements};
-use crate::declaration::Declaration;
 
 // TODO: think about processing instructions: https://www.w3.org/TR/2008/REC-xml-20081126/#sec-pi
 #[derive(Clone, PartialEq)]
@@ -21,21 +28,23 @@ pub enum Document<'a> {
     Nested(Vec<Document<'a>>),
     Empty,
     Comment(Option<Cow<'a, str>>),
+    ProcessingInstruction {
+        target: Cow<'a, str>,
+        data: Option<Cow<'a, str>>,
+    }
 }
 impl<'a> Document<'a> {
     pub fn parse_tag_and_namespace(
         input: &'a str,
     ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
         map(
-            recognize(pair(
+            pair(
                 // Look for an optional namespace prefix
                 opt(pair(alpha1, tag(":"))),
                 take_while1(|c: char| c.is_alphanumeric() || c == '_'),
-            )),
-            |tag_name: &str| {
-                // Check if there's a namespace prefix
-                let mut parts = tag_name.split(':');
-                if let (Some(prefix), Some(local_name)) = (parts.next(), parts.next()) {
+            ),
+            |(prefix, local_name): (Option<(&str, &str)>, &str)| {
+                if let Some((prefix, _)) = prefix {
                     (
                         Cow::Borrowed(local_name),
                         Some(Namespace {
@@ -45,25 +54,64 @@ impl<'a> Document<'a> {
                         }),
                     )
                 } else {
-                    (Cow::Borrowed(tag_name), None)
+                    (Cow::Borrowed(local_name), None)
                 }
             },
         )(input)
     }
+    
 
-    fn parse_content(input: &'a str) -> IResult<&'a str, Option<Cow<'a, str>>> {
-        let (tail, content) = take_until("</")(input)?;
-        println!("Content: {:?}", content);
-        if content.is_empty() {
-            println!("Empty content");
-            Ok((tail, None))
-        } else {
-            let (_, content) = decode_entities(content)?;
-            println!("Decoded content: {:?}", content);
-            Ok((tail, Some(content)))
-            //Ok((tail, Some(Cow::Borrowed(content))))
-        }
+    fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        alt((
+            |input: &'a str| {
+                let (input, docs) = many1(Self::parse_processing_instruction)(input)?;
+                if docs.len() > 1 {
+                    Ok((input, Document::Nested(docs)))
+                } else {
+                    Ok((input, docs.into_iter().next().unwrap()))
+                }
+            },
+            |input: &'a str| {
+                let (tail, content) = take_until("</")(input)?;
+                if content.is_empty() {
+                    Ok((tail, Document::Empty))
+                } else {
+                    let (_, content) = decode_entities(content)?;
+                    Ok((tail, Document::Content(Some(content))))
+                }
+            }
+        ))(input)
     }
+    
+    fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, (target, data)) = delimited(
+            tag("<?"),
+            tuple((
+                alpha1,
+                opt(take_until("?>")),
+            )),
+            tag("?>")
+        )(input)?;
+        println!("input: {input:?}");
+        if target.eq_ignore_ascii_case("xml") {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+    
+        let data = data.map(|d| d.trim()).filter(|d| !d.is_empty()).map_or(None, |d| Some(Cow::Borrowed(d)));
+        println!("DATA: {data:?}");
+        Ok((input, Document::ProcessingInstruction {
+            target: Cow::Borrowed(target),
+            data,
+        }))
+    }
+    
+    
+    
+    
+    
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, declaration) = Self::parse_declaration(input)?;
@@ -108,7 +156,7 @@ impl<'a> Document<'a> {
         declaration: Option<Declaration<'a>>,
         start_tag: Tag<'a>,
         children: Vec<Document<'a>>,
-        content: Option<Cow<'a, str>>,
+        content: Document<'a>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
         match (&start_tag, &end_tag) {
@@ -190,21 +238,29 @@ impl<'a> Document<'a> {
 }
 
 fn determine_child_document<'a>(
-    content: Option<Cow<'a, str>>,
+    content: Document<'a>,
     children: Vec<Document<'a>>,
 ) -> Result<Document<'a>, &'static str> {
-    if let Some(content) = content {
-        Ok(Document::Content(Some(Cow::Owned(
-            content.as_ref().to_string(),
-        ))))
-    } else if children.is_empty() {
-        Ok(Document::Empty)
-    } else if children.len() == 1 {
-        match children.into_iter().next() {
-            Some(child) => Ok(child),
-            None => Err("Unexpected error: no child found in non-empty children vector"),
-        }
-    } else {
-        Ok(Document::Nested(children))
+    match content {
+        Document::Empty => {
+            if children.is_empty() {
+                Ok(Document::Empty)
+            } else if children.len() == 1 {
+                match children.into_iter().next() {
+                    Some(child) => Ok(child),
+                    None => Err("Unexpected error: no child found in non-empty children vector"),
+                }
+            } else {
+                Ok(Document::Nested(children))
+            }
+        },
+        Document::Content(Some(cow)) => Ok(Document::Content(Some(Cow::Owned(cow.into_owned())))),
+        Document::ProcessingInstruction {target, data} => Ok(Document::ProcessingInstruction {target, data}),
+        Document::Nested(docs) => Ok(Document::Nested(docs)),  // propagate nested documents up
+        _ => Err("Invalid content type in determine_child_document"),
     }
 }
+
+
+
+

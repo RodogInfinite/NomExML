@@ -3,9 +3,9 @@ use std::{borrow::Cow, error::Error, fs::File};
 use nomexml::{
     attribute::{AttType, Attribute, DefaultDecl},
     declaration::{Declaration, DeclarationContent, Mixed},
+    document::Document,
     parse_file,
     tag::{ConditionalState, Tag, TagState},
-    document::Document,
 };
 
 fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
@@ -748,6 +748,106 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+
+#[test]
+fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("016")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![
+                    Declaration::Element {
+                        name: Some("doc".into()),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                conditional_state: ConditionalState::None,
+                            },
+                            children: None,
+                        }),
+                    },
+                ])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::ProcessingInstruction {
+                    target: "pi".into(),
+                    data: None,
+                }),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+
+#[test]
+fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("017")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![
+                    Declaration::Element {
+                        name: Some("doc".into()),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                conditional_state: ConditionalState::None,
+                            },
+                            children: None,
+                        }),
+                    },
+                ])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::ProcessingInstruction {
+                        target: "pi".into(),
+                        data: Some("some data".into()),
+                    },
+                    Document::ProcessingInstruction {
+                        target: "x".into(),
+                        data: None,
+                    },
+                ])),
                 Tag {
                     name: "doc".into(),
                     namespace: None,

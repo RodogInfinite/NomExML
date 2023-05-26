@@ -1,6 +1,6 @@
 use nomexml::{
-    tag::{Namespace, Tag, TagState},
     document::Document,
+    tag::{Namespace, Tag, TagState},
 };
 
 #[test]

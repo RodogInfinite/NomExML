@@ -7,16 +7,14 @@ mod error;
 pub mod tag;
 pub mod utils;
 
-
 use document::Document;
 use error::CustomError;
-
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use std::{io::Error as IoError, path::Path};
 use std::{
     fs::{self, File},
     io::Read,
 };
+use std::{io::Error as IoError, path::Path};
 use tag::Tag;
 
 pub struct Elements<'a> {

@@ -9,8 +9,7 @@ use nom::{
     IResult,
 };
 
-use crate::{attribute::Attribute,document::Document };
-
+use crate::{attribute::Attribute, document::Document};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace<'a> {

@@ -82,7 +82,24 @@ impl<'a> Document<'a> {
             Document::Empty => {
                 fmt_indented(f, indent, "Empty,\n");
             }
-        }
+            Document::ProcessingInstruction { target, data } => {
+                fmt_indented(f, indent, "ProcessingInstruction {\n");
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("target: \"{}\",\n", target),
+                );
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &match data {
+                        Some(c) => format!("data: \"{}\",\n", c),
+                        None => "data: None,\n".to_string(),
+                    },
+                );
+                fmt_indented(f, indent, "},\n");
+            }
+        }     
     }
 }
 
