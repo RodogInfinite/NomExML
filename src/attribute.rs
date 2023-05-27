@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use crate::{declaration::ContentParticle, utils::Parse};
+use crate::utils::Parse;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while, take_while1},
+    bytes::complete::{tag, take_while1},
     character::complete::space0,
     combinator::{map, value},
     multi::separated_list1,
@@ -16,7 +16,7 @@ pub enum Attribute<'a> {
     Definition {
         name: Cow<'a, str>,
         att_type: AttType<'a>,
-        default_decl: DefaultDecl<'a>, // Attribute::DefaultDecl<Attribute::Value> || Attribute::Reference
+        default_decl: DefaultDecl<'a>,
     },
     Reference {
         entity: Cow<'a, str>,
@@ -31,20 +31,12 @@ pub enum Attribute<'a> {
 }
 impl<'a> Parse<'a> for Attribute<'a> {}
 impl<'a> Attribute<'a> {
-    fn parse_literal(input: &'a str) -> IResult<&'a str, &'a str> {
-        delimited(
-            alt((tag("'"), tag("\""))),
-            take_while(|c: char| c != '\'' && c != '\"' && c != '<' && c != '&'),
-            alt((tag("'"), tag("\""))),
-        )(input)
-    }
-
     pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
-        let (input, name) = ContentParticle::parse_name(input)?;
-        let (input, att_type) = Self::parse_with_whitespace(input, AttType::parse_att_type)?;
+        let (input, name) = Self::parse_name(input)?;
+        let (input, att_type) = AttType::parse(input)?;
         let (input, default_decl) = DefaultDecl::parse(input)?;
         let attribute = Attribute::Definition {
-            name: Cow::Owned(name.to_string()), // Change this line
+            name: Cow::Owned(name.into()),
             att_type,
             default_decl: default_decl,
         };
@@ -55,7 +47,6 @@ impl<'a> Attribute<'a> {
         let valid_chars = ['_', '-', ':', '.'];
         let (input, name) =
             take_while1(|c: char| c.is_alphanumeric() || valid_chars.contains(&c))(input)?;
-        println!("HERE\n NAME:{name:?}");
         let (input, _) = Self::parse_with_whitespace(input, tag("="))?;
         let (input, value) = Self::parse_with_whitespace(input, Self::parse_literal)?;
         Ok((
@@ -108,10 +99,7 @@ impl<'a> AttType<'a> {
     fn parse_enumerated_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
         let mut parser = delimited(
             tag("("),
-            separated_list1(
-                tuple((space0, tag("|"), space0)),
-                ContentParticle::parse_name,
-            ),
+            separated_list1(tuple((space0, tag("|"), space0)), Self::parse_name),
             tag(")"),
         );
         let (input, enumeration) = parser(input)?;
@@ -123,13 +111,17 @@ impl<'a> AttType<'a> {
             },
         ))
     }
-
-    fn parse_att_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
-        let (input, att_type) = alt((
-            value(AttType::CDATA, tag("CDATA")),
-            map(TokenizedType::parse, AttType::Tokenized),
-            Self::parse_enumerated_type,
-        ))(input)?;
+}
+impl<'a> Parse<'a> for AttType<'a> {
+    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+        let (input, att_type) = Self::parse_with_whitespace(
+            input,
+            alt((
+                value(AttType::CDATA, tag("CDATA")),
+                map(TokenizedType::parse, AttType::Tokenized),
+                Self::parse_enumerated_type,
+            )),
+        )?;
         Ok((input, att_type))
     }
 }
@@ -142,17 +134,17 @@ pub enum DefaultDecl<'a> {
     Value(Cow<'a, str>),
 }
 
-impl<'a> DefaultDecl<'a> {
+impl<'a> Parse<'a> for DefaultDecl<'a> {
     // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-DefaultDecl
-    fn parse(input: &'a str) -> IResult<&'a str, DefaultDecl<'a>> {
+    fn parse(input: &'a str) -> IResult<&'a str, Self> {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
             map(
-                tuple((tag("#FIXED"), space0, Attribute::parse_literal)),
+                tuple((tag("#FIXED"), space0, Self::parse_literal)),
                 |(_, _, lit)| DefaultDecl::Fixed(Cow::Borrowed(lit)),
             ),
-            map(Attribute::parse_literal, |lit| {
+            map(Self::parse_literal, |lit| {
                 DefaultDecl::Value(Cow::Borrowed(lit))
             }),
         ))(input)

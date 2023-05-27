@@ -40,6 +40,8 @@ pub enum ContentParticle<'a> {
     },
 }
 
+impl<'a> Parse<'a> for ContentParticle<'a> {}
+
 impl<'a> ContentParticle<'a> {
     // cp ::= (Name | choice | seq) ('?' | '*' | '+')?
     fn parse_content_particle(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
@@ -56,17 +58,6 @@ impl<'a> ContentParticle<'a> {
         };
 
         Ok((input, content_particle))
-    }
-
-    fn is_name_char(c: char) -> bool {
-        let valid_chars = ['_', '-', ':', '.'];
-        is_alphanumeric(c as u8) || valid_chars.contains(&c)
-    }
-
-    pub fn parse_name(input: &'a str) -> IResult<&'a str, Cow<str>> {
-        let (input, name) =
-            map(take_while1(Self::is_name_char), |s: &str| Cow::Borrowed(s))(input)?;
-        Ok((input, name))
     }
 
     // choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
@@ -108,6 +99,7 @@ pub enum Mixed<'a> {
         conditional_state: ConditionalState,
     },
 }
+impl<'a> Parse<'a> for Mixed<'a> {}
 
 impl<'a> Mixed<'a> {
     // Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
@@ -116,7 +108,7 @@ impl<'a> Mixed<'a> {
         let (input, pcdata) = opt(tag("#PCDATA"))(input)?;
         let (input, names) = many0(delimited(
             tuple((space0, tag("|"), space0)),
-            ContentParticle::parse_name,
+            Self::parse_name,
             space0,
         ))(input)?;
         // Mixed should match on condition for setting ConditionalState?
@@ -252,7 +244,7 @@ impl<'a> Declaration<'a> {
 
     pub fn parse_attlist(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
         let (input, _) = preceded(multispace0, tag("<!ATTLIST"))(input)?;
-        let (input, name) = Self::parse_with_whitespace(input, ContentParticle::parse_name)?;
+        let (input, name) = Self::parse_with_whitespace(input, Self::parse_name)?;
         let (input, att_defs) =
             many0(delimited(space0, Attribute::parse_definition, space0))(input)?;
 
