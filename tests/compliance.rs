@@ -760,7 +760,6 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file("016")?;
@@ -770,19 +769,17 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
             Document::Declaration(Some(Declaration::DocType {
                 name: Some("doc".into()),
                 external_id: None,
-                int_subset: Some(vec![
-                    Declaration::Element {
-                        name: Some("doc".into()),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                conditional_state: ConditionalState::None,
-                            },
-                            children: None,
-                        }),
-                    },
-                ])
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
             })),
             Document::Element(
                 Tag {
@@ -807,7 +804,6 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file("017")?;
@@ -817,19 +813,17 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
             Document::Declaration(Some(Declaration::DocType {
                 name: Some("doc".into()),
                 external_id: None,
-                int_subset: Some(vec![
-                    Declaration::Element {
-                        name: Some("doc".into()),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                conditional_state: ConditionalState::None,
-                            },
-                            children: None,
-                        }),
-                    },
-                ])
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
             })),
             Document::Element(
                 Tag {
@@ -848,6 +842,255 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
                         data: None,
                     },
                 ])),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("017a")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::ProcessingInstruction {
+                    target: "pi".into(),
+                    data: Some("some data ? > <?".into()),
+                },),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("018")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::CDATA("<foo>".into())),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("019")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::CDATA("<&".into())),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("020")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::CDATA("<&]>]".into())),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("021")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Comment(Some(Cow::Borrowed(" a comment "))),),
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("022")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Declaration(Some(Declaration::DocType {
+                name: Some("doc".into()),
+                external_id: None,
+                int_subset: Some(vec![Declaration::Element {
+                    name: Some("doc".into()),
+                    content_spec: Some(DeclarationContent::Spec {
+                        mixed: Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            conditional_state: ConditionalState::None,
+                        },
+                        children: None,
+                    }),
+                },])
+            })),
+            Document::Element(
+                Tag {
+                    name: "doc".into(),
+                    namespace: None,
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Comment(Some(Cow::Borrowed(" a comment ->"))),),
                 Tag {
                     name: "doc".into(),
                     namespace: None,

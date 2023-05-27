@@ -5,8 +5,10 @@ use nomexml::document::Document;
 fn main() -> Result<(), Box<dyn Error>> {
     let input = "<!DOCTYPE doc [
         <!ELEMENT doc (#PCDATA)>
+        <!ENTITY e \"\">
         ]>
-        <doc><?pi some data ?><?x?></doc>
+        <doc>&e;</doc>
+        
         ";
 
     let (_, doc) = Document::parse_xml_str(input)?;

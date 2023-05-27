@@ -84,11 +84,7 @@ impl<'a> Document<'a> {
             }
             Document::ProcessingInstruction { target, data } => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
-                fmt_indented(
-                    f,
-                    indent + 4,
-                    &format!("target: \"{}\",\n", target),
-                );
+                fmt_indented(f, indent + 4, &format!("target: \"{}\",\n", target));
                 fmt_indented(
                     f,
                     indent + 4,
@@ -99,7 +95,15 @@ impl<'a> Document<'a> {
                 );
                 fmt_indented(f, indent, "},\n");
             }
-        }     
+
+            Document::CDATA(cdata) => {
+                fmt_indented(
+                    f,
+                    indent,
+                    &format!("CDATA(\"{}\"),\n", cdata.clone().as_ref()),
+                );
+            }
+        }
     }
 }
 

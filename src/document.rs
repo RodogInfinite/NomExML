@@ -8,18 +8,18 @@ use crate::{
     Elements,
 };
 use nom::branch::alt;
+use nom::character::complete::space0;
 use nom::multi::many1;
-use nom::sequence::{tuple, delimited};
+use nom::sequence::{delimited, tuple};
 use nom::{
     bytes::complete::{tag, take_until, take_while1},
     character::complete::alpha1,
-    combinator::{map, opt, recognize},
+    combinator::{map, opt},
     multi::many0,
     sequence::pair,
     IResult,
 };
 
-// TODO: think about processing instructions: https://www.w3.org/TR/2008/REC-xml-20081126/#sec-pi
 #[derive(Clone, PartialEq)]
 pub enum Document<'a> {
     Declaration(Option<Declaration<'a>>),
@@ -31,7 +31,8 @@ pub enum Document<'a> {
     ProcessingInstruction {
         target: Cow<'a, str>,
         data: Option<Cow<'a, str>>,
-    }
+    },
+    CDATA(Cow<'a, str>), // CDATA(Document::Content)
 }
 impl<'a> Document<'a> {
     pub fn parse_tag_and_namespace(
@@ -59,10 +60,11 @@ impl<'a> Document<'a> {
             },
         )(input)
     }
-    
 
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
         alt((
+            Self::parse_cdata_section,
+            Self::parse_comment,
             |input: &'a str| {
                 let (input, docs) = many1(Self::parse_processing_instruction)(input)?;
                 if docs.len() > 1 {
@@ -79,18 +81,15 @@ impl<'a> Document<'a> {
                     let (_, content) = decode_entities(content)?;
                     Ok((tail, Document::Content(Some(content))))
                 }
-            }
+            },
         ))(input)
     }
-    
+
     fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, (target, data)) = delimited(
-            tag("<?"),
-            tuple((
-                alpha1,
-                opt(take_until("?>")),
-            )),
-            tag("?>")
+            delimited(tag("<"), space0, tag("?")),
+            tuple((alpha1, opt(take_until("?>")))),
+            tag("?>"),
         )(input)?;
         println!("input: {input:?}");
         if target.eq_ignore_ascii_case("xml") {
@@ -99,19 +98,39 @@ impl<'a> Document<'a> {
                 nom::error::ErrorKind::Verify,
             )));
         }
-    
-        let data = data.map(|d| d.trim()).filter(|d| !d.is_empty()).map_or(None, |d| Some(Cow::Borrowed(d)));
+
+        let data = data
+            .map(|d| d.trim())
+            .filter(|d| !d.is_empty())
+            .map_or(None, |d| Some(Cow::Borrowed(d)));
         println!("DATA: {data:?}");
-        Ok((input, Document::ProcessingInstruction {
-            target: Cow::Borrowed(target),
-            data,
-        }))
+        Ok((
+            input,
+            Document::ProcessingInstruction {
+                target: Cow::Borrowed(target),
+                data,
+            },
+        ))
     }
-    
-    
-    
-    
-    
+
+    fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, content) = delimited(tag("<![CDATA["), take_until("]]>"), tag("]]>"))(input)?;
+
+        let content = if content.is_empty() {
+            Document::Empty
+        } else {
+            Document::CDATA(Cow::Borrowed(content))
+        };
+
+        Ok((input, content))
+    }
+
+    fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        map(
+            delimited(tag("<!--"), take_until("-->"), tag("-->")),
+            |comment: &'a str| Document::Comment(Some(Cow::Borrowed(comment))),
+        )(input)
+    }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, declaration) = Self::parse_declaration(input)?;
@@ -253,14 +272,14 @@ fn determine_child_document<'a>(
             } else {
                 Ok(Document::Nested(children))
             }
-        },
+        }
         Document::Content(Some(cow)) => Ok(Document::Content(Some(Cow::Owned(cow.into_owned())))),
-        Document::ProcessingInstruction {target, data} => Ok(Document::ProcessingInstruction {target, data}),
-        Document::Nested(docs) => Ok(Document::Nested(docs)),  // propagate nested documents up
+        Document::ProcessingInstruction { target, data } => {
+            Ok(Document::ProcessingInstruction { target, data })
+        }
+        Document::Nested(docs) => Ok(Document::Nested(docs)), // propagate nested documents up
+        Document::CDATA(cow) => Ok(Document::CDATA(cow)),
+        Document::Comment(cow) => Ok(Document::Comment(cow)),
         _ => Err("Invalid content type in determine_child_document"),
     }
 }
-
-
-
-
