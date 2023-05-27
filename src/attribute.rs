@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{declaration::ContentParticle, utils::parse_with_whitespace};
+use crate::{declaration::ContentParticle, utils::Parse};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -29,7 +29,7 @@ pub enum Attribute<'a> {
     Required,
     Implied,
 }
-
+impl<'a> Parse<'a> for Attribute<'a> {}
 impl<'a> Attribute<'a> {
     fn parse_literal(input: &'a str) -> IResult<&'a str, &'a str> {
         delimited(
@@ -41,7 +41,7 @@ impl<'a> Attribute<'a> {
 
     pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = ContentParticle::parse_name(input)?;
-        let (input, att_type) = parse_with_whitespace(input, AttType::parse_att_type)?;
+        let (input, att_type) = Self::parse_with_whitespace(input, AttType::parse_att_type)?;
         let (input, default_decl) = DefaultDecl::parse(input)?;
         let attribute = Attribute::Definition {
             name: Cow::Owned(name.to_string()), // Change this line
@@ -56,8 +56,8 @@ impl<'a> Attribute<'a> {
         let (input, name) =
             take_while1(|c: char| c.is_alphanumeric() || valid_chars.contains(&c))(input)?;
         println!("HERE\n NAME:{name:?}");
-        let (input, _) = parse_with_whitespace(input, tag("="))?;
-        let (input, value) = parse_with_whitespace(input, Self::parse_literal)?;
+        let (input, _) = Self::parse_with_whitespace(input, tag("="))?;
+        let (input, value) = Self::parse_with_whitespace(input, Self::parse_literal)?;
         Ok((
             input,
             Attribute::Instance {

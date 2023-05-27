@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
 use crate::declaration::Declaration;
+use crate::utils::Parse;
 use crate::{
     decode::decode_entities,
     tag::{Namespace, Tag},
-    utils::parse_with_whitespace,
+    //utils::parse_with_whitespace,
     Elements,
 };
 use nom::branch::alt;
@@ -143,11 +144,11 @@ impl<'a> Document<'a> {
     }
 
     fn parse_declaration(input: &'a str) -> IResult<&'a str, Option<Declaration<'a>>> {
-        parse_with_whitespace(input, opt(Declaration::parse))
+        Self::parse_with_whitespace(input, opt(Declaration::parse))
     }
 
     fn parse_children(input: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
-        parse_with_whitespace(input, many0(Self::parse_xml_str))
+        Self::parse_with_whitespace(input, many0(Self::parse_xml_str))
     }
 
     fn construct_document_with_declaration(
@@ -283,3 +284,5 @@ fn determine_child_document<'a>(
         _ => Err("Invalid content type in determine_child_document"),
     }
 }
+
+impl<'a> Parse<'a> for Document<'a> {}

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{attribute::Attribute, tag::ConditionalState, utils::parse_with_whitespace};
+use crate::{attribute::Attribute, tag::ConditionalState, utils::Parse};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -19,6 +19,16 @@ pub enum ExternalID {
     Public,
     System,
 }
+
+// #[derive(Clone, Debug, PartialEq)]
+// pub enum ExternalID<'a> {
+//     System(Cow<'a, str>),
+//     Public {
+//         pubid: Cow<'a, str>,
+//         system_identifier: Cow<'a, str>,
+//     },
+//     NData(Cow<'a, str>),
+// }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ContentParticle<'a> {
@@ -197,8 +207,10 @@ impl<'a> Declaration<'a> {
         let (input, _) = space0(input)?;
         let (input, _) = tag("[")(input)?;
 
-        let (input, int_subset) =
-            parse_with_whitespace(input, opt(many0(alt((Self::parse, Self::parse_attlist)))))?;
+        let (input, int_subset) = Self::parse_with_whitespace(
+            input,
+            opt(many0(alt((Self::parse, Self::parse_attlist)))),
+        )?;
         let (input, _) = tag("]")(input)?;
         let (input, _) = tag(">")(input)?;
         if int_subset.is_some() {
@@ -240,7 +252,7 @@ impl<'a> Declaration<'a> {
 
     pub fn parse_attlist(input: &'a str) -> IResult<&'a str, Declaration<'a>> {
         let (input, _) = preceded(multispace0, tag("<!ATTLIST"))(input)?;
-        let (input, name) = parse_with_whitespace(input, ContentParticle::parse_name)?;
+        let (input, name) = Self::parse_with_whitespace(input, ContentParticle::parse_name)?;
         let (input, att_defs) =
             many0(delimited(space0, Attribute::parse_definition, space0))(input)?;
 
@@ -270,3 +282,5 @@ impl<'a> Declaration<'a> {
         }
     }
 }
+
+impl<'a> Parse<'a> for Declaration<'a> {}
