@@ -283,6 +283,7 @@ pub struct XmlDecl<'a> {
 impl<'a> Parse<'a> for XmlDecl<'a> {
  // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
  fn parse(input: &'a str) -> IResult<&'a str, XmlDecl<'a>> {
+    println!("\n\nparsing XMLDecl: {input:?}");
     let (input, _) = tag("<?xml")(input)?;
     let (input, _) = Self::parse_multispace1(input)?;
     let (input, version) = Self::parse_version_info(input)?;
@@ -416,26 +417,6 @@ fn parse(input: &'a str) -> IResult<&'a str, DocType<'a>> {
 }
 }
 
-#[derive(Clone, PartialEq)]
-pub struct Prolog<'a> {
-    pub xml_decl: Option<XmlDecl<'a>>,
-    pub doc_type: Option<DocType<'a>>,
-      
-}
-
-impl<'a> Parse<'a> for Prolog<'a> {
-    // [22] prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
-    fn parse(input: &'a str) -> IResult<&'a str, Prolog<'a>> {
-        let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
-        let (input, _) = many0(Self::parse_misc)(input)?;
-        let (input, doc_type) = opt(DocType::parse)(input)?;
-        let (input, _) = many0(Self::parse_misc)(input)?;
-        Ok((input, Self { xml_decl, doc_type }))
-    }
-
-   
-}
-    
 
     
 

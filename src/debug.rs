@@ -1,7 +1,7 @@
 // debug.rs
 use crate::{
     attribute::Attribute,
-    prolog::{ContentParticle, Prolog, DeclarationContent, Mixed, InternalSubset, XmlDecl, DocType},
+    prolog::{ContentParticle, DeclarationContent, Mixed, InternalSubset, XmlDecl, DocType},
     document::{Document,ProcessingInstruction}, Tag,
 };
 
@@ -35,16 +35,16 @@ impl<'a> Tag<'a> {
 impl<'a> Document<'a> {
     fn fmt_indented_doc(&self, f: &mut String, indent: usize) {
         match self {
-            Document::Prolog(prolog) => {
+            Document::Prolog { xml_decl, doc_type} => {
                 fmt_indented(f, indent, "Prolog {\n");
-                match prolog {
-                    Some(d) => {
-                        d.fmt_indented_prolog(f, indent + 4);
-                    }
-                    None => fmt_indented(f, indent + 4, "None,\n"),
+                if let Some(xml_decl) = xml_decl {
+                    xml_decl.fmt_indented_xml_decl(f, indent + 4);
+                }
+                if let Some(doc_type) = doc_type {
+                    doc_type.fmt_indented_doc_type(f, indent + 4);
                 }
                 fmt_indented(f, indent, "},\n");
-            }
+            },
             Document::Element(tag1, document, tag2) => {
                 fmt_indented(f, indent, "Element(\n");
                 tag1.fmt_indented_tag(f, indent + 4);
@@ -246,20 +246,6 @@ impl<'a> DocType<'a> {
     }
 }
 
-
-impl<'a> Prolog<'a> {
-    fn fmt_indented_prolog(&self, f: &mut String, indent: usize) {
-        fmt_indented(f, indent, "Prolog {\n");
-        if let Some(xml_decl) = self.xml_decl.as_ref() {
-            xml_decl.fmt_indented_xml_decl(f, indent + 4);
-        }
-        if let Some(doc_type) = self.doc_type.as_ref() {
-            doc_type.fmt_indented_doc_type(f, indent + 4);
-        }
-        fmt_indented(f, indent, "},\n");
-    }
-}
-
 impl<'a> InternalSubset<'a> {
     fn fmt_internal_subset(&self, f: &mut String,indent:usize) {
         match self {
@@ -333,14 +319,6 @@ impl<'a> std::fmt::Debug for DocType<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for Prolog<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Prolog")
-            .field("xml_decl", &self.xml_decl)
-            .field("doc_type", &self.doc_type)
-            .finish()
-    }
-}
 
 
 impl<'a> Attribute<'a> {

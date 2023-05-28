@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::prolog::Prolog;
+use crate::prolog::{XmlDecl, DocType};
 use crate::utils::Parse;
 use crate::{
     decode::decode_entities,
@@ -59,7 +59,11 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
 
 #[derive(Clone, PartialEq)]
 pub enum Document<'a> {
-    Prolog(Option<Prolog<'a>>),
+    Prolog {
+        xml_decl: Option<XmlDecl<'a>>,
+        doc_type: Option<DocType<'a>>,
+          
+    },
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
@@ -69,6 +73,15 @@ pub enum Document<'a> {
     CDATA(Cow<'a, str>), // CDATA(Document::Content)
 }
 impl<'a> Document<'a> {
+    fn parse_prolog(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
+        let (input, _) = many0(Self::parse_misc)(input)?;
+        let (input, doc_type) = opt(DocType::parse)(input)?;
+        let (input, _) = many0(Self::parse_misc)(input)?;
+        println!("xml_decl: {xml_decl:?}");
+        println!("doc_type: {doc_type:?}");
+        Ok((input, Document::Prolog { xml_decl, doc_type }))
+    }
     pub fn parse_tag_and_namespace(
         input: &'a str,
     ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
@@ -140,7 +153,8 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, prolog) = Self::parse_prolog(input)?;
+        let (input, prolog) = opt(Self::parse_prolog)(input)?;
+        println!("\n\n\nPROLOG: {prolog:?}");
         println!("input4: {input:?}");
         let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, children) = Self::parse_children(input)?;
@@ -150,23 +164,19 @@ impl<'a> Document<'a> {
         Self::construct_document(input, prolog, start_tag, children, content, end_tag)
     }
 
-    fn parse_prolog(input: &'a str) -> IResult<&'a str, Option<Prolog<'a>>> {
-        opt(Prolog::parse)(input)
-    }
-
     fn parse_children(input: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
         let (input, _) = Self::parse_multispace0(input)?;
         many0(Self::parse_xml_str)(input)
     }
 
     fn construct_document_with_prolog(
-        prolog: Option<Prolog<'a>>,
+        prolog: Option<Document<'a>>,
         start_tag: &Tag<'a>,
         child_document: Document<'a>,
         end_tag: &Tag<'a>,
     ) -> Document<'a> {
         Document::Nested(vec![
-            Document::Prolog(prolog),
+            prolog.unwrap_or(Document::Empty),
             Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone()),
         ])
     }
@@ -181,7 +191,7 @@ impl<'a> Document<'a> {
 
     fn construct_document(
         input: &'a str,
-        prolog: Option<Prolog<'a>>,
+        prolog: Option<Document<'a>>,
         start_tag: Tag<'a>,
         children: Vec<Document<'a>>,
         content: Document<'a>,
