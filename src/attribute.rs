@@ -6,7 +6,7 @@ use nom::{
     bytes::complete::{tag, take_while1},
     character::complete::space0,
     combinator::{map, value},
-    multi::separated_list1,
+    multi::{separated_list0, separated_list1},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -31,10 +31,21 @@ pub enum Attribute<'a> {
 }
 impl<'a> Parse<'a> for Attribute<'a> {}
 impl<'a> Attribute<'a> {
+    // [53] AttDef ::= S Name S AttType S DefaultDecl
     pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        let (input, _) = Self::parse_multispace1(input)?;
+        println!("Parsed whitespace. input: {input:?}");
         let (input, name) = Self::parse_name(input)?;
+        println!("Parsed name: {:?}", name);
+        let (input, _) = Self::parse_multispace1(input)?;
+        println!("Parsed whitespace 2");
+        // [54] AttType ::= StringType | TokenizedType | EnumeratedType
         let (input, att_type) = AttType::parse(input)?;
+        println!("Parsed attribute type: {:?}", att_type);
+        let (input, _) = Self::parse_multispace1(input)?;
+        println!("Parsed whitespace 3");
         let (input, default_decl) = DefaultDecl::parse(input)?;
+        println!("Parsed default declaration: {:?}", default_decl);
         let attribute = Attribute::Definition {
             name: Cow::Owned(name.into()),
             att_type,
@@ -47,13 +58,15 @@ impl<'a> Attribute<'a> {
         let valid_chars = ['_', '-', ':', '.'];
         let (input, name) =
             take_while1(|c: char| c.is_alphanumeric() || valid_chars.contains(&c))(input)?;
-        let (input, _) = Self::parse_with_whitespace(input, tag("="))?;
-        let (input, value) = Self::parse_with_whitespace(input, Self::parse_literal)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag("=")(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, value) = Self::parse_literal(input)?;
         Ok((
             input,
             Attribute::Instance {
-                name: Cow::Borrowed(name),
-                value: Cow::Borrowed(value),
+                name: Cow::Owned(name.into()),
+                value,
             },
         ))
     }
@@ -95,11 +108,56 @@ pub enum AttType<'a> {
     },
 }
 
+impl<'a> Parse<'a> for AttType<'a> {
+    //[54] AttType ::=  StringType | TokenizedType | EnumeratedType
+    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+        let (input, att_type) = alt((
+            // [55] StringType ::= 'CDATA'
+            value(AttType::CDATA, tag("CDATA")),
+            // [56] TokenizedType ::= 'ID'| 'IDREF' | 'IDREFS' | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
+            map(TokenizedType::parse, AttType::Tokenized),
+            Self::parse_enumerated_type,
+        ))(input)?;
+
+        Ok((input, att_type))
+    }
+}
 impl<'a> AttType<'a> {
+    // [57] EnumeratedType ::= NotationType | Enumeration
     fn parse_enumerated_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
+        alt((Self::parse_notation_type, Self::parse_enumeration))(input)
+    }
+
+    // [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
+    fn parse_notation_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
+        let (input, _) = tag("NOTATION")(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
         let mut parser = delimited(
             tag("("),
-            separated_list1(tuple((space0, tag("|"), space0)), Self::parse_name),
+            separated_list0(
+                tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                Self::parse_name,
+            ),
+            tag(")"),
+        );
+        let (input, notation) = parser(input)?;
+        Ok((
+            input,
+            AttType::Enumerated {
+                notation: Some(notation),
+                enumeration: None,
+            },
+        ))
+    }
+
+    // [59] Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
+    fn parse_enumeration(input: &'a str) -> IResult<&'a str, AttType<'a>> {
+        let mut parser = delimited(
+            tag("("),
+            separated_list1(
+                tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                Self::parse_nmtoken,
+            ),
             tag(")"),
         );
         let (input, enumeration) = parser(input)?;
@@ -110,19 +168,6 @@ impl<'a> AttType<'a> {
                 enumeration: Some(enumeration),
             },
         ))
-    }
-}
-impl<'a> Parse<'a> for AttType<'a> {
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
-        let (input, att_type) = Self::parse_with_whitespace(
-            input,
-            alt((
-                value(AttType::CDATA, tag("CDATA")),
-                map(TokenizedType::parse, AttType::Tokenized),
-                Self::parse_enumerated_type,
-            )),
-        )?;
-        Ok((input, att_type))
     }
 }
 
@@ -136,17 +181,16 @@ pub enum DefaultDecl<'a> {
 
 impl<'a> Parse<'a> for DefaultDecl<'a> {
     // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-DefaultDecl
+    // [60] DefaultDecl	::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
     fn parse(input: &'a str) -> IResult<&'a str, Self> {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
             map(
-                tuple((tag("#FIXED"), space0, Self::parse_literal)),
-                |(_, _, lit)| DefaultDecl::Fixed(Cow::Borrowed(lit)),
+                tuple((tag("#FIXED"), Self::parse_multispace1, Self::parse_literal)),
+                |(_, _, lit)| DefaultDecl::Fixed(lit),
             ),
-            map(Self::parse_literal, |lit| {
-                DefaultDecl::Value(Cow::Borrowed(lit))
-            }),
+            map(Self::parse_literal, |lit| DefaultDecl::Value(lit)),
         ))(input)
     }
 }

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::declaration::Declaration;
+use crate::prolog::Prolog;
 use crate::utils::Parse;
 use crate::{
     decode::decode_entities,
@@ -22,17 +22,50 @@ use nom::{
 };
 
 #[derive(Clone, PartialEq)]
+pub struct ProcessingInstruction<'a> {
+    pub target: Cow<'a, str>,
+    pub data: Option<Cow<'a, str>>,
+}
+
+impl<'a> Parse<'a> for ProcessingInstruction<'a> {
+    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+        let (input, (target, data)) = delimited(
+            delimited(tag("<"), space0, tag("?")),
+            tuple((alpha1, opt(take_until("?>")))),
+            tag("?>"),
+        )(input)?;
+        println!("input: {input:?}");
+        if target.eq_ignore_ascii_case("xml") {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+
+        let data = data
+            .map(|d| d.trim())
+            .filter(|d| !d.is_empty())
+            .map_or(None, |d| Some(Cow::Borrowed(d)));
+        println!("DATA: {data:?}");
+        Ok((
+            input,
+            ProcessingInstruction {
+                target: Cow::Borrowed(target),
+                data,
+            }),
+        )
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub enum Document<'a> {
-    Declaration(Option<Declaration<'a>>),
+    Prolog(Option<Prolog<'a>>),
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
+    ProcessingInstruction(ProcessingInstruction<'a>),
     Comment(Option<Cow<'a, str>>),
-    ProcessingInstruction {
-        target: Cow<'a, str>,
-        data: Option<Cow<'a, str>>,
-    },
     CDATA(Cow<'a, str>), // CDATA(Document::Content)
 }
 impl<'a> Document<'a> {
@@ -67,11 +100,11 @@ impl<'a> Document<'a> {
             Self::parse_cdata_section,
             Self::parse_comment,
             |input: &'a str| {
-                let (input, docs) = many1(Self::parse_processing_instruction)(input)?;
+                let (input, docs) = many1(ProcessingInstruction::parse)(input)?;
                 if docs.len() > 1 {
-                    Ok((input, Document::Nested(docs)))
+                    Ok((input, Document::Nested(docs.into_iter().map(Document::ProcessingInstruction).collect())))
                 } else {
-                    Ok((input, docs.into_iter().next().unwrap()))
+                    Ok((input, Document::ProcessingInstruction(docs.into_iter().next().unwrap())))
                 }
             },
             |input: &'a str| {
@@ -85,34 +118,7 @@ impl<'a> Document<'a> {
             },
         ))(input)
     }
-
-    fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, (target, data)) = delimited(
-            delimited(tag("<"), space0, tag("?")),
-            tuple((alpha1, opt(take_until("?>")))),
-            tag("?>"),
-        )(input)?;
-        println!("input: {input:?}");
-        if target.eq_ignore_ascii_case("xml") {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            )));
-        }
-
-        let data = data
-            .map(|d| d.trim())
-            .filter(|d| !d.is_empty())
-            .map_or(None, |d| Some(Cow::Borrowed(d)));
-        println!("DATA: {data:?}");
-        Ok((
-            input,
-            Document::ProcessingInstruction {
-                target: Cow::Borrowed(target),
-                data,
-            },
-        ))
-    }
+    
 
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, content) = delimited(tag("<![CDATA["), take_until("]]>"), tag("]]>"))(input)?;
@@ -126,7 +132,7 @@ impl<'a> Document<'a> {
         Ok((input, content))
     }
 
-    fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
+    pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
         map(
             delimited(tag("<!--"), take_until("-->"), tag("-->")),
             |comment: &'a str| Document::Comment(Some(Cow::Borrowed(comment))),
@@ -134,31 +140,33 @@ impl<'a> Document<'a> {
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, declaration) = Self::parse_declaration(input)?;
+        let (input, prolog) = Self::parse_prolog(input)?;
+        println!("input4: {input:?}");
         let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, end_tag) = Tag::parse_end_tag(input)?;
 
-        Self::construct_document(input, declaration, start_tag, children, content, end_tag)
+        Self::construct_document(input, prolog, start_tag, children, content, end_tag)
     }
 
-    fn parse_declaration(input: &'a str) -> IResult<&'a str, Option<Declaration<'a>>> {
-        Self::parse_with_whitespace(input, opt(Declaration::parse))
+    fn parse_prolog(input: &'a str) -> IResult<&'a str, Option<Prolog<'a>>> {
+        opt(Prolog::parse)(input)
     }
 
     fn parse_children(input: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
-        Self::parse_with_whitespace(input, many0(Self::parse_xml_str))
+        let (input, _) = Self::parse_multispace0(input)?;
+        many0(Self::parse_xml_str)(input)
     }
 
-    fn construct_document_with_declaration(
-        declaration: Option<Declaration<'a>>,
+    fn construct_document_with_prolog(
+        prolog: Option<Prolog<'a>>,
         start_tag: &Tag<'a>,
         child_document: Document<'a>,
         end_tag: &Tag<'a>,
     ) -> Document<'a> {
         Document::Nested(vec![
-            Document::Declaration(declaration),
+            Document::Prolog(prolog),
             Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone()),
         ])
     }
@@ -173,7 +181,7 @@ impl<'a> Document<'a> {
 
     fn construct_document(
         input: &'a str,
-        declaration: Option<Declaration<'a>>,
+        prolog: Option<Prolog<'a>>,
         start_tag: Tag<'a>,
         children: Vec<Document<'a>>,
         content: Document<'a>,
@@ -195,9 +203,9 @@ impl<'a> Document<'a> {
                 let child_document = determine_child_document(content, children).map_err(|e| {
                     nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
                 })?;
-                let document = if let Some(declaration) = declaration {
-                    Self::construct_document_with_declaration(
-                        Some(declaration),
+                let document = if let Some(prolog) = prolog {
+                    Self::construct_document_with_prolog(
+                        Some(prolog),
                         &start_tag,
                         child_document,
                         &end_tag,
@@ -275,9 +283,7 @@ fn determine_child_document<'a>(
             }
         }
         Document::Content(Some(cow)) => Ok(Document::Content(Some(Cow::Owned(cow.into_owned())))),
-        Document::ProcessingInstruction { target, data } => {
-            Ok(Document::ProcessingInstruction { target, data })
-        }
+        Document::ProcessingInstruction(PI) => Ok(Document::ProcessingInstruction(PI)),
         Document::Nested(docs) => Ok(Document::Nested(docs)), // propagate nested documents up
         Document::CDATA(cow) => Ok(Document::CDATA(cow)),
         Document::Comment(cow) => Ok(Document::Comment(cow)),

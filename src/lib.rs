@@ -1,6 +1,6 @@
 pub mod attribute;
 mod debug;
-pub mod declaration;
+pub mod prolog;
 pub mod decode;
 pub mod document;
 mod error;
