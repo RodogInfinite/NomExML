@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::prolog::{XmlDecl, DocType};
+use crate::prolog::{DocType, XmlDecl};
 use crate::utils::Parse;
 use crate::{
     decode::decode_entities,
@@ -34,7 +34,7 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
             tuple((alpha1, opt(take_until("?>")))),
             tag("?>"),
         )(input)?;
-        println!("input: {input:?}");
+        println!("input ProcessingInstruction: {input:?}");
         if target.eq_ignore_ascii_case("xml") {
             return Err(nom::Err::Error(nom::error::Error::new(
                 input,
@@ -52,8 +52,8 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
             ProcessingInstruction {
                 target: Cow::Borrowed(target),
                 data,
-            }),
-        )
+            },
+        ))
     }
 }
 
@@ -62,7 +62,6 @@ pub enum Document<'a> {
     Prolog {
         xml_decl: Option<XmlDecl<'a>>,
         doc_type: Option<DocType<'a>>,
-          
     },
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
     Content(Option<Cow<'a, str>>),
@@ -74,14 +73,20 @@ pub enum Document<'a> {
 }
 impl<'a> Document<'a> {
     fn parse_prolog(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        println!("\nbefore xml_decl parse: {input:?}");
         let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
+        println!("after xml_decl: {xml_decl:?}");
         let (input, _) = many0(Self::parse_misc)(input)?;
+        println!("\n\n=====\nbefore parse_prolg: {input:?}");
         let (input, doc_type) = opt(DocType::parse)(input)?;
+        println!("\n-----\nafter parse_prolg input: {input:?}");
+        println!("\n-----\nafter parse_prolg doc_type: {doc_type:?}");
         let (input, _) = many0(Self::parse_misc)(input)?;
-        println!("xml_decl: {xml_decl:?}");
+
         println!("doc_type: {doc_type:?}");
         Ok((input, Document::Prolog { xml_decl, doc_type }))
     }
+    
     pub fn parse_tag_and_namespace(
         input: &'a str,
     ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
@@ -115,9 +120,19 @@ impl<'a> Document<'a> {
             |input: &'a str| {
                 let (input, docs) = many1(ProcessingInstruction::parse)(input)?;
                 if docs.len() > 1 {
-                    Ok((input, Document::Nested(docs.into_iter().map(Document::ProcessingInstruction).collect())))
+                    Ok((
+                        input,
+                        Document::Nested(
+                            docs.into_iter()
+                                .map(Document::ProcessingInstruction)
+                                .collect(),
+                        ),
+                    ))
                 } else {
-                    Ok((input, Document::ProcessingInstruction(docs.into_iter().next().unwrap())))
+                    Ok((
+                        input,
+                        Document::ProcessingInstruction(docs.into_iter().next().unwrap()),
+                    ))
                 }
             },
             |input: &'a str| {
@@ -131,7 +146,6 @@ impl<'a> Document<'a> {
             },
         ))(input)
     }
-    
 
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, content) = delimited(tag("<![CDATA["), take_until("]]>"), tag("]]>"))(input)?;
@@ -155,8 +169,10 @@ impl<'a> Document<'a> {
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, prolog) = opt(Self::parse_prolog)(input)?;
         println!("\n\n\nPROLOG: {prolog:?}");
-        println!("input4: {input:?}");
+        println!("After Prolog Input: {input:?}");
         let (input, start_tag) = Tag::parse_start_tag(input)?;
+        println!("After Start Tag Input: {input:?}");
+        println!("Start Tag: {start_tag:?}");
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, end_tag) = Tag::parse_end_tag(input)?;

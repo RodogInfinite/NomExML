@@ -9,7 +9,8 @@ use nom::{
     IResult,
 };
 
-use crate::{attribute::Attribute, document::Document};
+
+use crate::{attribute::Attribute, document::Document, utils::Parse};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace<'a> {
@@ -73,9 +74,9 @@ impl<'a> Tag<'a> {
     pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
         map(
             delimited(
-                preceded(tag("</"), multispace0),
+                preceded(tag("</"), Self::parse_multispace0),
                 Document::parse_tag_and_namespace,
-                preceded(multispace0, tag(">")),
+                preceded(Self::parse_multispace0, tag(">")),
             ),
             |(name, namespace)| Self {
                 name,
@@ -86,3 +87,5 @@ impl<'a> Tag<'a> {
         )(input)
     }
 }
+
+impl<'a> Parse<'a> for Tag<'a> {}

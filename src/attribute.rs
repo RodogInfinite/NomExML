@@ -10,8 +10,9 @@ use nom::{
     sequence::{delimited, tuple},
     IResult,
 };
+use serde::Serialize;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq,Serialize)]
 pub enum Attribute<'a> {
     Definition {
         name: Cow<'a, str>,
@@ -54,6 +55,7 @@ impl<'a> Attribute<'a> {
         Ok((input, attribute))
     }
 
+    //TODO: make this conform to the standard more closely
     pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let valid_chars = ['_', '-', ':', '.'];
         let (input, name) =
@@ -62,6 +64,7 @@ impl<'a> Attribute<'a> {
         let (input, _) = tag("=")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, value) = Self::parse_literal(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
         Ok((
             input,
             Attribute::Instance {
@@ -72,7 +75,7 @@ impl<'a> Attribute<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq,Serialize)]
 pub enum TokenizedType {
     ID,
     IDREF,
@@ -98,7 +101,7 @@ impl TokenizedType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq,Serialize)]
 pub enum AttType<'a> {
     CDATA,
     Tokenized(TokenizedType),
@@ -171,7 +174,7 @@ impl<'a> AttType<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq,Serialize)]
 pub enum DefaultDecl<'a> {
     Required,
     Implied,
@@ -195,7 +198,7 @@ impl<'a> Parse<'a> for DefaultDecl<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq,Serialize)]
 pub enum CharRef<'a> {
     Decimal(Cow<'a, str>),
     Hexadecimal(Cow<'a, str>),

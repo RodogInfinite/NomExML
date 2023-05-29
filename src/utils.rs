@@ -4,13 +4,16 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
     character::complete::{char, multispace0, satisfy},
-    combinator::{opt, recognize, map},
+    combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
     sequence::delimited,
     IResult,
 };
 
-use crate::{document::{Document, ProcessingInstruction}, prolog::InternalSubset};
+use crate::{
+    document::{Document, ProcessingInstruction},
+    prolog::InternalSubset,
+};
 
 pub trait Parse<'a>: Sized {
     fn parse(_input: &'a str) -> IResult<&'a str, Self> {
@@ -118,10 +121,11 @@ pub trait Parse<'a>: Sized {
     //[27] Misc	::= Comment | PI | S
     fn parse_misc(input: &'a str) -> IResult<&'a str, Option<Document<'a>>> {
         Ok(alt((
-            map(Document::parse_comment, Some),  // Wrap the result of parse_comment in Some
-            map(ProcessingInstruction::parse, |pi| Some(Document::ProcessingInstruction(pi))),
+            map(Document::parse_comment, Some), // Wrap the result of parse_comment in Some
+            map(ProcessingInstruction::parse, |pi| {
+                Some(Document::ProcessingInstruction(pi))
+            }),
             map(Self::parse_multispace1, |_| None),
         ))(input)?)
     }
-    
 }

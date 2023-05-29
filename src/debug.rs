@@ -1,8 +1,9 @@
 // debug.rs
 use crate::{
     attribute::Attribute,
-    prolog::{ContentParticle, DeclarationContent, Mixed, InternalSubset, XmlDecl, DocType},
-    document::{Document,ProcessingInstruction}, Tag,
+    document::{Document, ProcessingInstruction},
+    prolog::{ContentParticle, DeclarationContent, DocType, InternalSubset, Mixed, XmlDecl},
+    Tag,
 };
 
 use std::fmt::{self, Formatter};
@@ -11,7 +12,13 @@ fn fmt_indented(f: &mut String, indent: usize, s: &str) {
     f.push_str(&" ".repeat(indent));
     f.push_str(s);
 }
-
+impl<'a> fmt::Debug for Tag<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_tag(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
 impl<'a> Tag<'a> {
     fn fmt_indented_tag(&self, f: &mut String, indent: usize) {
         match self {
@@ -24,7 +31,18 @@ impl<'a> Tag<'a> {
                 fmt_indented(f, indent, &format!("Tag {{\n"));
                 fmt_indented(f, indent + 4, &format!("name: \"{}\",\n", name));
                 fmt_indented(f, indent + 4, &format!("namespace: {:?},\n", namespace));
-                fmt_indented(f, indent + 4, &format!("attributes: {:?},\n", attributes));
+                fmt_indented(f, indent + 4, "attributes: ");
+                match attributes {
+                    Some(attrs) => {
+                        let mut s = String::new();
+                        for attr in attrs {
+                            attr.fmt_indented_attribute(&mut s, indent + 8);
+                        }
+                        f.push_str(&format!("Some([\n{}", s));
+                        fmt_indented(f, indent + 4, "]),\n");
+                    }
+                    None => f.push_str("None,\n"),
+                }
                 fmt_indented(f, indent + 4, &format!("state: {:?},\n", state));
                 fmt_indented(f, indent, "},\n");
             }
@@ -35,7 +53,7 @@ impl<'a> Tag<'a> {
 impl<'a> Document<'a> {
     fn fmt_indented_doc(&self, f: &mut String, indent: usize) {
         match self {
-            Document::Prolog { xml_decl, doc_type} => {
+            Document::Prolog { xml_decl, doc_type } => {
                 fmt_indented(f, indent, "Prolog {\n");
                 if let Some(xml_decl) = xml_decl {
                     xml_decl.fmt_indented_xml_decl(f, indent + 4);
@@ -44,7 +62,7 @@ impl<'a> Document<'a> {
                     doc_type.fmt_indented_doc_type(f, indent + 4);
                 }
                 fmt_indented(f, indent, "},\n");
-            },
+            }
             Document::Element(tag1, document, tag2) => {
                 fmt_indented(f, indent, "Element(\n");
                 tag1.fmt_indented_tag(f, indent + 4);
@@ -115,13 +133,7 @@ impl<'a> fmt::Debug for Document<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Tag<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut s = String::new();
-        self.fmt_indented_tag(&mut s, 0);
-        write!(f, "{}", s)
-    }
-}
+
 
 impl<'a> DeclarationContent<'a> {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
@@ -221,13 +233,16 @@ impl<'a> ContentParticle<'a> {
     }
 }
 
-
 impl<'a> XmlDecl<'a> {
     fn fmt_indented_xml_decl(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "XmlDecl {\n");
         fmt_indented(f, indent + 4, &format!("version: {:?},\n", self.version));
         fmt_indented(f, indent + 4, &format!("encoding: {:?},\n", self.encoding));
-        fmt_indented(f, indent + 4, &format!("standalone: {:?},\n", self.standalone));
+        fmt_indented(
+            f,
+            indent + 4,
+            &format!("standalone: {:?},\n", self.standalone),
+        );
         fmt_indented(f, indent, "},\n");
     }
 }
@@ -236,10 +251,14 @@ impl<'a> DocType<'a> {
     fn fmt_indented_doc_type(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "DocType {\n");
         fmt_indented(f, indent + 4, &format!("name: {:?},\n", self.name));
-        fmt_indented(f, indent + 4, &format!("external_id: {:?},\n", self.external_id));
+        fmt_indented(
+            f,
+            indent + 4,
+            &format!("external_id: {:?},\n", self.external_id),
+        );
         fmt_indented(f, indent + 4, "int_subset: Some([\n");
         for element in self.int_subset.as_ref().unwrap_or(&Vec::new()).iter() {
-            element.fmt_internal_subset(f, indent + 8); // please ensure fmt_internal_subset method exists
+            element.fmt_internal_subset(f, indent + 8); 
         }
         fmt_indented(f, indent + 4, "]),\n");
         fmt_indented(f, indent, "},\n");
@@ -247,7 +266,7 @@ impl<'a> DocType<'a> {
 }
 
 impl<'a> InternalSubset<'a> {
-    fn fmt_internal_subset(&self, f: &mut String,indent:usize) {
+    fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
         match self {
             InternalSubset::Element { name, content_spec } => {
                 fmt_indented(f, indent, "Element {\n");
@@ -267,7 +286,7 @@ impl<'a> InternalSubset<'a> {
             InternalSubset::AttList { name, att_defs } => {
                 fmt_indented(f, indent, "AttList {\n");
                 fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
-                fmt_indented(f, indent + 4, "att_def: [\n");
+                fmt_indented(f, indent + 4, "att_defs: [\n");
                 if let Some(def) = att_defs {
                     for def_item in def.iter() {
                         def_item.fmt_indented_attribute(f, indent + 8);
@@ -276,11 +295,15 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::DeclSep { name } => {
-                fmt_indented(f, indent, "DeclSep {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
-                fmt_indented(f, indent, "},\n");
+            InternalSubset::DeclSep(name) => {
+                let mut s = String::new();
+
+                        s = format!("{:?}", name);
+                   
+                fmt_indented(f, indent, &format!("\nDeclSep({}", s));
+                f.push_str("),\n");
             }
+
             InternalSubset::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
                 fmt_indented(f, indent + 4, &format!("target: {:?},\n", target));
@@ -288,7 +311,7 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent, "},\n");
             }
         }
-    }  
+    }
 }
 
 impl<'a> fmt::Debug for InternalSubset<'a> {
@@ -318,8 +341,6 @@ impl<'a> std::fmt::Debug for DocType<'a> {
             .finish()
     }
 }
-
-
 
 impl<'a> Attribute<'a> {
     fn fmt_indented_attribute(&self, f: &mut String, indent: usize) {

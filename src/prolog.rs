@@ -6,7 +6,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, digit1},
     combinator::{map, opt, value},
-    multi::{many0, separated_list1},
+    multi::{many0, separated_list1, many1},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -176,39 +176,34 @@ pub enum InternalSubset<'a> {
     },
     AttList {
         name: Cow<'a, str>,
-        att_defs: Option<Vec<Attribute<'a>>>, //Attribute::Definition
+        att_defs: Option<Vec<Attribute<'a>>>, //Option<Vec<Attribute::Definition>>
     },
-    DeclSep {
-        name: Cow<'a, str>,
-    },
+    DeclSep(Cow<'a, str>),
     ProcessingInstruction(ProcessingInstruction<'a>),
 }
 
 impl<'a> InternalSubset<'a> {
     // [28b] intSubset ::= (markupdecl | DeclSep)*
     fn parse_internal_subset(input: &'a str) -> IResult<&'a str, Vec<InternalSubset<'a>>> {
-        let (input, subset) = many0(alt((
+        many0(alt((
             Self::parse_markup_decl,
             Self::parse_decl_sep,
-        )))(input)?;
-        Ok((input, subset))
+        )))(input)
     }
-    // [28a] DeclSep ::=   	PEReference | S
+
+
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        alt((
-            Self::parse_perameter_reference,
-            value(InternalSubset::DeclSep {
-                name: Cow::Borrowed("S"),
-            }, Self::parse_multispace1),
-        ))(input)
-    }
-    //[69]   	PEReference	   ::=   	'%' Name ';'
-    fn parse_perameter_reference(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("%")(input)?;
+        // [28a] DeclSep ::=   	PEReference | S
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = tag(";")(input)?;
-        Ok((input, InternalSubset::DeclSep { name }))
+        
+        // [69]   	PEReference	   ::=   	'%' Name ';'
+        let (input, _) = Self::parse_multispace0(input)?;
+        println!("INPUT AFTER PARSE_DECL_SEP: {input:?}");
+        Ok((input, InternalSubset::DeclSep(name)))
     }
+
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     fn parse_element(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("<!ELEMENT")(input)?;
@@ -235,7 +230,7 @@ impl<'a> InternalSubset<'a> {
     }
     // [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
     pub fn parse_attlist(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        println!("HEREEEE: {input:?}");
+        println!("\n\n\n\nATTLIST PARSE START: {input:?}");
         let (input, _) = tag("<!ATTLIST")(input)?;
         println!("\n\nparse_attlist: {input:?}");
         let (input, _) = Self::parse_multispace1(input)?;
@@ -245,9 +240,9 @@ impl<'a> InternalSubset<'a> {
         //// [53] AttDef ::= S Name S AttType S DefaultDecl
         let (input, att_defs) = many0(Attribute::parse_definition)(input)?;
         println!("Parsed attribute definitions: {:?}", att_defs);
-
+        let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
-
+        println!("\n\n\n\nATTLIST PARSE END: {input:?}");
         Ok((
             input,
             InternalSubset::AttList {
@@ -270,9 +265,8 @@ impl<'a> InternalSubset<'a> {
     }
 }
 
-
-
 impl<'a> Parse<'a> for InternalSubset<'a> {}
+
 
 #[derive(Clone, PartialEq)]
 pub struct XmlDecl<'a> {
@@ -286,7 +280,9 @@ impl<'a> Parse<'a> for XmlDecl<'a> {
     println!("\n\nparsing XMLDecl: {input:?}");
     let (input, _) = tag("<?xml")(input)?;
     let (input, _) = Self::parse_multispace1(input)?;
+    println!("before parse_version_info: {input:?}");
     let (input, version) = Self::parse_version_info(input)?;
+    println!("Parsed version: {version:?}");
     let (input, encoding) = opt(Self::parse_encoding_decl)(input)?;
     let (input, standalone) = opt(Self::parse_sd_decl)(input)?;
     let (input, _) = Self::parse_multispace0(input)?;
@@ -372,46 +368,45 @@ pub struct DocType<'a> {
 impl<'a> Parse<'a> for DocType<'a> {
 // [28] doctypedecl	::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
 fn parse(input: &'a str) -> IResult<&'a str, DocType<'a>> {
-    println!("DOCTYPE?: {input:?}");
+    println!("\n\nXXXXXXXXXX\nDOCTYPE?: {input:?}");
     let (input, _) = tag("<!DOCTYPE")(input)?;
     let (input, _) = Self::parse_multispace1(input)?;
     let (input, name) = Self::parse_name(input)?;
-    println!("\nparse_name: {name:?}");
-    println!("input now: {input:?}");
+
     let (input, _) = Self::parse_multispace0(input)?;
     let (input, external_id) = opt(alt((
         map(tag("SYSTEM"), |_| ExternalID::System),
         map(tag("PUBLIC"), |_| ExternalID::Public),
     )))(input)?;
-    println!("\nparse_external_id: {external_id:?}");
+
     let (input, _) = Self::parse_multispace0(input)?;
-    println!("before bracket {input:?}");
+
     let (input, _) = tag("[")(input)?;
 
     let (input, _) = Self::parse_multispace0(input)?;
-    println!("why space: {input:?}");
+    println!("\n888888888888\nbefore parse_internal_subset: {input:?}");
 
-    let (input, int_subset) = many0(InternalSubset::parse_markup_decl)(input)?;
-
+    let (input, int_subset) = opt(InternalSubset::parse_internal_subset)(input)?;
+    println!("\n888888888888999\nafter parse_internal_subset: {input:?}\n");
     
-
+    let (input, _) = Self::parse_multispace0(input)?;
     println!("int_subset: {int_subset:?}");
-    println!("input: {input:?}");
+    println!("input after int_subset: {input:?}");
 
     let (input, _) = tag("]")(input)?;
     println!("input2: {input:?}");
     let (input, _) = Self::parse_multispace0(input)?;
     println!("input3: {input:?}");
     let (input, _) = tag(">")(input)?;
-    println!("input4: {input:?}");
+    println!("inputx: {input:?}");
     let (input, _) = Self::parse_multispace0(input)?;
-
+    println!("11111111111111111111111111111111111111111111111\n int_subset: {int_subset:?}");
     Ok((
         input,
         Self {
             name,
             external_id,
-            int_subset: Some(int_subset),
+            int_subset: int_subset,
         },
     ))
 }

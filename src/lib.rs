@@ -1,9 +1,9 @@
 pub mod attribute;
 mod debug;
-pub mod prolog;
 pub mod decode;
 pub mod document;
 mod error;
+pub mod prolog;
 pub mod tag;
 pub mod utils;
 
