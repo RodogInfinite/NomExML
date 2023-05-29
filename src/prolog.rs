@@ -1,12 +1,14 @@
 use std::borrow::Cow;
 
-use crate::{attribute::Attribute, tag::ConditionalState, utils::Parse, document::ProcessingInstruction};
+use crate::{
+    attribute::Attribute, document::ProcessingInstruction, parse::Parse, tag::ConditionalState,
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, digit1},
     combinator::{map, opt, value},
-    multi::{many0, separated_list1, many1},
+    multi::{many0, many1, separated_list1},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -170,6 +172,10 @@ pub enum InternalSubset<'a> {
     // MarkupDecl {
     //     element: Box<InternalSubset<'a>>, // InternalSubset::Element
     // },
+    // Entity {
+    //     name: Cow<'a, str>,
+    //     entity_type: EntityType<'a>,
+    // },
     Element {
         name: Cow<'a, str>,
         content_spec: Option<DeclarationContent<'a>>,
@@ -185,19 +191,15 @@ pub enum InternalSubset<'a> {
 impl<'a> InternalSubset<'a> {
     // [28b] intSubset ::= (markupdecl | DeclSep)*
     fn parse_internal_subset(input: &'a str) -> IResult<&'a str, Vec<InternalSubset<'a>>> {
-        many0(alt((
-            Self::parse_markup_decl,
-            Self::parse_decl_sep,
-        )))(input)
+        many0(alt((Self::parse_markup_decl, Self::parse_decl_sep)))(input)
     }
-
 
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("%")(input)?;
         // [28a] DeclSep ::=   	PEReference | S
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = tag(";")(input)?;
-        
+
         // [69]   	PEReference	   ::=   	'%' Name ';'
         let (input, _) = Self::parse_multispace0(input)?;
         println!("INPUT AFTER PARSE_DECL_SEP: {input:?}");
@@ -226,7 +228,10 @@ impl<'a> InternalSubset<'a> {
 
     fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, processing_instruction) = ProcessingInstruction::parse(input)?;
-        Ok((input, InternalSubset::ProcessingInstruction(processing_instruction)))
+        Ok((
+            input,
+            InternalSubset::ProcessingInstruction(processing_instruction),
+        ))
     }
     // [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
     pub fn parse_attlist(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
@@ -267,7 +272,6 @@ impl<'a> InternalSubset<'a> {
 
 impl<'a> Parse<'a> for InternalSubset<'a> {}
 
-
 #[derive(Clone, PartialEq)]
 pub struct XmlDecl<'a> {
     pub version: Cow<'a, str>,
@@ -275,27 +279,24 @@ pub struct XmlDecl<'a> {
     pub standalone: Option<Cow<'a, str>>,
 }
 impl<'a> Parse<'a> for XmlDecl<'a> {
- // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
- fn parse(input: &'a str) -> IResult<&'a str, XmlDecl<'a>> {
-    println!("\n\nparsing XMLDecl: {input:?}");
-    let (input, _) = tag("<?xml")(input)?;
-    let (input, _) = Self::parse_multispace1(input)?;
-    println!("before parse_version_info: {input:?}");
-    let (input, version) = Self::parse_version_info(input)?;
-    println!("Parsed version: {version:?}");
-    let (input, encoding) = opt(Self::parse_encoding_decl)(input)?;
-    let (input, standalone) = opt(Self::parse_sd_decl)(input)?;
-    let (input, _) = Self::parse_multispace0(input)?;
-    let (input, _) = tag("?>")(input)?;
-    Ok((
-        input,
-        Self {
-            version,
-            encoding,
-            standalone,
-        },
-    ))
-}
+    // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
+    fn parse(input: &'a str) -> IResult<&'a str, XmlDecl<'a>> {
+        let (input, _) = tag("<?xml")(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
+        let (input, version) = Self::parse_version_info(input)?;
+        let (input, encoding) = opt(Self::parse_encoding_decl)(input)?;
+        let (input, standalone) = opt(Self::parse_sd_decl)(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag("?>")(input)?;
+        Ok((
+            input,
+            Self {
+                version,
+                encoding,
+                standalone,
+            },
+        ))
+    }
 }
 impl<'a> XmlDecl<'a> {
     // [24] VersionInfo	::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
@@ -349,13 +350,12 @@ impl<'a> XmlDecl<'a> {
         ))(input)?;
         Ok((input, standalone.into()))
     }
-     // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
-     fn parse_enc_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
+    fn parse_enc_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         let (input, first) = alt((alpha1, tag("-")))(input)?;
         let (input, rest) = many0(alt((alphanumeric1, tag("."), tag("_"), tag("-"))))(input)?;
         Ok((input, format!("{}{}", first, rest.join("")).into()))
     }
-
 }
 
 #[derive(Clone, PartialEq)]
@@ -363,55 +363,51 @@ pub struct DocType<'a> {
     pub name: Cow<'a, str>,
     pub external_id: Option<ExternalID>,
     pub int_subset: Option<Vec<InternalSubset<'a>>>,
-} 
+}
 
 impl<'a> Parse<'a> for DocType<'a> {
-// [28] doctypedecl	::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
-fn parse(input: &'a str) -> IResult<&'a str, DocType<'a>> {
-    println!("\n\nXXXXXXXXXX\nDOCTYPE?: {input:?}");
-    let (input, _) = tag("<!DOCTYPE")(input)?;
-    let (input, _) = Self::parse_multispace1(input)?;
-    let (input, name) = Self::parse_name(input)?;
+    // [28] doctypedecl	::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+    fn parse(input: &'a str) -> IResult<&'a str, DocType<'a>> {
+        println!("\n\nXXXXXXXXXX\nDOCTYPE?: {input:?}");
+        let (input, _) = tag("<!DOCTYPE")(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
+        let (input, name) = Self::parse_name(input)?;
 
-    let (input, _) = Self::parse_multispace0(input)?;
-    let (input, external_id) = opt(alt((
-        map(tag("SYSTEM"), |_| ExternalID::System),
-        map(tag("PUBLIC"), |_| ExternalID::Public),
-    )))(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, external_id) = opt(alt((
+            map(tag("SYSTEM"), |_| ExternalID::System),
+            map(tag("PUBLIC"), |_| ExternalID::Public),
+        )))(input)?;
 
-    let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
 
-    let (input, _) = tag("[")(input)?;
+        let (input, _) = tag("[")(input)?;
 
-    let (input, _) = Self::parse_multispace0(input)?;
-    println!("\n888888888888\nbefore parse_internal_subset: {input:?}");
+        let (input, _) = Self::parse_multispace0(input)?;
+        println!("\n888888888888\nbefore parse_internal_subset: {input:?}");
 
-    let (input, int_subset) = opt(InternalSubset::parse_internal_subset)(input)?;
-    println!("\n888888888888999\nafter parse_internal_subset: {input:?}\n");
-    
-    let (input, _) = Self::parse_multispace0(input)?;
-    println!("int_subset: {int_subset:?}");
-    println!("input after int_subset: {input:?}");
+        let (input, int_subset) = opt(InternalSubset::parse_internal_subset)(input)?;
+        println!("\n888888888888999\nafter parse_internal_subset: {input:?}\n");
 
-    let (input, _) = tag("]")(input)?;
-    println!("input2: {input:?}");
-    let (input, _) = Self::parse_multispace0(input)?;
-    println!("input3: {input:?}");
-    let (input, _) = tag(">")(input)?;
-    println!("inputx: {input:?}");
-    let (input, _) = Self::parse_multispace0(input)?;
-    println!("11111111111111111111111111111111111111111111111\n int_subset: {int_subset:?}");
-    Ok((
-        input,
-        Self {
-            name,
-            external_id,
-            int_subset: int_subset,
-        },
-    ))
+        let (input, _) = Self::parse_multispace0(input)?;
+        println!("int_subset: {int_subset:?}");
+        println!("input after int_subset: {input:?}");
+
+        let (input, _) = tag("]")(input)?;
+        println!("input2: {input:?}");
+        let (input, _) = Self::parse_multispace0(input)?;
+        println!("input3: {input:?}");
+        let (input, _) = tag(">")(input)?;
+        println!("inputx: {input:?}");
+        let (input, _) = Self::parse_multispace0(input)?;
+        println!("11111111111111111111111111111111111111111111111\n int_subset: {int_subset:?}");
+        Ok((
+            input,
+            Self {
+                name,
+                external_id,
+                int_subset: int_subset,
+            },
+        ))
+    }
 }
-}
-
-
-    
-

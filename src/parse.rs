@@ -1,19 +1,18 @@
+//parse.rs
+
 use std::borrow::Cow;
 
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while, take_while1},
-    character::complete::{char, multispace0, satisfy},
+    bytes::complete::{tag, take_while},
+    character::complete::{char, satisfy},
     combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
     sequence::delimited,
     IResult,
 };
 
-use crate::{
-    document::{Document, ProcessingInstruction},
-    prolog::InternalSubset,
-};
+use crate::document::{Document, ProcessingInstruction};
 
 pub trait Parse<'a>: Sized {
     fn parse(_input: &'a str) -> IResult<&'a str, Self> {
@@ -31,7 +30,7 @@ pub trait Parse<'a>: Sized {
     }
 
     // [3] S ::= (#x20 | #x9 | #xD | #xA)+
-    // [3] S ::= (' '  | '\t' | '\r' | '\n')+
+    // AKA [3] S ::= (' '  | '\t' | '\r' | '\n')+
     fn is_whitespace(c: char) -> bool {
         matches!(c, ' ' | '\t' | '\r' | '\n')
     }
@@ -109,23 +108,22 @@ pub trait Parse<'a>: Sized {
         separated_list1(char(' '), Self::parse_name)(input)
     }
 
-    fn parse_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, result) = delimited(
-            alt((tag("'"), tag("\""))),
-            take_while(|c: char| c != '\'' && c != '\"' && c != '<' && c != '&'),
-            alt((tag("'"), tag("\""))),
-        )(input)?;
-        Ok((input, Cow::Borrowed(result)))
+    //[25] Eq ::=  S? '=' S?
+    fn parse_eq(input: &'a str) -> IResult<&'a str, ()> {
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag("=")(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        Ok((input, ()))
     }
 
     //[27] Misc	::= Comment | PI | S
     fn parse_misc(input: &'a str) -> IResult<&'a str, Option<Document<'a>>> {
-        Ok(alt((
+        alt((
             map(Document::parse_comment, Some), // Wrap the result of parse_comment in Some
             map(ProcessingInstruction::parse, |pi| {
                 Some(Document::ProcessingInstruction(pi))
             }),
             map(Self::parse_multispace1, |_| None),
-        ))(input)?)
+        ))(input)
     }
 }

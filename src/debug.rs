@@ -3,6 +3,7 @@ use crate::{
     attribute::Attribute,
     document::{Document, ProcessingInstruction},
     prolog::{ContentParticle, DeclarationContent, DocType, InternalSubset, Mixed, XmlDecl},
+    reference::{CharRefState, Reference},
     Tag,
 };
 
@@ -21,32 +22,32 @@ impl<'a> fmt::Debug for Tag<'a> {
 }
 impl<'a> Tag<'a> {
     fn fmt_indented_tag(&self, f: &mut String, indent: usize) {
-        match self {
-            Tag {
-                name,
-                namespace,
-                attributes,
-                state,
-            } => {
-                fmt_indented(f, indent, &format!("Tag {{\n"));
-                fmt_indented(f, indent + 4, &format!("name: \"{}\",\n", name));
-                fmt_indented(f, indent + 4, &format!("namespace: {:?},\n", namespace));
-                fmt_indented(f, indent + 4, "attributes: ");
-                match attributes {
-                    Some(attrs) => {
-                        let mut s = String::new();
-                        for attr in attrs {
-                            attr.fmt_indented_attribute(&mut s, indent + 8);
-                        }
-                        f.push_str(&format!("Some([\n{}", s));
-                        fmt_indented(f, indent + 4, "]),\n");
-                    }
-                    None => f.push_str("None,\n"),
+        let Tag {
+            name,
+            namespace,
+            attributes,
+            state,
+        } = self;
+
+        fmt_indented(f, indent, "Tag {\n");
+        fmt_indented(f, indent + 4, &format!("name: \"{}\",\n", name));
+        fmt_indented(f, indent + 4, &format!("namespace: {:?},\n", namespace));
+        fmt_indented(f, indent + 4, "attributes: ");
+
+        match attributes {
+            Some(attrs) => {
+                let mut s = String::new();
+                for attr in attrs {
+                    attr.fmt_indented_attribute(&mut s, indent + 8);
                 }
-                fmt_indented(f, indent + 4, &format!("state: {:?},\n", state));
-                fmt_indented(f, indent, "},\n");
+                f.push_str(&format!("Some([\n{}", s));
+                fmt_indented(f, indent + 4, "]),\n");
             }
+            None => f.push_str("None,\n"),
         }
+
+        fmt_indented(f, indent + 4, &format!("state: {:?},\n", state));
+        fmt_indented(f, indent, "},\n");
     }
 }
 
@@ -91,10 +92,7 @@ impl<'a> Document<'a> {
                 fmt_indented(
                     f,
                     indent,
-                    &format!(
-                        "Comment(\"{}\"),\n",
-                        comment.clone().map_or("".to_string(), |c| c.to_string())
-                    ),
+                    &format!("Comment(\"{}\"),\n", comment.to_string()),
                 );
             }
             Document::Empty => {
@@ -133,8 +131,6 @@ impl<'a> fmt::Debug for Document<'a> {
     }
 }
 
-
-
 impl<'a> DeclarationContent<'a> {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
@@ -142,16 +138,18 @@ impl<'a> DeclarationContent<'a> {
                 fmt_indented(f, indent, "Spec {\n");
                 mixed.fmt_indented_mixed(f, indent + 4);
                 fmt_indented(f, indent + 4, "children:");
-                if let Some(children) = children {
-                    fmt_indented(f, indent + 4, "[\n");
-                    for child in children.iter() {
-                        child.fmt_indented_content_particle(f, indent + 8);
+                match children {
+                    Some(children) => {
+                        let mut s = String::new();
+                        for child in children {
+                            child.fmt_indented_content_particle(&mut s, indent + 8);
+                        }
+                        f.push_str(&format!("Some([\n{}\n", s));
+                        fmt_indented(f, indent + 4, "]),\n");
                     }
-                    fmt_indented(f, indent + 4, "],\n");
+                    None => f.push_str("None,\n"),
                 }
-                if let None = children {
-                    f.push_str(" None,\n")
-                }
+
                 fmt_indented(f, indent, "},");
             }
         }
@@ -258,7 +256,7 @@ impl<'a> DocType<'a> {
         );
         fmt_indented(f, indent + 4, "int_subset: Some([\n");
         for element in self.int_subset.as_ref().unwrap_or(&Vec::new()).iter() {
-            element.fmt_internal_subset(f, indent + 8); 
+            element.fmt_internal_subset(f, indent + 8);
         }
         fmt_indented(f, indent + 4, "]),\n");
         fmt_indented(f, indent, "},\n");
@@ -296,11 +294,7 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent, "},\n");
             }
             InternalSubset::DeclSep(name) => {
-                let mut s = String::new();
-
-                        s = format!("{:?}", name);
-                   
-                fmt_indented(f, indent, &format!("\nDeclSep({}", s));
+                fmt_indented(f, indent, &format!("\nDeclSep({}", format!("{:?}", name)));
                 f.push_str("),\n");
             }
 
@@ -360,11 +354,8 @@ impl<'a> Attribute<'a> {
                 );
                 fmt_indented(f, indent, "},\n");
             }
-            Attribute::Reference { entity, char } => {
-                fmt_indented(f, indent, "Reference {\n");
-                fmt_indented(f, indent + 4, &format!("entity: {:?},\n", entity));
-                fmt_indented(f, indent + 4, &format!("char: {:?},\n", char));
-                fmt_indented(f, indent, "},\n");
+            Attribute::Reference(reference) => {
+                fmt_indented(f, indent, &format!("Reference: {:?},\n", reference));
             }
             Attribute::Required => {
                 fmt_indented(f, indent, "REQUIRED,\n");
@@ -387,5 +378,29 @@ impl<'a> fmt::Debug for Attribute<'a> {
         let mut s = String::new();
         self.fmt_indented_attribute(&mut s, 0);
         write!(f, "{}", s)
+    }
+}
+
+impl<'a> fmt::Debug for Reference<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Reference::EntityRef(entity) => {
+                f.debug_struct("EntityRef").field("entity", entity).finish()
+            }
+            Reference::CharRef { value, state } => f
+                .debug_struct("CharRef")
+                .field("value", value)
+                .field("state", state)
+                .finish(),
+        }
+    }
+}
+
+impl fmt::Debug for CharRefState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CharRefState::Decimal => f.write_str("Decimal"),
+            CharRefState::Hexadecimal => f.write_str("Hex"),
+        }
     }
 }

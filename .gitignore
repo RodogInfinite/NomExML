@@ -21,3 +21,5 @@ data/*
 
 # Except for the 'test.xml' file
 !data/test.xml
+
+justfile

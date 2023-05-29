@@ -10,7 +10,7 @@ use nom::{
 };
 
 
-use crate::{attribute::Attribute, document::Document, utils::Parse};
+use crate::{attribute::Attribute, document::Document, parse::Parse};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Namespace<'a> {

@@ -3,9 +3,10 @@ mod debug;
 pub mod decode;
 pub mod document;
 mod error;
+pub mod parse;
 pub mod prolog;
+pub mod reference;
 pub mod tag;
-pub mod utils;
 
 use document::Document;
 use error::CustomError;

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
+use crate::parse::Parse;
 use crate::prolog::{DocType, XmlDecl};
-use crate::utils::Parse;
 use crate::{
     decode::decode_entities,
     tag::{Namespace, Tag},
@@ -68,7 +68,7 @@ pub enum Document<'a> {
     Nested(Vec<Document<'a>>),
     Empty,
     ProcessingInstruction(ProcessingInstruction<'a>),
-    Comment(Option<Cow<'a, str>>),
+    Comment(Cow<'a, str>),
     CDATA(Cow<'a, str>), // CDATA(Document::Content)
 }
 impl<'a> Document<'a> {
@@ -86,7 +86,7 @@ impl<'a> Document<'a> {
         println!("doc_type: {doc_type:?}");
         Ok((input, Document::Prolog { xml_decl, doc_type }))
     }
-    
+
     pub fn parse_tag_and_namespace(
         input: &'a str,
     ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
@@ -162,7 +162,7 @@ impl<'a> Document<'a> {
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
         map(
             delimited(tag("<!--"), take_until("-->"), tag("-->")),
-            |comment: &'a str| Document::Comment(Some(Cow::Borrowed(comment))),
+            |comment: &'a str| Document::Comment(Cow::Borrowed(comment)),
         )(input)
     }
 

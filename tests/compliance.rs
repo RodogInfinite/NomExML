@@ -1,6 +1,6 @@
 use std::{borrow::Cow, error::Error, fs::File};
 
-use nomexml::{
+use nomxml::{
     attribute::{AttType, Attribute, DefaultDecl},
     document::{Document, ProcessingInstruction},
     parse_file,
@@ -177,7 +177,6 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -235,7 +234,6 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -293,7 +291,6 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -331,19 +328,17 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::Element {
-                            name: "doc".into(),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
-                        },
-                    ]),
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
                 }),
             },
             Document::Element(
@@ -377,20 +372,17 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::Element {
-                            name: "doc".into(),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
-                        },
-
-                    ]),
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
                 }),
             },
             Document::Element(
@@ -424,20 +416,17 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::Element {
-                            name: "doc".into(),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
-                        },
-
-                    ]),
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
                 }),
             },
             Document::Element(
@@ -491,7 +480,6 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -556,7 +544,6 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                                 },
                             ]),
                         },
-
                     ]),
                 }),
             },
@@ -620,7 +607,6 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -678,7 +664,6 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -736,7 +721,6 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                                 default_decl: DefaultDecl::Implied,
                             },]),
                         },
-
                     ]),
                 }),
             },
@@ -763,38 +747,40 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/*
 #[test]
 fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file("015")?;
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![
-                    InternalSubset::Element {
-                        name: "doc".into(),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
-                    },
-                    InternalSubset::AttList {
-                        name: "doc".into(),
-                        att_defs: Some(vec![Attribute::Definition {
-                            name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
-                            att_type: AttType::CDATA,
-                            default_decl: DefaultDecl::Implied,
-                        },]),
-                    }
-                ])
-            })),
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
+                    name: "doc".into(),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: "doc".into(),
+                            content_spec: Some(DeclarationContent::Spec {
+                                mixed: Mixed::PCDATA {
+                                    names: None,
+                                    parsed: true,
+                                    zero_or_more: false,
+                                },
+                                children: None,
+                            }),
+                        },
+                        InternalSubset::AttList {
+                            name: "doc".into(),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            },]),
+                        },
+                    ]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -802,7 +788,7 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".into(),
                         value: "v1".into(),
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -824,21 +810,24 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -868,21 +857,24 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -918,21 +910,24 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -962,21 +957,24 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -1003,21 +1001,24 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -1044,21 +1045,24 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -1085,21 +1089,24 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -1107,7 +1114,7 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Comment(Some(Cow::Borrowed(" a comment "))),),
+                Box::new(Document::Comment(" a comment ".into())),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
@@ -1126,21 +1133,24 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         document,
         Document::Nested(vec![
-            Document::Prolog(Some(Prolog::DocType{
-                name: "doc".into(),
-                external_id: None,
-                int_subset: Some(vec![InternalSubset::Element {
+            Document::Prolog {
+                xml_decl: None,
+                doc_type: Some(DocType {
                     name: "doc".into(),
-                    content_spec: Some(DeclarationContent::Spec {
-                        mixed: Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                            zero_or_more: false,
-                        },
-                        children: None,
-                    }),
-                },])
-            })),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: "doc".into(),
+                        content_spec: Some(DeclarationContent::Spec {
+                            mixed: Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            },
+                            children: None,
+                        }),
+                    },]),
+                }),
+            },
             Document::Element(
                 Tag {
                     name: "doc".into(),
@@ -1148,7 +1158,7 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Comment(Some(Cow::Borrowed(" a comment ->"))),),
+                Box::new(Document::Comment(" a comment ->".into())),
                 Tag {
                     name: "doc".into(),
                     namespace: None,
@@ -1160,4 +1170,3 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
-*/

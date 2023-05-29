@@ -1,28 +1,23 @@
 use std::borrow::Cow;
 
-use crate::utils::Parse;
+use crate::{parse::Parse, reference::Reference};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while1},
-    character::complete::space0,
+    bytes::complete::{is_not, tag},
     combinator::{map, value},
-    multi::{separated_list0, separated_list1},
+    multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, tuple},
     IResult,
 };
-use serde::Serialize;
 
-#[derive(Clone, PartialEq,Serialize)]
+#[derive(Clone, PartialEq)]
 pub enum Attribute<'a> {
     Definition {
         name: Cow<'a, str>,
         att_type: AttType<'a>,
         default_decl: DefaultDecl<'a>,
     },
-    Reference {
-        entity: Cow<'a, str>,
-        char: CharRef<'a>,
-    },
+    Reference(Reference<'a>),
     Instance {
         name: Cow<'a, str>,
         value: Cow<'a, str>,
@@ -50,20 +45,50 @@ impl<'a> Attribute<'a> {
         let attribute = Attribute::Definition {
             name: Cow::Owned(name.into()),
             att_type,
-            default_decl: default_decl,
+            default_decl,
         };
         Ok((input, attribute))
     }
 
-    //TODO: make this conform to the standard more closely
+    // [10] AttValue ::= '"' ([^<&"] | Reference)* '"'|  "'" ([^<&'] | Reference)* "'"
+    fn parse_attvalue(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        alt((
+            delimited(
+                tag("\""),
+                many0(alt((
+                    map(is_not("<&\""), |s: &'a str| {
+                        Cow::Borrowed(s.trim_end_matches('"'))
+                    }),
+                    map(Reference::parse, |reference| {
+                        Cow::Owned(format!("{:?}", reference))
+                    }),
+                ))),
+                tag("\""),
+            ),
+            delimited(
+                tag("'"),
+                many0(alt((
+                    map(is_not("<&'"), |s: &'a str| {
+                        Cow::Borrowed(s.trim_end_matches('\''))
+                    }),
+                    map(Reference::parse, |reference| {
+                        Cow::Owned(format!("{:?}", reference))
+                    }),
+                ))),
+                tag("'"),
+            ),
+        ))(input)
+        .map(|(remaining, contents)| (remaining, Cow::Owned(contents.concat())))
+    }
+
+    // [41] Attribute ::= Name Eq AttValue
     pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
-        let valid_chars = ['_', '-', ':', '.'];
-        let (input, name) =
-            take_while1(|c: char| c.is_alphanumeric() || valid_chars.contains(&c))(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag("=")(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, value) = Self::parse_literal(input)?;
+        let (input, name) = Self::parse_name(input)?;
+        println!("\nInput:  {input:?}\nname: {name:?}");
+        let (input, eq) = Self::parse_eq(input)?;
+        println!("\nInput:  {input:?}\neq: {eq:?}");
+        let (input, value) = Self::parse_attvalue(input)?;
+        println!("\nInput:  {input:?}\nvalue: {value:?}");
         let (input, _) = Self::parse_multispace0(input)?;
         Ok((
             input,
@@ -75,7 +100,7 @@ impl<'a> Attribute<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq,Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenizedType {
     ID,
     IDREF,
@@ -101,7 +126,7 @@ impl TokenizedType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq,Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AttType<'a> {
     CDATA,
     Tokenized(TokenizedType),
@@ -174,7 +199,7 @@ impl<'a> AttType<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq,Serialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DefaultDecl<'a> {
     Required,
     Implied,
@@ -183,23 +208,22 @@ pub enum DefaultDecl<'a> {
 }
 
 impl<'a> Parse<'a> for DefaultDecl<'a> {
-    // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-DefaultDecl
     // [60] DefaultDecl	::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
     fn parse(input: &'a str) -> IResult<&'a str, Self> {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
             map(
-                tuple((tag("#FIXED"), Self::parse_multispace1, Self::parse_literal)),
-                |(_, _, lit)| DefaultDecl::Fixed(lit),
+                tuple((
+                    tag("#FIXED"),
+                    Self::parse_multispace1,
+                    Attribute::parse_attvalue,
+                )),
+                |(_, _, attvalue)| DefaultDecl::Fixed(attvalue),
             ),
-            map(Self::parse_literal, |lit| DefaultDecl::Value(lit)),
+            map(Attribute::parse_attvalue, |attvalue| {
+                DefaultDecl::Value(attvalue)
+            }),
         ))(input)
     }
-}
-
-#[derive(Clone, Debug, PartialEq,Serialize)]
-pub enum CharRef<'a> {
-    Decimal(Cow<'a, str>),
-    Hexadecimal(Cow<'a, str>),
 }
