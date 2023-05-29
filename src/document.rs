@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use crate::parse::Parse;
-use crate::prolog::{DocType, XmlDecl};
+
+use crate::prolog::doctype::DocType;
+use crate::prolog::xmldecl::XmlDecl;
 use crate::{
     decode::decode_entities,
     tag::{Namespace, Tag},

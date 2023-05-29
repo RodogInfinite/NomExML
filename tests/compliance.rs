@@ -4,7 +4,7 @@ use nomxml::{
     attribute::{AttType, Attribute, DefaultDecl},
     document::{Document, ProcessingInstruction},
     parse_file,
-    prolog::{DeclarationContent, DocType, InternalSubset, Mixed},
+    prolog::{doctype::DocType, internal_subset::InternalSubset, DeclarationContent, Mixed},
     tag::{Tag, TagState},
 };
 

@@ -2,7 +2,10 @@
 use crate::{
     attribute::Attribute,
     document::{Document, ProcessingInstruction},
-    prolog::{ContentParticle, DeclarationContent, DocType, InternalSubset, Mixed, XmlDecl},
+    prolog::{
+        doctype::DocType, internal_subset::InternalSubset, xmldecl::XmlDecl, ContentParticle,
+        DeclarationContent, Mixed,
+    },
     reference::{CharRefState, Reference},
     Tag,
 };
