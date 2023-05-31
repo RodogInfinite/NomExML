@@ -43,6 +43,11 @@ pub enum ParameterEntityDefinition<'a> {
     ExternalID(ExternalID<'a>),
 }
 
+#[derive(Clone, PartialEq)]
+pub enum EntityDeclaration<'a> {
+    General(GeneralEntityDeclaration<'a>),
+    Parameter(ParameterEntityDefinition<'a>),
+}
 // [72] PEDecl ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
 
 #[derive(Clone, PartialEq)]
@@ -55,10 +60,7 @@ pub enum InternalSubset<'a> {
         name: Cow<'a, str>,
         att_defs: Option<Vec<Attribute<'a>>>, //Option<Vec<Attribute::Definition>>
     },
-    Entity {
-        general_declaration: Option<GeneralEntityDeclaration<'a>>,
-        parameter_declaration: Option<ParameterEntityDefinition<'a>>,
-    },
+    Entity(EntityDeclaration<'a>),
     DeclSep(Cow<'a, str>),
     ProcessingInstruction(ProcessingInstruction<'a>),
 }
@@ -83,6 +85,7 @@ impl<'a> InternalSubset<'a> {
 
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     fn parse_element(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+        println!("parse_element: {input:?}");
         let (input, _) = tag("<!ELEMENT")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
@@ -150,13 +153,14 @@ impl<'a> InternalSubset<'a> {
         let (input, _) = tag(">")(input)?;
         Ok((
             input,
-            InternalSubset::Entity {
-                general_declaration: Some(GeneralEntityDeclaration { name, entity_def }),
-                parameter_declaration: None,
-            },
+            InternalSubset::Entity(EntityDeclaration::General(GeneralEntityDeclaration {
+                name,
+                entity_def,
+            })),
         ))
     }
-    // [72]   	PEDecl	   ::=   	'<!ENTITY' S '%' S Name S PEDef S? '>'
+
+    // [72]    PEDecl ::=    '<!ENTITY' S '%' S Name S PEDef S? '>'
     fn parse_parameter_entity_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("<!ENTITY")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
@@ -164,17 +168,13 @@ impl<'a> InternalSubset<'a> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
-        let (input, entity_def) = Self::parse_parameter_definition(input)?;
+        let (input, pedef) = Self::parse_parameter_definition(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
+
         Ok((
             input,
-            InternalSubset::Entity {
-                general_declaration: None,
-                parameter_declaration: Some(ParameterEntityDefinition::EntityValue(
-                    EntityValue::Value(name),
-                )),
-            },
+            InternalSubset::Entity(EntityDeclaration::Parameter(pedef)),
         ))
     }
 

@@ -5,7 +5,8 @@ use crate::{
     prolog::{
         doctype::DocType,
         internal_subset::{
-            EntityDefinition, EntityValue, GeneralEntityDeclaration, InternalSubset,
+            EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
+            InternalSubset,
         },
         xmldecl::XmlDecl,
         ContentParticle, DeclarationContent, Mixed,
@@ -310,30 +311,24 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::Entity {
-                general_declaration,
-                parameter_declaration,
-            } => {
-                fmt_indented(f, indent, "Entity {\n");
-                fmt_indented(f, indent + 4, "general_declaration: ");
-                if let Some(declaration) = general_declaration {
-                    let mut s = String::new();
-                    declaration.fmt_indented_general_entity_declaration(&mut s, indent + 8);
-                    f.push_str(&format!("Some(\n{}\n", s));
-                    fmt_indented(f, indent + 4, "),\n");
-                } else {
-                    f.push_str("None,\n");
+            InternalSubset::Entity(entity_declaration) => {
+                match entity_declaration {
+                    EntityDeclaration::General(general_declaration) => {
+                        fmt_indented(f, indent, "Entity::General {\n");
+                        let mut s = String::new();
+                        general_declaration
+                            .fmt_indented_general_entity_declaration(&mut s, indent + 4);
+                        f.push_str(&format!("{}\n", s));
+                        fmt_indented(f, indent, "},\n");
+                    }
+                    EntityDeclaration::Parameter(parameter_declaration) => {
+                        fmt_indented(f, indent, "Entity::Parameter {\n");
+                        // This part depends on how you want to format ParameterEntityDefinition
+                        fmt_indented(f, indent + 4, &format!("{:?},\n", parameter_declaration));
+                        fmt_indented(f, indent, "},\n");
+                    }
                 }
-                fmt_indented(f, indent + 4, "parameter_declaration: ");
-                if let Some(declaration) = parameter_declaration {
-                    fmt_indented(f, indent + 8, &format!("{:?},\n", declaration));
-                // Adjust this as per your formatting requirements for ParameterEntityDefinition
-                } else {
-                    f.push_str("None,\n");
-                }
-                fmt_indented(f, indent, "},\n");
             }
-
             InternalSubset::DeclSep(name) => {
                 fmt_indented(f, indent, &format!("\nDeclSep({}", format!("{:?}", name)));
                 f.push_str("),\n");

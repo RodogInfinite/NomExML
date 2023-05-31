@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-pub fn decode_entity<'a>(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+pub fn decode_entity(input: &str) -> IResult<&str, Cow<str>> {
     println!("decode_entity input: {:?}", input);
     if input.is_empty() {
         return Ok((input, Cow::Borrowed(input)));
@@ -87,7 +87,7 @@ pub fn decode_digit<'a>(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'
     }
 }
 
-pub fn decode_entities<'a>(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+pub fn decode_entities(input: &str) -> IResult<&str, Cow<str>> {
     let mut output = String::new();
     let mut input = input;
     loop {
