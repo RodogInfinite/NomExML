@@ -4,11 +4,10 @@ use std::borrow::Cow;
 
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::tag,
     character::complete::{char, satisfy},
     combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
-    sequence::delimited,
     IResult,
 };
 

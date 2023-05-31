@@ -1,38 +1,20 @@
 pub mod content_particle;
 pub mod doctype;
+pub mod external_id;
 pub mod internal_subset;
 pub mod xmldecl;
 
 use std::borrow::Cow;
 
-use crate::{
-    attribute::Attribute, document::ProcessingInstruction, parse::Parse, tag::ConditionalState,
-};
+use crate::{parse::Parse, tag::ConditionalState};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, digit1},
-    combinator::{map, opt, value},
-    multi::{many0, many1, separated_list1},
+    combinator::{opt, value},
+    multi::{many0, separated_list1},
     sequence::{delimited, tuple},
     IResult,
 };
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ExternalID {
-    Public,
-    System,
-}
-
-// #[derive(Clone, Debug, PartialEq)]
-// pub enum ExternalID<'a> {
-//     System(Cow<'a, str>),
-//     Public {
-//         pubid: Cow<'a, str>,
-//         system_identifier: Cow<'a, str>,
-//     },
-//     NData(Cow<'a, str>),
-// }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ContentParticle<'a> {
