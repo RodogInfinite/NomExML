@@ -1,11 +1,12 @@
 [package]
-name = "nomxml"
-version = "0.1.0"
+name = "nom-xml"
+version = "0.1.0-pre-alpha"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 keywords = ["XML","parsing","nom","parsing","encoding"]
 categories = ["parsing","parser-implementations", "encoding"]
 description = "A Rust Crate for parsing XML."
+repository = "https://github.com/RodogInfinite/NomExML"
 
 [dependencies]
 nom.workspace = true
