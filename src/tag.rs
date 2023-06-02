@@ -1,23 +1,17 @@
-use std::borrow::Cow;
-
 use nom::{
     bytes::complete::tag,
-    character::complete::multispace0,
+    character::complete::char,
     combinator::map,
     multi::many0,
-    sequence::{delimited, preceded, tuple},
+    sequence::{delimited, pair, tuple},
     IResult,
 };
 
-
-use crate::{attribute::Attribute, document::Document, parse::Parse};
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Namespace<'a> {
-    pub declaration: Option<Cow<'a, str>>,
-    pub prefix: Cow<'a, str>,
-    pub uri: Option<Cow<'a, str>>,
-}
+use crate::{
+    attribute::Attribute,
+    namespaces::{ParseNamespace, QualifiedName},
+    parse::Parse,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConditionalState {
@@ -31,61 +25,136 @@ pub enum ConditionalState {
 pub enum TagState {
     Start,
     End,
+    Empty,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct Tag<'a> {
-    pub name: Cow<'a, str>,
-    pub namespace: Option<Namespace<'a>>,
+    pub name: QualifiedName<'a>,
     pub attributes: Option<Vec<Attribute<'a>>>, // Attribute::Instance
     pub state: TagState,
 }
 
+impl<'a> Parse<'a> for Tag<'a> {}
+impl<'a> ParseNamespace<'a> for Tag<'a> {}
+
 impl<'a> Tag<'a> {
-    pub fn parse_attributes(input: &'a str) -> IResult<&'a str, Option<Vec<Attribute<'a>>>> {
-        let mut parser = many0(Attribute::parse_attribute_instance);
-        let (input, attributes) = parser(input)?;
-        if attributes.is_empty() {
-            Ok((input, None))
-        } else {
-            Ok((input, Some(attributes)))
-        }
+    // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
+    pub fn parse_empty_element_tag(input: &'a str) -> IResult<&'a str, Tag<'a>> {
+        map(
+            tuple((
+                char('<'),
+                Self::parse_name,
+                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                Self::parse_multispace0,
+                tag("/>"),
+            )),
+            |(_, name, attributes, _, _)| Self {
+                name: QualifiedName {
+                    prefix: None,
+                    local_part: name,
+                },
+                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
+                state: TagState::Empty,
+            },
+        )(input)
     }
 
+    // [40] STag ::= '<' Name (S Attribute)* S? '>'
     pub fn parse_start_tag(input: &'a str) -> IResult<&'a str, Self> {
         map(
-            delimited(
-                tag("<"),
-                tuple((
-                    delimited(multispace0, Document::parse_tag_and_namespace, multispace0),
-                    Self::parse_attributes,
-                )),
-                tag(">"),
-            ),
-            |((name, namespace), attributes)| Self {
-                name,
-                namespace,
-                attributes,
+            tuple((
+                char('<'),
+                Self::parse_name,
+                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                Self::parse_multispace0,
+                char('>'),
+            )),
+            |(_, name, attributes, _, _)| Self {
+                name: QualifiedName {
+                    prefix: None,
+                    local_part: name,
+                },
+                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
                 state: TagState::Start,
             },
         )(input)
     }
 
+    // [42] ETag ::= '</' Name S? '>'
     pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
-        map(
-            delimited(
-                preceded(tag("</"), Self::parse_multispace0),
-                Document::parse_tag_and_namespace,
-                preceded(Self::parse_multispace0, tag(">")),
+        delimited(
+            tag("</"),
+            map(
+                tuple((
+                    Self::parse_multispace0,
+                    Self::parse_name,
+                    Self::parse_multispace0,
+                )),
+                |(_, name, _)| Self {
+                    name: QualifiedName {
+                        prefix: None,
+                        local_part: name,
+                    },
+                    attributes: None, // Attributes are not parsed for end tags
+                    state: TagState::End,
+                },
             ),
-            |(name, namespace)| Self {
+            char('>'),
+        )(input)
+    }
+    // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
+    pub fn parse_qualified_start_tag(input: &'a str) -> IResult<&'a str, Self> {
+        map(
+            tuple((
+                char('<'),
+                Self::parse_qualified_name,
+                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                Self::parse_multispace0,
+                char('>'),
+            )),
+            |(_, name, attributes, _, _)| Self {
                 name,
-                namespace,
-                attributes: None, // Attributes are not parsed for end tags
-                state: TagState::End,
+                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
+                state: TagState::Start,
+            },
+        )(input)
+    }
+
+    // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
+    pub fn parse_qualified_end_tag(input: &'a str) -> IResult<&'a str, Self> {
+        delimited(
+            tag("</"),
+            map(
+                tuple((
+                    Self::parse_multispace0,
+                    Self::parse_qualified_name,
+                    Self::parse_multispace0,
+                )),
+                |(_, name, _)| Self {
+                    name,
+                    attributes: None, // Attributes are not parsed for end tags
+                    state: TagState::End,
+                },
+            ),
+            char('>'),
+        )(input)
+    }
+    // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
+    pub fn parse_empty_qualified_element_tag(input: &'a str) -> IResult<&'a str, Tag<'a>> {
+        map(
+            tuple((
+                char('<'),
+                Self::parse_qualified_name,
+                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                Self::parse_multispace0,
+                tag("/>"),
+            )),
+            |(_, name, attributes, _, _)| Self {
+                name,
+                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
+                state: TagState::Empty,
             },
         )(input)
     }
 }
-
-impl<'a> Parse<'a> for Tag<'a> {}

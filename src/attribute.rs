@@ -1,49 +1,98 @@
 use std::borrow::Cow;
 
-use crate::{parse::Parse, reference::Reference};
+use crate::{
+    namespaces::{ParseNamespace, QualifiedName},
+    parse::Parse,
+    reference::Reference,
+};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
-    combinator::{map, value},
-    multi::{many0, separated_list0, separated_list1},
-    sequence::{delimited, tuple},
+    character::complete::char,
+    combinator::{map, opt, value},
+    multi::{many0, separated_list1},
+    sequence::{delimited, pair, tuple},
     IResult,
 };
 
 #[derive(Clone, PartialEq)]
 pub enum Attribute<'a> {
     Definition {
-        name: Cow<'a, str>,
+        name: QualifiedName<'a>,
         att_type: AttType<'a>,
         default_decl: DefaultDecl<'a>,
     },
     Reference(Reference<'a>),
     Instance {
-        name: Cow<'a, str>,
+        name: QualifiedName<'a>,
         value: Cow<'a, str>,
     },
     Required,
     Implied,
 }
-impl<'a> Parse<'a> for Attribute<'a> {}
+
+impl<'a> Parse<'a> for Attribute<'a> {
+    // [41] Attribute ::= Name Eq AttValue
+    fn parse(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        let (input, name) = Self::parse_name(input)?;
+        let (input, eq) = Self::parse_eq(input)?;
+        let (input, value) = Self::parse_attvalue(input)?;
+        Ok((
+            input,
+            Attribute::Instance {
+                name: QualifiedName {
+                    prefix: None,
+                    local_part: name,
+                },
+                value,
+            },
+        ))
+    }
+}
+
+impl<'a> ParseNamespace<'a> for Attribute<'a> {}
 impl<'a> Attribute<'a> {
     // [53] AttDef ::= S Name S AttType S DefaultDecl
     pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
-        let (input, _) = Self::parse_multispace1(input)?;
-        println!("Parsed whitespace. input: {input:?}");
-        let (input, name) = Self::parse_name(input)?;
-        println!("Parsed name: {:?}", name);
-        let (input, _) = Self::parse_multispace1(input)?;
-        println!("Parsed whitespace 2");
-        // [54] AttType ::= StringType | TokenizedType | EnumeratedType
-        let (input, att_type) = AttType::parse(input)?;
-        println!("Parsed attribute type: {:?}", att_type);
-        let (input, _) = Self::parse_multispace1(input)?;
-        println!("Parsed whitespace 3");
-        let (input, default_decl) = DefaultDecl::parse(input)?;
-        println!("Parsed default declaration: {:?}", default_decl);
+        let (input, (_, name, _, att_type, _, default_decl)) = tuple((
+            Self::parse_multispace1,
+            Self::parse_name,
+            Self::parse_multispace1,
+            AttType::parse,
+            Self::parse_multispace1,
+            DefaultDecl::parse,
+        ))(input)?;
+
         let attribute = Attribute::Definition {
-            name: Cow::Owned(name.into()),
+            name: QualifiedName {
+                prefix: None,
+                local_part: Cow::Owned(name.into()),
+            },
+            att_type,
+            default_decl,
+        };
+        Ok((input, attribute))
+    }
+
+    // Namespaces (Third Edition) [21] AttDef ::= S (QName | NSAttName) S AttType S DefaultDecl
+    pub fn parse_qualified_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        let (input, (_, name, _, att_type, _, default_decl)) = tuple((
+            Self::parse_multispace1,
+            alt((
+                Self::parse_qualified_name,
+                map(Self::parse_namespace_attribute_name, |name| QualifiedName {
+                    prefix: Some(Cow::Borrowed("xmlns")),
+                    local_part: name,
+                }),
+            )),
+            Self::parse_multispace1,
+            AttType::parse,
+            Self::parse_multispace1,
+            DefaultDecl::parse,
+        ))(input)?;
+
+        let attribute = Attribute::Definition {
+            name,
             att_type,
             default_decl,
         };
@@ -51,7 +100,7 @@ impl<'a> Attribute<'a> {
     }
 
     // [10] AttValue ::= '"' ([^<&"] | Reference)* '"'|  "'" ([^<&'] | Reference)* "'"
-    fn parse_attvalue(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    pub fn parse_attvalue(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         alt((
             delimited(
                 tag("\""),
@@ -75,28 +124,40 @@ impl<'a> Attribute<'a> {
                         Cow::Owned(format!("{:?}", reference))
                     }),
                 ))),
-                tag("'"),
+                char('\''),
             ),
         ))(input)
         .map(|(remaining, contents)| (remaining, Cow::Owned(contents.concat())))
     }
-
-    // [41] Attribute ::= Name Eq AttValue
-    pub fn parse_attribute_instance(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
-        let (input, name) = Self::parse_name(input)?;
-        println!("\nInput:  {input:?}\nname: {name:?}");
-        let (input, eq) = Self::parse_eq(input)?;
-        println!("\nInput:  {input:?}\neq: {eq:?}");
-        let (input, value) = Self::parse_attvalue(input)?;
-        println!("\nInput:  {input:?}\nvalue: {value:?}");
-        let (input, _) = Self::parse_multispace0(input)?;
-        Ok((
-            input,
-            Attribute::Instance {
-                name: Cow::Owned(name.into()),
-                value,
-            },
-        ))
+    // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
+    fn parse_qualified_attribute(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+        alt((
+            map(
+                tuple((
+                    Self::parse_namespace_attribute_name,
+                    Self::parse_eq,
+                    Attribute::parse_attvalue,
+                )),
+                |(name, _, value)| Attribute::Instance {
+                    name: QualifiedName {
+                        prefix: Some(name),
+                        local_part: Cow::Borrowed(""),
+                    },
+                    value,
+                },
+            ),
+            map(
+                tuple((
+                    Self::parse_qualified_name,
+                    Self::parse_eq,
+                    Self::parse_attvalue,
+                )),
+                |(QualifiedName { prefix, local_part }, _, value)| Attribute::Instance {
+                    name: QualifiedName { prefix, local_part },
+                    value,
+                },
+            ),
+        ))(input)
     }
 }
 
@@ -112,7 +173,7 @@ pub enum TokenizedType {
 }
 
 impl TokenizedType {
-    // https://www.w3.org/TR/2008/REC-xml-20081126/#NT-TokenizedType
+    // [56] TokenizedType ::= 'ID' | 'IDRef' | 'IDREFS | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
     fn parse(input: &str) -> IResult<&str, TokenizedType> {
         alt((
             value(TokenizedType::ID, tag("ID")),
@@ -158,21 +219,29 @@ impl<'a> AttType<'a> {
 
     // [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
     fn parse_notation_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
-        let (input, _) = tag("NOTATION")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let mut parser = delimited(
-            tag("("),
-            separated_list0(
-                tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
-                Self::parse_name,
+        let (input, (_, _, names)) = tuple((
+            tag("NOTATION"),
+            Self::parse_multispace1,
+            delimited(
+                char('('),
+                delimited(
+                    Self::parse_multispace0,
+                    separated_list1(
+                        delimited(Self::parse_multispace0, char('|'), Self::parse_multispace0),
+                        Self::parse_name,
+                    ),
+                    Self::parse_multispace0,
+                ),
+                char(')'),
             ),
-            tag(")"),
-        );
-        let (input, notation) = parser(input)?;
+        ))(input)?;
+
+        let names = names.into_iter().collect();
+
         Ok((
             input,
             AttType::Enumerated {
-                notation: Some(notation),
+                notation: Some(names),
                 enumeration: None,
             },
         ))
@@ -181,12 +250,12 @@ impl<'a> AttType<'a> {
     // [59] Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
     fn parse_enumeration(input: &'a str) -> IResult<&'a str, AttType<'a>> {
         let mut parser = delimited(
-            tag("("),
+            char('('),
             separated_list1(
-                tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                tuple((Self::parse_multispace0, char('|'), Self::parse_multispace0)),
                 Self::parse_nmtoken,
             ),
-            tag(")"),
+            char(')'),
         );
         let (input, enumeration) = parser(input)?;
         Ok((
@@ -208,22 +277,21 @@ pub enum DefaultDecl<'a> {
 }
 
 impl<'a> Parse<'a> for DefaultDecl<'a> {
-    // [60] DefaultDecl	::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
+    // [60] DefaultDecl ::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
     fn parse(input: &'a str) -> IResult<&'a str, Self> {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
             map(
-                tuple((
-                    tag("#FIXED"),
-                    Self::parse_multispace1,
+                pair(
+                    opt(tuple((tag("#FIXED"), Self::parse_multispace1))),
                     Attribute::parse_attvalue,
-                )),
-                |(_, _, attvalue)| DefaultDecl::Fixed(attvalue),
+                ),
+                |(fixed, attvalue)| match fixed {
+                    Some(_) => DefaultDecl::Fixed(attvalue),
+                    None => DefaultDecl::Value(attvalue),
+                },
             ),
-            map(Attribute::parse_attvalue, |attvalue| {
-                DefaultDecl::Value(attvalue)
-            }),
         ))(input)
     }
 }

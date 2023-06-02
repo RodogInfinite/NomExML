@@ -11,7 +11,6 @@ use nom::{
 };
 
 pub fn decode_entity(input: &str) -> IResult<&str, Cow<str>> {
-    println!("decode_entity input: {:?}", input);
     if input.is_empty() {
         return Ok((input, Cow::Borrowed(input)));
     }
@@ -43,7 +42,6 @@ pub fn decode_entity(input: &str) -> IResult<&str, Cow<str>> {
                 "apos" => Cow::Borrowed("'"),
                 _ => Cow::Borrowed(input),
             };
-            println!("Decoded entity2: {:?}", decoded_entity);
             if input == decoded_entity {
                 Ok((input, Cow::Borrowed(input)))
             } else {
@@ -63,7 +61,6 @@ pub fn decode_hex<'a>(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'a,
         },
         Err(_) => Cow::Owned(format!("Invalid hexadecimal number: {}", code)),
     };
-    println!("Decoded entity1 : {:?}", decoded_entity);
     if input == decoded_entity {
         Ok((input, Cow::Borrowed(input)))
     } else {
@@ -79,7 +76,6 @@ pub fn decode_digit<'a>(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'
         },
         Err(_) => Cow::Owned(format!("Invalid decimal number: {}", code)),
     };
-    println!("Decoded entity1 : {:?}", decoded_entity);
     if input == decoded_entity {
         Ok((input, Cow::Borrowed(input)))
     } else {

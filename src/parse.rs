@@ -3,15 +3,12 @@
 use std::borrow::Cow;
 
 use nom::{
-    branch::alt,
     bytes::complete::tag,
     character::complete::{char, satisfy},
-    combinator::{map, opt, recognize},
+    combinator::{opt, recognize},
     multi::{many0, many1, separated_list1},
     IResult,
 };
-
-use crate::document::{Document, ProcessingInstruction};
 
 pub trait Parse<'a>: Sized {
     fn parse(_input: &'a str) -> IResult<&'a str, Self> {
@@ -113,16 +110,5 @@ pub trait Parse<'a>: Sized {
         let (input, _) = tag("=")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         Ok((input, ()))
-    }
-
-    //[27] Misc	::= Comment | PI | S
-    fn parse_misc(input: &'a str) -> IResult<&'a str, Option<Document<'a>>> {
-        alt((
-            map(Document::parse_comment, Some), // Wrap the result of parse_comment in Some
-            map(ProcessingInstruction::parse, |pi| {
-                Some(Document::ProcessingInstruction(pi))
-            }),
-            map(Self::parse_multispace1, |_| None),
-        ))(input)
     }
 }

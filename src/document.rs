@@ -2,17 +2,20 @@ use std::borrow::Cow;
 
 use crate::parse::Parse;
 
+use crate::processing_instruction::ProcessingInstruction;
 use crate::prolog::doctype::DocType;
 use crate::prolog::xmldecl::XmlDecl;
+use crate::reference::Reference;
 use crate::{
     decode::decode_entities,
-    tag::{Namespace, Tag},
+    tag::Tag,
     //utils::parse_with_whitespace,
     Elements,
 };
 use nom::branch::alt;
-use nom::character::complete::space0;
-use nom::multi::many1;
+use nom::bytes::complete::take_till;
+use nom::combinator::{not, peek, verify};
+use nom::multi::{many1, many_till};
 use nom::sequence::{delimited, tuple};
 use nom::{
     bytes::complete::{tag, take_until, take_while1},
@@ -24,38 +27,59 @@ use nom::{
 };
 
 #[derive(Clone, PartialEq)]
-pub struct ProcessingInstruction<'a> {
-    pub target: Cow<'a, str>,
-    pub data: Option<Cow<'a, str>>,
+pub enum MiscState {
+    BeforeDoctype,
+    AfterDoctype,
 }
 
-impl<'a> Parse<'a> for ProcessingInstruction<'a> {
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
-        let (input, (target, data)) = delimited(
-            delimited(tag("<"), space0, tag("?")),
-            tuple((alpha1, opt(take_until("?>")))),
-            tag("?>"),
-        )(input)?;
-        println!("input ProcessingInstruction: {input:?}");
-        if target.eq_ignore_ascii_case("xml") {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            )));
+#[derive(Clone, PartialEq)]
+pub struct Misc<'a> {
+    pub content: Box<Document<'a>>, // Document::Comment | Document::ProcessingInstruction>
+    pub state: MiscState,
+}
+
+impl<'a> Parse<'a> for Misc<'a> {}
+
+impl<'a> Misc<'a> {
+    //[27] Misc ::= Comment | PI | S
+    fn parse(input: &'a str, state: MiscState) -> IResult<&'a str, Self> {
+        let mut input_remaining = input;
+        let mut content_vec: Vec<Document<'a>> = vec![];
+
+        loop {
+            let parse_result = alt((
+                Document::parse_comment,
+                map(ProcessingInstruction::parse, |pi| {
+                    Document::ProcessingInstruction(pi)
+                }),
+                map(Self::parse_multispace1, |_| Document::Empty),
+            ))(input_remaining);
+
+            match parse_result {
+                Ok((remaining, document)) => {
+                    match document {
+                        Document::Empty => {} // Don't add Document::Empty types to content_vec
+                        _ => content_vec.push(document),
+                    }
+                    input_remaining = remaining;
+                }
+                Err(nom::Err::Incomplete(_)) => continue,
+                Err(_) => {
+                    if !content_vec.is_empty() {
+                        break;
+                    } else {
+                        return Err(nom::Err::Error(nom::error::Error::new(
+                            input,
+                            nom::error::ErrorKind::Many0,
+                        )));
+                    }
+                }
+            }
         }
 
-        let data = data
-            .map(|d| d.trim())
-            .filter(|d| !d.is_empty())
-            .map_or(None, |d| Some(Cow::Borrowed(d)));
-        println!("DATA: {data:?}");
-        Ok((
-            input,
-            ProcessingInstruction {
-                target: Cow::Borrowed(target),
-                data,
-            },
-        ))
+        let content = Box::new(Document::Nested(content_vec));
+
+        Ok((input_remaining, Misc { content, state }))
     }
 }
 
@@ -63,6 +87,7 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
 pub enum Document<'a> {
     Prolog {
         xml_decl: Option<XmlDecl<'a>>,
+        misc: Option<Vec<Misc<'a>>>,
         doc_type: Option<DocType<'a>>,
     },
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
@@ -71,110 +96,139 @@ pub enum Document<'a> {
     Empty,
     ProcessingInstruction(ProcessingInstruction<'a>),
     Comment(Cow<'a, str>),
-    CDATA(Cow<'a, str>), // CDATA(Document::Content)
+    CDATA(Cow<'a, str>),
 }
+
+impl<'a> Parse<'a> for Document<'a> {}
+
 impl<'a> Document<'a> {
-    fn parse_prolog(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        println!("\nbefore xml_decl parse: {input:?}");
+    pub fn parse_prolog(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
-        println!("after xml_decl: {xml_decl:?}");
-        let (input, _) = many0(Self::parse_misc)(input)?;
-        println!("\n\n=====\nbefore parse_prolg: {input:?}");
+
+        let (input, misc_before) =
+            opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
+
         let (input, doc_type) = opt(DocType::parse)(input)?;
-        println!("\n-----\nafter parse_prolg input: {input:?}");
-        println!("\n-----\nafter parse_prolg doc_type: {doc_type:?}");
-        let (input, _) = many0(Self::parse_misc)(input)?;
 
-        println!("doc_type: {doc_type:?}");
-        Ok((input, Document::Prolog { xml_decl, doc_type }))
-    }
-
-    pub fn parse_tag_and_namespace(
-        input: &'a str,
-    ) -> IResult<&'a str, (Cow<'a, str>, Option<Namespace<'a>>)> {
-        map(
-            pair(
-                // Look for an optional namespace prefix
-                opt(pair(alpha1, tag(":"))),
-                take_while1(|c: char| c.is_alphanumeric() || c == '_'),
-            ),
-            |(prefix, local_name): (Option<(&str, &str)>, &str)| {
-                if let Some((prefix, _)) = prefix {
-                    (
-                        Cow::Borrowed(local_name),
-                        Some(Namespace {
-                            declaration: None,
-                            prefix: Cow::Borrowed(prefix),
-                            uri: None,
-                        }),
-                    )
-                } else {
-                    (Cow::Borrowed(local_name), None)
-                }
-            },
-        )(input)
-    }
-
-    fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        alt((
-            Self::parse_cdata_section,
-            Self::parse_comment,
-            |input: &'a str| {
-                let (input, docs) = many1(ProcessingInstruction::parse)(input)?;
-                if docs.len() > 1 {
-                    Ok((
-                        input,
-                        Document::Nested(
-                            docs.into_iter()
-                                .map(Document::ProcessingInstruction)
-                                .collect(),
-                        ),
-                    ))
-                } else {
-                    Ok((
-                        input,
-                        Document::ProcessingInstruction(docs.into_iter().next().unwrap()),
-                    ))
-                }
-            },
-            |input: &'a str| {
-                let (tail, content) = take_until("</")(input)?;
-                if content.is_empty() {
-                    Ok((tail, Document::Empty))
-                } else {
-                    let (_, content) = decode_entities(content)?;
-                    Ok((tail, Document::Content(Some(content))))
-                }
-            },
-        ))(input)
-    }
-
-    fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, content) = delimited(tag("<![CDATA["), take_until("]]>"), tag("]]>"))(input)?;
-
-        let content = if content.is_empty() {
-            Document::Empty
-        } else {
-            Document::CDATA(Cow::Borrowed(content))
+        let (input, misc_after) = match &doc_type {
+            Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
+            None => (input, None),
         };
 
-        Ok((input, content))
+        let miscs: Vec<Option<Misc<'a>>> = vec![misc_before, misc_after];
+        let miscs: Vec<Misc<'a>> = miscs.into_iter().flatten().collect();
+
+        let misc = if miscs.is_empty() { None } else { Some(miscs) };
+
+        Ok((
+            input,
+            Document::Prolog {
+                xml_decl,
+                misc,
+                doc_type,
+            },
+        ))
     }
 
+    //[18] CDSect ::= CDStart CData CDEnd
+    //[19] CDStart ::= '<![CDATA['
+    //[20] CData ::= (Char* - (Char* ']]>' Char*))
+    fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        let (input, data) = take_till(|c: char| c == '<' || c == '&')(input)?;
+        let (input, _) = not(peek(tag("]]>")))(input)?;
+        Ok((input, Cow::Borrowed(data)))
+    }
+
+    //[21] CDEnd ::= ']]>'
+    fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, _) = tag("<![CDATA[")(input)?;
+        let (input, cdata_content) = Self::parse_char_data(input)?;
+        let cdata_string: String = cdata_content.to_string();
+        let (input, _) = tag("]]>")(input)?;
+        Ok((input, Document::CDATA(Cow::Owned(cdata_string))))
+    }
+
+    // [39] element	::= EmptyElemTag | STag content ETag
+    pub fn parse_element(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        alt((
+            map(Tag::parse_empty_element_tag, |tag| {
+                Document::Element(tag.clone(), Box::new(Document::Empty), tag.clone())
+            }),
+            map(
+                tuple((
+                    Tag::parse_start_tag,
+                    Self::parse_content,
+                    Tag::parse_end_tag,
+                )),
+                |(start_tag, content, end_tag)| {
+                    Document::Element(start_tag, Box::new(content), end_tag)
+                },
+            ),
+        ))(input)
+    }
+    // [43] content	::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+    fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        let (input, (maybe_chardata, elements)) = tuple((
+            opt(Self::parse_char_data),
+            many0(pair(
+                alt((
+                    Self::parse_element,
+                    map(Reference::parse, |reference| match reference {
+                        Reference::EntityRef(entity) => Document::Content(Some(entity)),
+                        Reference::CharRef { value, .. } => Document::Content(Some(value)),
+                    }),
+                    Self::parse_cdata_section,
+                    map(
+                        ProcessingInstruction::parse,
+                        Document::ProcessingInstruction,
+                    ),
+                    Self::parse_comment,
+                )),
+                opt(Self::parse_char_data),
+            )),
+        ))(input)?;
+
+        let content = elements
+            .into_iter()
+            .flat_map(|(doc, maybe_chardata)| {
+                let mut vec = Vec::new();
+                vec.push(doc);
+                if let Some(chardata) = maybe_chardata {
+                    vec.push(Document::Content(Some(chardata)));
+                }
+                vec
+            })
+            .collect();
+
+        Ok((
+            input,
+            Document::Nested(match maybe_chardata {
+                Some(chardata) => {
+                    let mut vec = Vec::new();
+                    vec.push(Document::Content(Some(chardata)));
+                    vec.extend(content);
+                    vec
+                }
+                None => content,
+            }),
+        ))
+    }
+
+    // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        map(
-            delimited(tag("<!--"), take_until("-->"), tag("-->")),
-            |comment: &'a str| Document::Comment(Cow::Borrowed(comment)),
-        )(input)
+        let (input, _) = tag("<!--")(input)?;
+        let (input, (comment_content, _)) =
+            many_till(verify(Self::parse_char, |&c| c != '-'), tag("-->"))(input)?;
+        let comment_string: String = comment_content.into_iter().collect();
+        let (input, _) = tag("-->")(input)?;
+
+        Ok((input, Document::Comment(Cow::Owned(comment_string))))
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, prolog) = opt(Self::parse_prolog)(input)?;
-        println!("\n\n\nPROLOG: {prolog:?}");
-        println!("After Prolog Input: {input:?}");
-        let (input, start_tag) = Tag::parse_start_tag(input)?;
-        println!("After Start Tag Input: {input:?}");
-        println!("Start Tag: {start_tag:?}");
+        let (input, start_tag) =
+            alt((Tag::parse_qualified_start_tag, Tag::parse_start_tag))(input)?;
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
         let (input, end_tag) = Tag::parse_end_tag(input)?;
@@ -218,16 +272,10 @@ impl<'a> Document<'a> {
         match (&start_tag, &end_tag) {
             (
                 Tag {
-                    name: start_name,
-                    namespace: start_namespace,
-                    ..
+                    name: start_name, ..
                 },
-                Tag {
-                    name: end_name,
-                    namespace: end_namespace,
-                    ..
-                },
-            ) if start_name == end_name && start_namespace == end_namespace => {
+                Tag { name: end_name, .. },
+            ) if start_name == end_name => {
                 let child_document = determine_child_document(content, children).map_err(|e| {
                     nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
                 })?;
@@ -247,48 +295,6 @@ impl<'a> Document<'a> {
                 input,
                 nom::error::ErrorKind::Verify,
             ))),
-        }
-    }
-
-    pub fn get_tags(&'a self, tag_name: &'a str) -> Elements<'a> {
-        let mut results = Vec::new();
-        self.get_internal_tags(tag_name, &mut results);
-        Elements { tags: results }
-    }
-
-    pub fn get_internal_tags(&'a self, tag_name: &str, results: &mut Vec<&'a Self>) {
-        match self {
-            Document::Element(
-                Tag {
-                    name, namespace, ..
-                },
-                content,
-                _,
-            ) => {
-                if let Some(namespace) = namespace {
-                    if tag_name == &(namespace.prefix.to_string() + ":" + name) {
-                        results.push(self);
-                    }
-                } else if name == tag_name {
-                    results.push(self);
-                }
-                content.get_internal_tags(tag_name, results);
-            }
-            Document::Nested(docs) => {
-                let mut docs_iter = docs.iter();
-                while let Some(doc) = docs_iter.next() {
-                    doc.get_internal_tags(tag_name, results);
-                }
-            }
-            _ => (),
-        }
-    }
-
-    pub fn extract_content(&'a self) -> Option<&'a str> {
-        match self {
-            Document::Element(_, content, _) => content.extract_content(),
-            Document::Content(Some(content)) => Some(content),
-            _ => None,
         }
     }
 }
@@ -318,5 +324,3 @@ fn determine_child_document<'a>(
         _ => Err("Invalid content type in determine_child_document"),
     }
 }
-
-impl<'a> Parse<'a> for Document<'a> {}

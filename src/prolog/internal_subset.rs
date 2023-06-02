@@ -1,6 +1,10 @@
-use super::{external_id::ExternalID, DeclarationContent};
+use super::{declaration_content::DeclarationContent, external_id::ExternalID};
 use crate::{
-    attribute::Attribute, document::ProcessingInstruction, parse::Parse, reference::Reference,
+    attribute::Attribute,
+    namespaces::{ParseNamespace, QualifiedName},
+    parse::Parse,
+    processing_instruction::ProcessingInstruction,
+    reference::{ParseReference, Reference},
 };
 use nom::{
     branch::alt,
@@ -53,48 +57,113 @@ pub enum EntityDeclaration<'a> {
 #[derive(Clone, PartialEq)]
 pub enum InternalSubset<'a> {
     Element {
-        name: Cow<'a, str>,
+        name: QualifiedName<'a>,
         content_spec: Option<DeclarationContent<'a>>,
     },
     AttList {
-        name: Cow<'a, str>,
+        name: QualifiedName<'a>,
         att_defs: Option<Vec<Attribute<'a>>>, //Option<Vec<Attribute::Definition>>
     },
     Entity(EntityDeclaration<'a>),
-    DeclSep(Cow<'a, str>),
+    DeclSep(Reference<'a>),
     ProcessingInstruction(ProcessingInstruction<'a>),
 }
+
+impl<'a> Parse<'a> for InternalSubset<'a> {}
+impl<'a> ParseNamespace<'a> for InternalSubset<'a> {}
 
 impl<'a> InternalSubset<'a> {
     // [28b] intSubset ::= (markupdecl | DeclSep)*
     pub fn parse_internal_subset(input: &'a str) -> IResult<&'a str, Vec<InternalSubset<'a>>> {
-        many0(alt((Self::parse_markup_decl, Self::parse_decl_sep)))(input)
+        let mut parsed: Vec<InternalSubset<'a>> = Vec::new();
+        let mut current_input = input;
+
+        loop {
+            let original_input = current_input; // Store current input before trying to parse anything
+
+            // Try parsing markup declaration first
+            match Self::parse_markup_decl(current_input) {
+                Ok((new_input, markup_decl)) => {
+                    parsed.push(markup_decl);
+                    current_input = new_input;
+                }
+                Err(nom::Err::Error(_)) => {
+                    // Try parsing a declaration separator
+                    match Self::parse_decl_sep(current_input) {
+                        Ok((new_input, maybe_decl_sep)) => {
+                            if let Some(decl_sep) = maybe_decl_sep {
+                                parsed.push(decl_sep);
+                            }
+                            current_input = new_input;
+                        }
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+
+            // If the input hasn't changed (i.e., nothing was parsed), break the loop
+            if current_input == original_input {
+                break;
+            }
+        }
+
+        Ok((current_input, parsed))
     }
 
-    // [28a] DeclSep ::= PEReference | S
-    // [69] PEReference	::= '%' Name ';'
-    fn parse_decl_sep(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        let (input, _) = tag("%")(input)?;
-        let (input, name) = Self::parse_name(input)?;
-        let (input, _) = tag(";")(input)?;
-
-        let (input, _) = Self::parse_multispace0(input)?;
-
-        Ok((input, InternalSubset::DeclSep(name)))
+    // [28a] DeclSep ::=  S | PEReference
+    fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
+        // Try to match whitespace first
+        match Self::parse_multispace0(input) {
+            Ok((new_input, _)) => Ok((new_input, None)),
+            Err(nom::Err::Error(_)) => {
+                // Try to match a parameter reference if whitespace fails
+                match Reference::parse_parameter_reference(input) {
+                    Ok((new_input, reference)) => {
+                        Ok((new_input, Some(InternalSubset::DeclSep(reference))))
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+            Err(e) => Err(e),
+        }
     }
 
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
-    fn parse_element(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        println!("parse_element: {input:?}");
+    fn parse_element_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("<!ELEMENT")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
-        // [46]   	contentspec	   ::=   	'EMPTY' | 'ANY' | Mixed | children
+        // [46] contentspec	::= 'EMPTY' | 'ANY' | Mixed | children
         let (input, content_spec) = DeclarationContent::parse_spec(input)?;
-        let (input, _) = tag(">")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag(">")(input)?;
+        Ok((
+            input,
+            InternalSubset::Element {
+                name: QualifiedName {
+                    prefix: None,
+                    local_part: name,
+                },
+                content_spec: Some(content_spec),
+            },
+        ))
+    }
 
+    // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
+    fn parse_qualified_element_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+        let (input, _) = tag("<!ELEMENT")(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
+        let (input, name) = Self::parse_qualified_name(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
+        let (input, content_spec) = DeclarationContent::parse_spec(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag(">")(input)?;
         Ok((
             input,
             InternalSubset::Element {
@@ -103,7 +172,6 @@ impl<'a> InternalSubset<'a> {
             },
         ))
     }
-
     fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, processing_instruction) = ProcessingInstruction::parse(input)?;
         Ok((
@@ -112,20 +180,36 @@ impl<'a> InternalSubset<'a> {
         ))
     }
     // [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
-    pub fn parse_attlist(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        println!("\n\n\n\nATTLIST PARSE START: {input:?}");
+    pub fn parse_attlist_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("<!ATTLIST")(input)?;
-        println!("\n\nparse_attlist: {input:?}");
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
-        println!("Parsed name: {:?}", name);
-
-        //// [53] AttDef ::= S Name S AttType S DefaultDecl
+        let name = QualifiedName {
+            prefix: None,
+            local_part: name,
+        };
         let (input, att_defs) = many0(Attribute::parse_definition)(input)?;
-        println!("Parsed attribute definitions: {:?}", att_defs);
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
-        println!("\n\n\n\nATTLIST PARSE END: {input:?}");
+        Ok((
+            input,
+            InternalSubset::AttList {
+                name,
+                att_defs: Some(att_defs),
+            },
+        ))
+    }
+
+    // Namespaces (Third Edition) [20] AttlistDecl ::= '<!ATTLIST' S QName AttDef* S? '>'
+    pub fn parse_qualified_attlist_declaration(
+        input: &'a str,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
+        let (input, _) = tag("<!ATTLIST")(input)?;
+        let (input, _) = Self::parse_multispace1(input)?;
+        let (input, name) = Self::parse_qualified_name(input)?;
+        let (input, att_defs) = many0(Attribute::parse_definition)(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
+        let (input, _) = tag(">")(input)?;
         Ok((
             input,
             InternalSubset::AttList {
@@ -248,8 +332,8 @@ impl<'a> InternalSubset<'a> {
     // [29] markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
     fn parse_markup_decl(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         alt((
-            Self::parse_element,
-            Self::parse_attlist,
+            Self::parse_element_declaration,
+            Self::parse_attlist_declaration,
             Self::parse_entity,
             //Self::parse_notation,
             Self::parse_processing_instruction,
@@ -257,5 +341,3 @@ impl<'a> InternalSubset<'a> {
         ))(input)
     }
 }
-
-impl<'a> Parse<'a> for InternalSubset<'a> {}

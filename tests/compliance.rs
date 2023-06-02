@@ -2,9 +2,14 @@ use std::{borrow::Cow, error::Error, fs::File};
 
 use nomxml::{
     attribute::{AttType, Attribute, DefaultDecl},
-    document::{Document, ProcessingInstruction},
+    document::Document,
     parse_file,
-    prolog::{doctype::DocType, internal_subset::InternalSubset, DeclarationContent, Mixed},
+    processing_instruction::ProcessingInstruction,
+    prolog::{
+        declaration_content::{DeclarationContent, Mixed},
+        doctype::DocType,
+        internal_subset::InternalSubset,
+    },
     tag::{Tag, TagState},
 };
 
@@ -22,6 +27,7 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -66,6 +72,7 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -110,6 +117,7 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -154,6 +162,7 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -211,6 +220,7 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -268,6 +278,7 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -325,6 +336,7 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -369,6 +381,7 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -413,6 +426,7 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -457,6 +471,7 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -514,6 +529,7 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -584,6 +600,7 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -641,6 +658,7 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -698,6 +716,7 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -755,6 +774,7 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -812,6 +832,7 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -859,6 +880,7 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -885,7 +907,7 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Nested(vec![
                     Document::ProcessingInstruction(ProcessingInstruction {
                         target: "pi".into(),
-                        data: Some("some data".into()),
+                        data: Some("some data ".into()),
                     }),
                     Document::ProcessingInstruction(ProcessingInstruction {
                         target: "x".into(),
@@ -912,6 +934,7 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -959,6 +982,7 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -1003,6 +1027,7 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -1047,6 +1072,7 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -1091,6 +1117,7 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,
@@ -1135,6 +1162,7 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
         Document::Nested(vec![
             Document::Prolog {
                 xml_decl: None,
+                misc: None,
                 doc_type: Some(DocType {
                     name: "doc".into(),
                     external_id: None,

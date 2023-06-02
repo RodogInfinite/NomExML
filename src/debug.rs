@@ -1,15 +1,17 @@
 // debug.rs
 use crate::{
     attribute::Attribute,
-    document::{Document, ProcessingInstruction},
+    document::{Document, Misc, MiscState},
+    namespaces::QualifiedName,
+    processing_instruction::ProcessingInstruction,
     prolog::{
+        declaration_content::{ContentParticle, DeclarationContent, Mixed},
         doctype::DocType,
         internal_subset::{
             EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
             InternalSubset,
         },
         xmldecl::XmlDecl,
-        ContentParticle, DeclarationContent, Mixed,
     },
     reference::{CharRefState, Reference},
     Tag,
@@ -32,14 +34,14 @@ impl<'a> Tag<'a> {
     fn fmt_indented_tag(&self, f: &mut String, indent: usize) {
         let Tag {
             name,
-            namespace,
             attributes,
             state,
         } = self;
 
         fmt_indented(f, indent, "Tag {\n");
-        fmt_indented(f, indent + 4, &format!("name: \"{}\",\n", name));
-        fmt_indented(f, indent + 4, &format!("namespace: {:?},\n", namespace));
+        fmt_indented(f, indent + 4, "name: ");
+        name.fmt_qualified_name(f, indent + 4); // Using new fmt_qualified_name here
+
         fmt_indented(f, indent + 4, "attributes: ");
 
         match attributes {
@@ -59,13 +61,86 @@ impl<'a> Tag<'a> {
     }
 }
 
+impl<'a> fmt::Debug for QualifiedName<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_qualified_name(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
+
+impl<'a> QualifiedName<'a> {
+    fn fmt_qualified_name(&self, f: &mut String, indent: usize) {
+        let QualifiedName { prefix, local_part } = self;
+
+        fmt_indented(f, indent, "QualifiedName {\n");
+        match prefix {
+            Some(p) => {
+                fmt_indented(f, indent + 4, &format!("prefix: Some(\"{}\"),\n", p));
+            }
+            None => {
+                fmt_indented(f, indent + 4, "prefix: None,\n");
+            }
+        }
+        fmt_indented(f, indent + 4, &format!("local_part: \"{}\",\n", local_part));
+        fmt_indented(f, indent, "},\n");
+    }
+}
+
+impl fmt::Debug for MiscState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_misc_state(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
+
+impl MiscState {
+    fn fmt_indented_misc_state(&self, f: &mut String, _indent: usize) {
+        match self {
+            MiscState::BeforeDoctype => {
+                f.push_str("BeforeDoctype");
+            }
+            MiscState::AfterDoctype => {
+                f.push_str("AfterDoctype");
+            }
+        }
+    }
+}
+
+impl<'a> fmt::Debug for Misc<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_misc(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
+
+impl<'a> Misc<'a> {
+    fn fmt_indented_misc(&self, f: &mut String, indent: usize) {
+        fmt_indented(f, indent, "Misc {\n");
+        fmt_indented(f, indent + 4, &format!("content: {:?}", self.content));
+        fmt_indented(f, indent + 4, &format!("state: {:?},\n", self.state));
+        fmt_indented(f, indent, "},\n");
+    }
+}
+
 impl<'a> Document<'a> {
     fn fmt_indented_doc(&self, f: &mut String, indent: usize) {
         match self {
-            Document::Prolog { xml_decl, doc_type } => {
+            Document::Prolog {
+                xml_decl,
+                misc,
+                doc_type,
+            } => {
                 fmt_indented(f, indent, "Prolog {\n");
                 if let Some(xml_decl) = xml_decl {
                     xml_decl.fmt_indented_xml_decl(f, indent + 4);
+                }
+                if let Some(misc_vec) = misc {
+                    for misc in misc_vec {
+                        misc.fmt_indented_misc(f, indent + 4);
+                    }
                 }
                 if let Some(doc_type) = doc_type {
                     doc_type.fmt_indented_doc_type(f, indent + 4);

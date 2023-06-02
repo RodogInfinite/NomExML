@@ -3,7 +3,9 @@ mod debug;
 pub mod decode;
 pub mod document;
 mod error;
+pub mod namespaces;
 pub mod parse;
+pub mod processing_instruction;
 pub mod prolog;
 pub mod reference;
 pub mod tag;
@@ -20,12 +22,6 @@ use tag::Tag;
 
 pub struct Elements<'a> {
     tags: Vec<&'a Document<'a>>,
-}
-
-impl<'a> Elements<'a> {
-    pub fn extract_content(&self) -> Vec<Option<&'a str>> {
-        self.tags.iter().map(|tag| tag.extract_content()).collect()
-    }
 }
 
 pub fn read_file(file: &mut File) -> Result<String, IoError> {
