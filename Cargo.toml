@@ -7,6 +7,7 @@ keywords = ["XML","parsing","nom","parsing","encoding"]
 categories = ["parsing","parser-implementations", "encoding"]
 description = "A Rust Crate for parsing XML."
 repository = "https://github.com/RodogInfinite/NomExML"
+readme = "README.md"
 
 [dependencies]
 nom.workspace = true
