@@ -310,7 +310,7 @@ fn determine_child_document<'a>(
             }
         }
         Document::Content(Some(cow)) => Ok(Document::Content(Some(Cow::Owned(cow.into_owned())))),
-        Document::ProcessingInstruction(PI) => Ok(Document::ProcessingInstruction(PI)),
+        Document::ProcessingInstruction(pi) => Ok(Document::ProcessingInstruction(pi)),
         Document::Nested(docs) => Ok(Document::Nested(docs)), // propagate nested documents up
         Document::CDATA(cow) => Ok(Document::CDATA(cow)),
         Document::Comment(cow) => Ok(Document::Comment(cow)),

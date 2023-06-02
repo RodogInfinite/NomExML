@@ -79,7 +79,7 @@ The following table needs to be verified as of June 2, 2023
 |   [69]  | PEReference      | '%' Name ';' | :heavy_check_mark: | :x: |
 |   [70]  | EntityDecl       | GEDecl \| PEDecl | :heavy_check_mark: | :x: |
 |   [71]  | GEDecl           | '<!ENTITY' S Name S EntityDef S? '>' | :heavy_check_mark: | :x: |
-|   [72]  | PEDecl           | '<!ENTITY' S '%' S Name S PEDef S? '>' | :heavy_check_mark: | :x: |
+|   [72]  | PEDecl           | '<!ENTITY' S '%' S Name S PEDef S? '>' | :heavy_check_mark: | :x: | :question: |
 |   [73]  | EntityDef        | EntityValue \| (ExternalID NDataDecl?) | :heavy_check_mark: | :x: |
 |   [74]  | PEDef            | EntityValue \| ExternalID | :heavy_check_mark: | :x: |
 |   [75]  | ExternalID       | 'SYSTEM' S SystemLiteral \| 'PUBLIC' S PubidLiteral S SystemLiteral | :heavy_check_mark: | :x: |

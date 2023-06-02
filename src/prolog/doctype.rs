@@ -1,9 +1,7 @@
-use std::borrow::Cow;
-
 use nom::{
     bytes::complete::tag,
     combinator::opt,
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    sequence::{delimited, pair, preceded},
     IResult,
 };
 
