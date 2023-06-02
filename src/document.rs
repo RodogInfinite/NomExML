@@ -6,20 +6,14 @@ use crate::processing_instruction::ProcessingInstruction;
 use crate::prolog::doctype::DocType;
 use crate::prolog::xmldecl::XmlDecl;
 use crate::reference::Reference;
-use crate::{
-    decode::decode_entities,
-    tag::Tag,
-    //utils::parse_with_whitespace,
-    Elements,
-};
+use crate::tag::Tag;
 use nom::branch::alt;
 use nom::bytes::complete::take_till;
 use nom::combinator::{not, peek, verify};
-use nom::multi::{many1, many_till};
-use nom::sequence::{delimited, tuple};
+use nom::multi::many_till;
+use nom::sequence::tuple;
 use nom::{
-    bytes::complete::{tag, take_until, take_while1},
-    character::complete::alpha1,
+    bytes::complete::tag,
     combinator::{map, opt},
     multi::many0,
     sequence::pair,
@@ -127,15 +121,16 @@ impl<'a> Document<'a> {
         ))
     }
 
-    //[18] CDSect ::= CDStart CData CDEnd
-    //[19] CDStart ::= '<![CDATA['
-    //[20] CData ::= (Char* - (Char* ']]>' Char*))
+    // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         let (input, data) = take_till(|c: char| c == '<' || c == '&')(input)?;
         let (input, _) = not(peek(tag("]]>")))(input)?;
         Ok((input, Cow::Borrowed(data)))
     }
 
+    //[18] CDSect ::= CDStart CData CDEnd
+    //[19] CDStart ::= '<![CDATA['
+    //[20] CData ::= (Char* - (Char* ']]>' Char*))
     //[21] CDEnd ::= ']]>'
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, _) = tag("<![CDATA[")(input)?;

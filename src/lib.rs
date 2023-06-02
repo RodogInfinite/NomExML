@@ -3,6 +3,7 @@ mod debug;
 pub mod decode;
 pub mod document;
 mod error;
+//pub mod extract;
 pub mod namespaces;
 pub mod parse;
 pub mod processing_instruction;
@@ -19,10 +20,6 @@ use std::{
 };
 use std::{io::Error as IoError, path::Path};
 use tag::Tag;
-
-pub struct Elements<'a> {
-    tags: Vec<&'a Document<'a>>,
-}
 
 pub fn read_file(file: &mut File) -> Result<String, IoError> {
     let mut content = String::new();
