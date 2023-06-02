@@ -1,4 +1,4 @@
-use nomxml::{parse::Parse, prolog::external_id::ExternalID};
+use nom_xml::{parse::Parse, prolog::external_id::ExternalID};
 
 #[test]
 

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, error::Error, fs::File};
 
-use nomxml::{
+use nom_xml::{
     attribute::{AttType, Attribute, DefaultDecl},
     document::Document,
     parse_file,
