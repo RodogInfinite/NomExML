@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::{
     namespaces::{ParseNamespace, QualifiedName},
     parse::Parse,
