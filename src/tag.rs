@@ -1,4 +1,5 @@
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::char,
     combinator::map,
@@ -66,17 +67,28 @@ impl<'a> Tag<'a> {
             tuple((
                 char('<'),
                 Self::parse_name,
-                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                many0(pair(
+                    Self::parse_multispace1,
+                    alt((Attribute::parse_qualified_attribute, Attribute::parse)),
+                )),
                 Self::parse_multispace0,
                 char('>'),
             )),
-            |(_, name, attributes, _, _)| Self {
-                name: QualifiedName {
-                    prefix: None,
-                    local_part: name,
-                },
-                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
-                state: TagState::Start,
+            |(_, name, attributes, _, _)| {
+                let attr = if attributes.is_empty() {
+                    None
+                } else {
+                    Some(attributes.into_iter().map(|(_, attr)| attr).collect())
+                };
+
+                Self {
+                    name: QualifiedName {
+                        prefix: None,
+                        local_part: name,
+                    },
+                    attributes: attr,
+                    state: TagState::Start,
+                }
             },
         )(input)
     }
@@ -109,7 +121,10 @@ impl<'a> Tag<'a> {
             tuple((
                 char('<'),
                 Self::parse_qualified_name,
-                many0(pair(Self::parse_multispace1, Attribute::parse)),
+                many0(pair(
+                    Self::parse_multispace1,
+                    Attribute::parse_qualified_attribute,
+                )),
                 Self::parse_multispace0,
                 char('>'),
             )),

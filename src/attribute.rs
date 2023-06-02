@@ -16,6 +16,12 @@ use nom::{
 };
 
 #[derive(Clone, PartialEq)]
+pub enum Prefix<'a> {
+    Default,
+    Prefix(Cow<'a, str>),
+}
+
+#[derive(Clone, PartialEq)]
 pub enum Attribute<'a> {
     Definition {
         name: QualifiedName<'a>,
@@ -29,13 +35,17 @@ pub enum Attribute<'a> {
     },
     Required,
     Implied,
+    Namespace {
+        prefix: Prefix<'a>,
+        uri: Cow<'a, str>,
+    },
 }
 
 impl<'a> Parse<'a> for Attribute<'a> {
     // [41] Attribute ::= Name Eq AttValue
     fn parse(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         let (input, name) = Self::parse_name(input)?;
-        let (input, eq) = Self::parse_eq(input)?;
+        let (input, _) = Self::parse_eq(input)?;
         let (input, value) = Self::parse_attvalue(input)?;
         Ok((
             input,
@@ -105,9 +115,7 @@ impl<'a> Attribute<'a> {
             delimited(
                 tag("\""),
                 many0(alt((
-                    map(is_not("<&\""), |s: &'a str| {
-                        Cow::Borrowed(s.trim_end_matches('"'))
-                    }),
+                    map(is_not("<&\""), Cow::Borrowed),
                     map(Reference::parse, |reference| {
                         Cow::Owned(format!("{:?}", reference))
                     }),
@@ -117,9 +125,7 @@ impl<'a> Attribute<'a> {
             delimited(
                 tag("'"),
                 many0(alt((
-                    map(is_not("<&'"), |s: &'a str| {
-                        Cow::Borrowed(s.trim_end_matches('\''))
-                    }),
+                    map(is_not("<&'"), Cow::Borrowed),
                     map(Reference::parse, |reference| {
                         Cow::Owned(format!("{:?}", reference))
                     }),
@@ -129,8 +135,9 @@ impl<'a> Attribute<'a> {
         ))(input)
         .map(|(remaining, contents)| (remaining, Cow::Owned(contents.concat())))
     }
+
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
-    fn parse_qualified_attribute(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+    pub fn parse_qualified_attribute(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         alt((
             map(
                 tuple((
@@ -138,12 +145,20 @@ impl<'a> Attribute<'a> {
                     Self::parse_eq,
                     Attribute::parse_attvalue,
                 )),
-                |(name, _, value)| Attribute::Instance {
-                    name: QualifiedName {
-                        prefix: Some(name),
-                        local_part: Cow::Borrowed(""),
-                    },
-                    value,
+                |(name, _, value)| {
+                    // If name is "xmlns", it's a default namespace declaration
+                    if &*name == "xmlns" {
+                        Attribute::Namespace {
+                            prefix: Prefix::Default,
+                            uri: value,
+                        }
+                    } else {
+                        // Otherwise, it's a prefixed namespace declaration
+                        Attribute::Namespace {
+                            prefix: Prefix::Prefix(name),
+                            uri: value,
+                        }
+                    }
                 },
             ),
             map(

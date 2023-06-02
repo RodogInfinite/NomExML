@@ -25,7 +25,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     //let (_, doc) = Document::parse_xml_str(input)?;
     //let doc = test_data_file("test_xml_decl")?;
     //let doc = test_data_file("test_product_obs")?;
-    let doc = test_data_file("test_identification_area")?;
+    //let doc = test_data_file("test_identification_area")?;
+    let doc = test_data_file("test_all")?;
     println!("\n\nDOC:\n{doc:?}");
 
     Ok(())

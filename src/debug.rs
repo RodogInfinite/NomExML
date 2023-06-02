@@ -1,6 +1,6 @@
 // debug.rs
 use crate::{
-    attribute::Attribute,
+    attribute::{Attribute, Prefix},
     document::{Document, Misc, MiscState},
     namespaces::QualifiedName,
     processing_instruction::ProcessingInstruction,
@@ -72,8 +72,8 @@ impl<'a> fmt::Debug for QualifiedName<'a> {
 impl<'a> QualifiedName<'a> {
     fn fmt_qualified_name(&self, f: &mut String, indent: usize) {
         let QualifiedName { prefix, local_part } = self;
-
-        fmt_indented(f, indent, "QualifiedName {\n");
+        f.push_str("QualifiedName{\n");
+        //fmt_indented(f, indent, "QualifiedName {\n");
         match prefix {
             Some(p) => {
                 fmt_indented(f, indent + 4, &format!("prefix: Some(\"{}\"),\n", p));
@@ -133,19 +133,21 @@ impl<'a> Document<'a> {
                 misc,
                 doc_type,
             } => {
-                fmt_indented(f, indent, "Prolog {\n");
-                if let Some(xml_decl) = xml_decl {
-                    xml_decl.fmt_indented_xml_decl(f, indent + 4);
-                }
-                if let Some(misc_vec) = misc {
-                    for misc in misc_vec {
-                        misc.fmt_indented_misc(f, indent + 4);
+                if xml_decl.is_some() || misc.is_some() || doc_type.is_some() {
+                    fmt_indented(f, indent, "Prolog {\n");
+                    if let Some(xml_decl) = xml_decl {
+                        xml_decl.fmt_indented_xml_decl(f, indent + 4);
                     }
+                    if let Some(misc_vec) = misc {
+                        for misc in misc_vec {
+                            misc.fmt_indented_misc(f, indent + 4);
+                        }
+                    }
+                    if let Some(doc_type) = doc_type {
+                        doc_type.fmt_indented_doc_type(f, indent + 4);
+                    }
+                    fmt_indented(f, indent, "},\n");
                 }
-                if let Some(doc_type) = doc_type {
-                    doc_type.fmt_indented_doc_type(f, indent + 4);
-                }
-                fmt_indented(f, indent, "},\n");
             }
             Document::Element(tag1, document, tag2) => {
                 fmt_indented(f, indent, "Element(\n");
@@ -469,6 +471,12 @@ impl<'a> Attribute<'a> {
                 fmt_indented(f, indent + 4, &format!("value: {:?},\n", value));
                 fmt_indented(f, indent, "},\n");
             }
+            Attribute::Namespace { prefix, uri } => {
+                fmt_indented(f, indent, "Namespace {\n");
+                fmt_indented(f, indent + 4, &format!("prefix: {:?},\n", prefix));
+                fmt_indented(f, indent + 4, &format!("uri: {:?},\n", uri));
+                fmt_indented(f, indent, "},\n");
+            }
         }
     }
 }
@@ -478,6 +486,15 @@ impl<'a> fmt::Debug for Attribute<'a> {
         let mut s = String::new();
         self.fmt_indented_attribute(&mut s, 0);
         write!(f, "{}", s)
+    }
+}
+
+impl<'a> fmt::Debug for Prefix<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Prefix::Default => write!(f, "Default"),
+            Prefix::Prefix(p) => write!(f, "Prefix({:?})", p),
+        }
     }
 }
 

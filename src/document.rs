@@ -102,14 +102,12 @@ pub enum Document<'a> {
 impl<'a> Parse<'a> for Document<'a> {}
 
 impl<'a> Document<'a> {
+    //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
     pub fn parse_prolog(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
-
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
-
         let (input, doc_type) = opt(DocType::parse)(input)?;
-
         let (input, misc_after) = match &doc_type {
             Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
             None => (input, None),
@@ -117,7 +115,6 @@ impl<'a> Document<'a> {
 
         let miscs: Vec<Option<Misc<'a>>> = vec![misc_before, misc_after];
         let miscs: Vec<Misc<'a>> = miscs.into_iter().flatten().collect();
-
         let misc = if miscs.is_empty() { None } else { Some(miscs) };
 
         Ok((
@@ -231,7 +228,7 @@ impl<'a> Document<'a> {
             alt((Tag::parse_qualified_start_tag, Tag::parse_start_tag))(input)?;
         let (input, children) = Self::parse_children(input)?;
         let (input, content) = Self::parse_content(input)?;
-        let (input, end_tag) = Tag::parse_end_tag(input)?;
+        let (input, end_tag) = alt((Tag::parse_qualified_end_tag, Tag::parse_end_tag))(input)?;
 
         Self::construct_document(input, prolog, start_tag, children, content, end_tag)
     }
@@ -247,10 +244,12 @@ impl<'a> Document<'a> {
         child_document: Document<'a>,
         end_tag: &Tag<'a>,
     ) -> Document<'a> {
-        Document::Nested(vec![
-            prolog.unwrap_or(Document::Empty),
-            Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone()),
-        ])
+        let element =
+            Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone());
+        match prolog {
+            Some(prolog) => Document::Nested(vec![prolog, element]),
+            None => element,
+        }
     }
 
     fn construct_element(
@@ -279,15 +278,14 @@ impl<'a> Document<'a> {
                 let child_document = determine_child_document(content, children).map_err(|e| {
                     nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
                 })?;
-                let document = if let Some(prolog) = prolog {
-                    Self::construct_document_with_prolog(
+                let document = match prolog {
+                    Some(prolog) => Self::construct_document_with_prolog(
                         Some(prolog),
                         &start_tag,
                         child_document,
                         &end_tag,
-                    )
-                } else {
-                    Self::construct_element(&start_tag, child_document, &end_tag)
+                    ),
+                    None => Self::construct_element(&start_tag, child_document, &end_tag),
                 };
                 Ok((input, document))
             }

@@ -17,18 +17,12 @@ pub struct QualifiedName<'a> {
     pub local_part: Cow<'a, str>,
 }
 
-pub enum Namespace {
-    Default,
-    Prefix(Cow<'static, str>),
-    URI(Cow<'static, str>),
-}
-
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName
     fn parse_namespace_attribute_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         let (input, name) = alt((
             Self::parse_prefixed_attribute_name,
-            map(tag("xmlns"), |s: &'a str| Cow::Borrowed(s)),
+            map(tag("xmlns"), Cow::Borrowed),
         ))(input)?;
         Ok((input, name))
     }
