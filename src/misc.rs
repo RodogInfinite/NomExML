@@ -1,5 +1,5 @@
 // misc.rs
-use crate::{document::Document, parse::Parse, processing_instruction::ProcessingInstruction};
+use crate::{parse::Parse, processing_instruction::ProcessingInstruction, Document};
 use nom::{branch::alt, combinator::map, IResult};
 #[derive(Clone, PartialEq)]
 pub enum MiscState {

@@ -1,7 +1,6 @@
 // debug.rs
 use crate::{
     attribute::{Attribute, Prefix},
-    document::Document,
     misc::{Misc, MiscState},
     namespaces::QualifiedName,
     processing_instruction::ProcessingInstruction,
@@ -15,7 +14,7 @@ use crate::{
         xmldecl::XmlDecl,
     },
     reference::{CharRefState, Reference},
-    Tag,
+    Document, Tag,
 };
 
 use std::fmt::{self, Formatter};
