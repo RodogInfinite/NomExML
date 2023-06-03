@@ -12,6 +12,8 @@ use nom::{
     IResult,
 };
 
+//TODO: Refactor to better comply with the spec
+
 #[derive(Clone, PartialEq)]
 pub enum DeclarationContent<'a> {
     Spec {

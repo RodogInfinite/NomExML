@@ -49,7 +49,7 @@ The following tables need to be verified as of June 2, 2023
 |   [44]  | EmptyElemTag    | '<' Name (S Attribute)* S? '/>' | :heavy_check_mark: | :x: |
 |   [45]  | elementdecl      | '<!ELEMENT' S Name S contentspec S? '>' | :heavy_check_mark: | :x: |
 |   [46]  | contentspec      | 'EMPTY' \| 'ANY' \| Mixed \| children | :heavy_check_mark: | :x: |
-|   [47]  | children         | (choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: |
+|   [47]  | children         | (choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: | :bug: |
 |   [48]  | cp               | (Name \| choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: |
 |   [49]  | choice           | '(' S? cp ( S? '\|' S? cp )+ S? ')' | :heavy_check_mark: | :x: |
 |   [50]  | seq              | '(' S? cp ( S? ',' S? cp )* S? ')' | :heavy_check_mark: | :x: |
