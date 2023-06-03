@@ -19,5 +19,6 @@ Things are likely to change and break often until testing has been completed.
 | Implement full test suite | Medium | :thought_balloon: |
 | Fix debug output | Medium | ::thought_balloon: |
 | Add streaming for parsing large XML documents | Low | :thought_balloon: |
+| Implement Display | Low | :thought_balloon: |
 
 
