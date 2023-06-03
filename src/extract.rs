@@ -1,12 +1,8 @@
 use crate::{document::Document, namespaces::QualifiedName, tag::Tag};
 
-pub enum Extracted<'a> { // Document::Nested([Document::Element])
+pub enum Extracted<'a> {
+    // Document::Nested([Document::Element])
     Documents(Vec<Document<'a>>),
-    
-}
-
-or pub struct Extracted<'a> { // Document::Nested([Document::Element])
-
 }
 
 pub trait Extract<'a>: Sized {

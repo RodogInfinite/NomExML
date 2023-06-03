@@ -1,7 +1,8 @@
 // debug.rs
 use crate::{
     attribute::{Attribute, Prefix},
-    document::{Document, Misc, MiscState},
+    document::Document,
+    misc::{Misc, MiscState},
     namespaces::QualifiedName,
     processing_instruction::ProcessingInstruction,
     prolog::{

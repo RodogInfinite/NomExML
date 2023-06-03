@@ -4,6 +4,7 @@ pub mod decode;
 pub mod document;
 mod error;
 //pub mod extract;
+pub mod misc;
 pub mod namespaces;
 pub mod parse;
 pub mod processing_instruction;
