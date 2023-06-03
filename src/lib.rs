@@ -1,7 +1,6 @@
 pub mod attribute;
 mod debug;
 pub mod decode;
-pub mod document;
 mod error;
 //pub mod extract;
 pub mod io;
@@ -13,7 +12,6 @@ pub mod prolog;
 pub mod reference;
 pub mod tag;
 
-// document.rs
 use std::borrow::Cow;
 
 use crate::misc::MiscState;
