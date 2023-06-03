@@ -5,10 +5,7 @@ use nom::{
     IResult,
 };
 
-use crate::{
-    namespaces::{ParseNamespace, QualifiedName},
-    parse::Parse,
-};
+use crate::{namespaces::ParseNamespace, parse::Parse, QualifiedName};
 
 use super::{external_id::ExternalID, internal_subset::InternalSubset};
 

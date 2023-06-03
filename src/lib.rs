@@ -271,3 +271,9 @@ fn determine_child_document<'a>(
         _ => Err("Invalid content type in determine_child_document"),
     }
 }
+
+#[derive(Clone, PartialEq)]
+pub struct QualifiedName<'a> {
+    pub prefix: Option<Cow<'a, str>>,
+    pub local_part: Cow<'a, str>,
+}

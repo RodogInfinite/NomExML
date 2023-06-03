@@ -1,8 +1,4 @@
-use crate::{
-    namespaces::{ParseNamespace, QualifiedName},
-    parse::Parse,
-    tag::ConditionalState,
-};
+use crate::{namespaces::ParseNamespace, parse::Parse, tag::ConditionalState, QualifiedName};
 use nom::{
     branch::alt,
     bytes::complete::tag,

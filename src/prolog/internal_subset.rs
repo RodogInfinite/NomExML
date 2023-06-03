@@ -1,10 +1,11 @@
 use super::{declaration_content::DeclarationContent, external_id::ExternalID};
 use crate::{
     attribute::Attribute,
-    namespaces::{ParseNamespace, QualifiedName},
+    namespaces::ParseNamespace,
     parse::Parse,
     processing_instruction::ProcessingInstruction,
     reference::{ParseReference, Reference},
+    QualifiedName,
 };
 use nom::{
     branch::alt,

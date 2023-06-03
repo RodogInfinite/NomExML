@@ -9,13 +9,7 @@ use nom::{
     IResult,
 };
 
-use crate::parse::Parse;
-
-#[derive(Clone, PartialEq)]
-pub struct QualifiedName<'a> {
-    pub prefix: Option<Cow<'a, str>>,
-    pub local_part: Cow<'a, str>,
-}
+use crate::{parse::Parse, QualifiedName};
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName

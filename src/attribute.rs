@@ -1,10 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{
-    namespaces::{ParseNamespace, QualifiedName},
-    parse::Parse,
-    reference::Reference,
-};
+use crate::{namespaces::ParseNamespace, parse::Parse, reference::Reference, QualifiedName};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},

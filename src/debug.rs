@@ -2,7 +2,6 @@
 use crate::{
     attribute::{Attribute, Prefix},
     misc::{Misc, MiscState},
-    namespaces::QualifiedName,
     processing_instruction::ProcessingInstruction,
     prolog::{
         declaration_content::{ContentParticle, DeclarationContent, Mixed},
@@ -14,7 +13,7 @@ use crate::{
         xmldecl::XmlDecl,
     },
     reference::{CharRefState, Reference},
-    Document, Tag,
+    Document, QualifiedName, Tag,
 };
 
 use std::fmt::{self, Formatter};

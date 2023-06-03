@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -8,11 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::{
-    attribute::Attribute,
-    namespaces::{ParseNamespace, QualifiedName},
-    parse::Parse,
-};
+use crate::{attribute::Attribute, namespaces::ParseNamespace, parse::Parse, QualifiedName};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConditionalState {
