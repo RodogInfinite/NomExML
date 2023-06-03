@@ -6,7 +6,7 @@
 
 Things are likely to change and break often until testing has been completed.
 
-:rotating_light: The published crate will almost always be behind the GitHub repo. Use that. :rotating_light:
+:rotating_light: The published crate will almost always be behind the GitHub repo until stabilization. Use that. :rotating_light:
 
 ---
 ## TODO
