@@ -7,8 +7,8 @@ Things are likely to change and break often until testing has been completed.
 The following table needs to be verified as of June 2, 2023
 
 ---
-# Extensible Markup Language (XML) 1.0 (Fifth Edition)
-## W3C Recommendation 26 November 2008
+## Extensible Markup Language (XML) 1.0 (Fifth Edition)
+### W3C Recommendation 26 November 2008
 ---
 | Production Rule | Name | Definition | Implemented | Tested | :bug: |
 |:----------------------:|:----------|-------------|:-----------:|:------:|:----------:|
@@ -96,3 +96,32 @@ The following table needs to be verified as of June 2, 2023
 |   [87]  | CombiningChar   |  ...  | :x: | :x: |
 |   [88]  | Digit            | [#x0030-#x0039] \| [#x0660-#x0669] \| [#x06F0-#x06F9] \| [#x0966-#x096F] \| [#x09E6-#x09EF] \| [#x0A66-#x0A6F] \| [#x0AE6-#x0AEF] \| [#x0B66-#x0B6F] \| [#x0BE7-#x0BEF] \| [#x0C66-#x0C6F] \| [#x0CE6-#x0CEF] \| [#x0D66-#x0D6F] \| [#x0E50-#x0E59] \| [#x0ED0-#x0ED9] \| [#x0F20-#x0F29] | :x: | :x: |
 |   [89]  | Extender         | #x00B7 \| #x02D0 \| #x02D1 \| #x0387 \| #x0640 \| #x0E46 \| #x0EC6 \| #x3005 \| [#x3031-#x3035] \| [#x309D-#x309E] \| [#x30FC-#x30FE] | :x: | :x: |
+
+
+---
+## Namespaces in XML 1.0 (Third Edition)
+### W3C Recommendation 8 December 2009
+---
+| Production Rule | Name | Definition | Implemented | Tested | :bug: |
+|:----------------------:|:----------|-------------|:-----------:|:------:|:----------:|
+| [1] | NSAttName | PrefixedAttName \| DefaultAttName | :heavy_check_mark: | :x: |
+| [2] | PrefixedAttName | 'xmlns:' NCName | :heavy_check_mark: | :x: |
+| [3] | DefaultAttName | 'xmlns' | :heavy_check_mark: | :x: |
+| [4] | NCName | Name - (Char* ':' Char*) | :heavy_check_mark: | :x: |
+| [5] | NCNameChar | NameChar - ':' | :heavy_check_mark: | :x: |
+| [6] | NCNameStartChar | NCName - ( Char Char Char* ) | :heavy_check_mark: | :x: |
+| [7] | QName | PrefixedName \| UnprefixedName | :heavy_check_mark: | :x: |
+| [8] | PrefixedName | Prefix ':' LocalPart | :heavy_check_mark: | :x: |
+| [9] | UnprefixedName | LocalPart | :heavy_check_mark: | :x: |
+| [10] | Prefix | NCName | :heavy_check_mark: | :x: |
+| [11] | LocalPart | NCName | :heavy_check_mark: | :x: |
+| [12] | STag | '<' QName (S Attribute)* S? '>' | :heavy_check_mark: | :x: |
+| [13] | ETag | '</' QName S? '>' | :heavy_check_mark: | :x: |
+| [14] | EmptyElemTag | '<' QName (S Attribute)* S? '/>' | :heavy_check_mark: | :x: |
+| [15] | Attribute | NSAttName Eq AttValue \| QName Eq AttValue | :heavy_check_mark: | :x: |
+| [16] | doctypedecl | '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl \| PEReference \| S)* ']' S?)? '>' | :heavy_check_mark: | :x: |
+| [17] | elementdecl | '<!ELEMENT' S QName S contentspec S? '>' | :heavy_check_mark: | :x: |
+| [18] | cp | (QName \| choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: |
+| [19] | Mixed | '(' S? '#PCDATA' (S? '\|' S? QName)* S? ')*' \| '(' S? '#PCDATA' S? ')' | :heavy_check_mark: | :x: |
+| [20] | AttlistDecl | '<!ATTLIST' S QName AttDef* S? '>' | :heavy_check_mark: | :x: |
+| [21] | AttDef | S (QName \| NSAttName) S AttType S DefaultDecl | :heavy_check_mark: | :x: |
