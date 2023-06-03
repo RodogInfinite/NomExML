@@ -212,7 +212,7 @@ impl<'a> fmt::Debug for Document<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_doc(&mut s, 0);
-        write!(f, "{}\n", s)
+        writeln!(f, "{}", s)
     }
 }
 
@@ -245,7 +245,7 @@ impl<'a> fmt::Debug for DeclarationContent<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_dec_content(&mut s, 0);
-        write!(f, "{}\n", s)
+        writeln!(f, "{}", s)
     }
 }
 
