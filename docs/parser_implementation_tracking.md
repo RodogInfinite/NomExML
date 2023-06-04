@@ -20,7 +20,7 @@ The following tables need to be verified as of June 2, 2023
 |   [11] | SystemLiteral   | ('"' [^"]* '"') \| ("'" [^']* "'") | :heavy_check_mark: | :x: |
 |   [12] | PubidLiteral    | '"' PubidChar* '"' \| "'" (PubidChar - "'")* "'" | :heavy_check_mark: | :x: |
 |   [13] | PubidChar       | #x20 \| #xD \| #xA \| [a-zA-Z0-9] \| [-'()+,./:=?;!*#@$_%] | :heavy_check_mark: | :x: |
-|   [14] | CharData        | [^<&]* - ([^<&]* ']]>' [^<&]*) | :heavy_check_mark: | :x: | :bug: |
+|   [14] | CharData        | [^<&]* - ([^<&]* ']]>' [^<&]*) | :heavy_check_mark: | :x: |
 |   [15] | Comment         | '<!--' ((Char - '-') \| ('-' (Char - '-')))* '-->' | :heavy_check_mark: | :x: |
 |   [16] | PI              | '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>' | :heavy_check_mark: | :x: |
 |   [17] | PITarget        | Name - (('X' \| 'x') ('M' \| 'm') ('L' \| 'l')) | :heavy_check_mark: | :x: |
@@ -49,7 +49,7 @@ The following tables need to be verified as of June 2, 2023
 |   [44]  | EmptyElemTag    | '<' Name (S Attribute)* S? '/>' | :heavy_check_mark: | :x: |
 |   [45]  | elementdecl      | '<!ELEMENT' S Name S contentspec S? '>' | :heavy_check_mark: | :x: |
 |   [46]  | contentspec      | 'EMPTY' \| 'ANY' \| Mixed \| children | :heavy_check_mark: | :x: |
-|   [47]  | children         | (choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: | :bug: |
+|   [47]  | children         | (choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: |
 |   [48]  | cp               | (Name \| choice \| seq) ('?' \| '*' \| '+')? | :heavy_check_mark: | :x: |
 |   [49]  | choice           | '(' S? cp ( S? '\|' S? cp )+ S? ')' | :heavy_check_mark: | :x: |
 |   [50]  | seq              | '(' S? cp ( S? ',' S? cp )* S? ')' | :heavy_check_mark: | :x: |
