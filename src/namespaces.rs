@@ -30,9 +30,15 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
 
     // [4] NCName ::= Name - (Char* ':' Char*)  /* An XML Name, minus the ":" */
     fn parse_non_colonized_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, valid_name) =
-            verify(Self::parse_name, |name: &Cow<str>| !name.contains(':'))(input)?;
-        Ok((input, valid_name))
+        let (input, start_char) = Self::parse_name_start_char(input)?;
+        let (input, rest_chars) = map(
+            nom::bytes::complete::take_while1(|c: char| Self::is_name_char(c) && c != ':'),
+            Cow::Borrowed,
+        )(input)?;
+
+        let mut name = start_char.to_string();
+        name.push_str(&rest_chars);
+        Ok((input, Cow::Owned(name)))
     }
 
     // [5] NCNameChar ::= NameChar - ':' /* An XML NameChar, minus the ":" */
@@ -60,7 +66,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
     fn parse_prefixed_name(input: &'a str) -> IResult<&'a str, QualifiedName<'a>> {
-        map(
+        let (input, x) = map(
             tuple((
                 Self::parse_non_colonized_name,
                 char(':'),
@@ -70,7 +76,8 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
                 prefix: Some(prefix),
                 local_part,
             },
-        )(input)
+        )(input)?;
+        Ok((input, x))
     }
 
     // [9] UnprefixedName ::= LocalPart

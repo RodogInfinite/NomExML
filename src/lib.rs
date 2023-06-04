@@ -2,7 +2,7 @@ pub mod attribute;
 mod debug;
 pub mod decode;
 mod error;
-//pub mod extract;
+pub mod extract;
 pub mod io;
 pub mod misc;
 pub mod namespaces;
@@ -22,10 +22,11 @@ use crate::prolog::doctype::DocType;
 use crate::prolog::xmldecl::XmlDecl;
 use crate::reference::Reference;
 use crate::tag::Tag;
+use extract::Extract;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
-    combinator::{map, not, opt, peek, verify},
+    combinator::{map, not, opt, verify},
     multi::{many0, many_till},
     sequence::{pair, tuple},
     IResult,
@@ -78,41 +79,53 @@ impl<'a> Document<'a> {
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         let (input, data) = take_till(|c: char| c == '<' || c == '&')(input)?;
-        let (input, _) = not(peek(tag("]]>")))(input)?;
+        let (input, _) = not(tag("]]>"))(input)?;
         Ok((input, Cow::Borrowed(data)))
     }
 
     //[18] CDSect ::= CDStart CData CDEnd
     //[19] CDStart ::= '<![CDATA['
-    //[20] CData ::= (Char* - (Char* ']]>' Char*))
+    // [20] CData ::= (Char* - (Char* ']]>' Char*))
+    fn parse_cdata(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        // Parse until "]]>" or EOF, checking that characters are valid XML characters
+        let (input, (data, _)) = many_till(Self::parse_char, tag("]]>"))(input)?;
+
+        // Convert the Vec<char> to a String
+        let data: String = data.into_iter().collect();
+
+        Ok((input, Cow::Owned(data)))
+    }
     //[21] CDEnd ::= ']]>'
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, _) = tag("<![CDATA[")(input)?;
-        let (input, cdata_content) = Self::parse_char_data(input)?;
+        let (input, cdata_content) = Self::parse_cdata(input)?;
         let cdata_string: String = cdata_content.to_string();
-        let (input, _) = tag("]]>")(input)?;
         Ok((input, Document::CDATA(Cow::Owned(cdata_string))))
     }
 
     // [39] element	::= EmptyElemTag | STag content ETag
     pub fn parse_element(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        alt((
+        let (input, doc) = alt((
             map(Tag::parse_empty_element_tag, |tag| {
                 Document::Element(tag.clone(), Box::new(Document::Empty), tag.clone())
             }),
             map(
                 tuple((
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for readability
                     Tag::parse_start_tag,
                     Self::parse_content,
                     Tag::parse_end_tag,
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for readability
                 )),
-                |(start_tag, content, end_tag)| {
+                |(_, start_tag, content, end_tag, _)| {
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),
-        ))(input)
+        ))(input)?;
+        Ok((input, doc))
     }
-    // [43] content	::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+
+    // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, (maybe_chardata, elements)) = tuple((
             opt(Self::parse_char_data),
@@ -140,7 +153,9 @@ impl<'a> Document<'a> {
                 let mut vec = Vec::new();
                 vec.push(doc);
                 if let Some(chardata) = maybe_chardata {
-                    vec.push(Document::Content(Some(chardata)));
+                    if !chardata.is_empty() {
+                        vec.push(Document::Content(Some(chardata)));
+                    }
                 }
                 vec
             })
@@ -149,13 +164,13 @@ impl<'a> Document<'a> {
         Ok((
             input,
             Document::Nested(match maybe_chardata {
-                Some(chardata) => {
+                Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
                     vec.push(Document::Content(Some(chardata)));
                     vec.extend(content);
                     vec
                 }
-                None => content,
+                _ => content,
             }),
         ))
     }
@@ -173,47 +188,17 @@ impl<'a> Document<'a> {
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, prolog) = opt(Self::parse_prolog)(input)?;
-        let (input, start_tag) =
-            alt((Tag::parse_qualified_start_tag, Tag::parse_start_tag))(input)?;
-        let (input, children) = Self::parse_children(input)?;
+        let (input, start_tag) = Tag::parse_start_tag(input)?;
         let (input, content) = Self::parse_content(input)?;
-        let (input, end_tag) = alt((Tag::parse_qualified_end_tag, Tag::parse_end_tag))(input)?;
+        let (input, end_tag) = Tag::parse_end_tag(input)?;
 
-        Self::construct_document(input, prolog, start_tag, children, content, end_tag)
-    }
-
-    fn parse_children(input: &'a str) -> IResult<&'a str, Vec<Document<'a>>> {
-        let (input, _) = Self::parse_multispace0(input)?;
-        many0(Self::parse_xml_str)(input)
-    }
-
-    fn construct_document_with_prolog(
-        prolog: Option<Document<'a>>,
-        start_tag: &Tag<'a>,
-        child_document: Document<'a>,
-        end_tag: &Tag<'a>,
-    ) -> Document<'a> {
-        let element =
-            Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone());
-        match prolog {
-            Some(prolog) => Document::Nested(vec![prolog, element]),
-            None => element,
-        }
-    }
-
-    fn construct_element(
-        start_tag: &Tag<'a>,
-        child_document: Document<'a>,
-        end_tag: &Tag<'a>,
-    ) -> Document<'a> {
-        Document::Element(start_tag.clone(), Box::new(child_document), end_tag.clone())
+        Self::construct_document(input, prolog, start_tag, content, end_tag)
     }
 
     fn construct_document(
         input: &'a str,
         prolog: Option<Document<'a>>,
         start_tag: Tag<'a>,
-        children: Vec<Document<'a>>,
         content: Document<'a>,
         end_tag: Tag<'a>,
     ) -> IResult<&'a str, Document<'a>> {
@@ -224,18 +209,19 @@ impl<'a> Document<'a> {
                 },
                 Tag { name: end_name, .. },
             ) if start_name == end_name => {
-                let child_document = determine_child_document(content, children).map_err(|e| {
-                    nom::Err::Failure(nom::error::Error::new(e, nom::error::ErrorKind::Verify))
-                })?;
+                //let child_document = Document::Nested(content);
+
+                // Check if a prolog exists and construct document accordingly
                 let document = match prolog {
-                    Some(prolog) => Self::construct_document_with_prolog(
-                        Some(prolog),
-                        &start_tag,
-                        child_document,
-                        &end_tag,
-                    ),
-                    None => Self::construct_element(&start_tag, child_document, &end_tag),
+                    Some(prolog) => Document::Nested(vec![
+                        prolog,
+                        Document::Element(start_tag.clone(), Box::new(content), end_tag.clone()),
+                    ]),
+                    None => {
+                        Document::Element(start_tag.clone(), Box::new(content), end_tag.clone())
+                    }
                 };
+
                 Ok((input, document))
             }
             _ => Err(nom::Err::Error(nom::error::Error::new(
@@ -246,34 +232,11 @@ impl<'a> Document<'a> {
     }
 }
 
-fn determine_child_document<'a>(
-    content: Document<'a>,
-    children: Vec<Document<'a>>,
-) -> Result<Document<'a>, &'static str> {
-    match content {
-        Document::Empty => {
-            if children.is_empty() {
-                Ok(Document::Empty)
-            } else if children.len() == 1 {
-                match children.into_iter().next() {
-                    Some(child) => Ok(child),
-                    None => Err("Unexpected error: no child found in non-empty children vector"),
-                }
-            } else {
-                Ok(Document::Nested(children))
-            }
-        }
-        Document::Content(Some(cow)) => Ok(Document::Content(Some(Cow::Owned(cow.into_owned())))),
-        Document::ProcessingInstruction(pi) => Ok(Document::ProcessingInstruction(pi)),
-        Document::Nested(docs) => Ok(Document::Nested(docs)), // propagate nested documents up
-        Document::CDATA(cow) => Ok(Document::CDATA(cow)),
-        Document::Comment(cow) => Ok(Document::Comment(cow)),
-        _ => Err("Invalid content type in determine_child_document"),
-    }
-}
-
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct QualifiedName<'a> {
     pub prefix: Option<Cow<'a, str>>,
     pub local_part: Cow<'a, str>,
 }
+type Name<'a> = QualifiedName<'a>;
+
+impl<'a> Extract<'a> for Document<'a> {}

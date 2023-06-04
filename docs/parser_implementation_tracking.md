@@ -20,7 +20,7 @@ The following tables need to be verified as of June 2, 2023
 |   [11] | SystemLiteral   | ('"' [^"]* '"') \| ("'" [^']* "'") | :heavy_check_mark: | :x: |
 |   [12] | PubidLiteral    | '"' PubidChar* '"' \| "'" (PubidChar - "'")* "'" | :heavy_check_mark: | :x: |
 |   [13] | PubidChar       | #x20 \| #xD \| #xA \| [a-zA-Z0-9] \| [-'()+,./:=?;!*#@$_%] | :heavy_check_mark: | :x: |
-|   [14] | CharData        | [^<&]* - ([^<&]* ']]>' [^<&]*) | :heavy_check_mark: | :x: |
+|   [14] | CharData        | [^<&]* - ([^<&]* ']]>' [^<&]*) | :heavy_check_mark: | :x: | :bug: |
 |   [15] | Comment         | '<!--' ((Char - '-') \| ('-' (Char - '-')))* '-->' | :heavy_check_mark: | :x: |
 |   [16] | PI              | '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>' | :heavy_check_mark: | :x: |
 |   [17] | PITarget        | Name - (('X' \| 'x') ('M' \| 'm') ('L' \| 'l')) | :heavy_check_mark: | :x: |
