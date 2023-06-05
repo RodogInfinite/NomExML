@@ -29,7 +29,7 @@ use nom::{
     IResult,
 };
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::error::Error;
 
 #[derive(Clone, PartialEq)]
@@ -330,21 +330,41 @@ impl<'a> Document<'a> {
     }
 }
 
-pub trait AsHashmap {
-    fn as_hashmap(&self) -> Result<HashMap<String, String>, Box<dyn Error>>;
+pub trait AsOrderedMap {
+    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>>;
+    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>>;
 }
 
-impl<'a> AsHashmap for Result<Vec<Document<'a>>, Box<dyn Error>> {
-    fn as_hashmap(&self) -> Result<HashMap<String, String>, Box<dyn Error>> {
-        let mut map = HashMap::new();
+impl<'a> AsOrderedMap for Document<'a> {
+    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
+        let mut map = BTreeMap::new();
+
+        let content = self.get_content();
+        for (key, value) in content {
+            map.insert(key, value);
+        }
+
+        Ok(map)
+    }
+
+    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>> {
+        Err("Not applicable for single Document".into())
+    }
+}
+
+impl<'a> AsOrderedMap for Result<Vec<Document<'a>>, Box<dyn Error>> {
+    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
+        Err("Not applicable for multiple Documents".into())
+    }
+
+    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>> {
+        let mut map = BTreeMap::new();
 
         match self {
             Ok(docs) => {
-                for doc in docs {
-                    let content = doc.get_content();
-                    for (key, value) in content {
-                        map.insert(key, value);
-                    }
+                for (index, doc) in docs.iter().enumerate() {
+                    let content = doc.as_map()?;
+                    map.insert(index, content);
                 }
                 Ok(map)
             }
