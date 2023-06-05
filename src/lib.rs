@@ -13,6 +13,8 @@ pub mod reference;
 pub mod tag;
 
 use std::borrow::Cow;
+use std::collections::HashMap;
+use std::error::Error;
 
 use crate::misc::MiscState;
 use crate::{misc::Misc, parse::Parse};
@@ -22,7 +24,8 @@ use crate::prolog::doctype::DocType;
 use crate::prolog::xmldecl::XmlDecl;
 use crate::reference::Reference;
 use crate::tag::Tag;
-use extract::Extract;
+//use extract::Extract;
+use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
@@ -126,6 +129,7 @@ impl<'a> Document<'a> {
     }
 
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+    // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, (maybe_chardata, elements)) = tuple((
             opt(Self::parse_char_data),
@@ -147,7 +151,7 @@ impl<'a> Document<'a> {
             )),
         ))(input)?;
 
-        let content = elements
+        let mut content = elements
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
@@ -159,19 +163,22 @@ impl<'a> Document<'a> {
                 }
                 vec
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         Ok((
             input,
-            Document::Nested(match maybe_chardata {
+            match maybe_chardata {
                 Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
                     vec.push(Document::Content(Some(chardata)));
-                    vec.extend(content);
-                    vec
+                    vec.append(&mut content);
+                    Document::Nested(vec)
                 }
-                _ => content,
-            }),
+                _ => match &content[..] {
+                    [Document::Content(content)] => Document::Content(content.clone()),
+                    _ => Document::Nested(content),
+                },
+            },
         ))
     }
 
@@ -237,6 +244,43 @@ pub struct QualifiedName<'a> {
     pub prefix: Option<Cow<'a, str>>,
     pub local_part: Cow<'a, str>,
 }
-type Name<'a> = QualifiedName<'a>;
+pub type Name<'a> = QualifiedName<'a>;
 
-impl<'a> Extract<'a> for Document<'a> {}
+impl<'a> ParseNamespace<'a> for Document<'a> {}
+
+impl<'a> Document<'a> {
+    fn extract_content(
+        &self,
+        tag: &QualifiedName<'a>,
+        hashmap: &mut HashMap<QualifiedName<'a>, Vec<Document<'a>>>,
+    ) {
+        match self {
+            Document::Element(start_tag, inner_doc, end_tag) => {
+                if &start_tag.name == tag {
+                    hashmap
+                        .entry(start_tag.name.clone())
+                        .or_default()
+                        .push(self.clone());
+                }
+                inner_doc.extract_content(tag, hashmap);
+            }
+            Document::Nested(docs) => {
+                for doc in docs {
+                    doc.extract_content(tag, hashmap);
+                }
+            }
+            _ => {} // Handle other Document variants if needed
+        }
+    }
+
+    pub fn extract(
+        &self,
+        name: &QualifiedName<'a>,
+    ) -> Result<HashMap<QualifiedName<'a>, Vec<Document<'a>>>, Box<dyn Error>> {
+        let mut hashmap: HashMap<QualifiedName<'a>, Vec<Document<'a>>> = HashMap::new();
+        self.extract_content(name, &mut hashmap);
+        Ok(hashmap)
+    }
+
+    //pub fn extract_prolog() {}
+}

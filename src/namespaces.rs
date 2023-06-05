@@ -65,7 +65,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
-    fn parse_prefixed_name(input: &'a str) -> IResult<&'a str, QualifiedName<'a>> {
+    fn parse_prefixed_name(input: &'a str) -> IResult<&'a str, QualifiedName> {
         let (input, x) = map(
             tuple((
                 Self::parse_non_colonized_name,
