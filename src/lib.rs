@@ -2,7 +2,6 @@ pub mod attribute;
 mod debug;
 pub mod decode;
 mod error;
-pub mod extract;
 pub mod io;
 pub mod misc;
 pub mod namespaces;
@@ -12,19 +11,13 @@ pub mod prolog;
 pub mod reference;
 pub mod tag;
 
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::error::Error;
-
 use crate::misc::MiscState;
-use crate::{misc::Misc, parse::Parse};
-
 use crate::processing_instruction::ProcessingInstruction;
 use crate::prolog::doctype::DocType;
 use crate::prolog::xmldecl::XmlDecl;
 use crate::reference::Reference;
 use crate::tag::Tag;
-//use extract::Extract;
+use crate::{misc::Misc, parse::Parse};
 use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
@@ -34,6 +27,8 @@ use nom::{
     sequence::{pair, tuple},
     IResult,
 };
+use std::borrow::Cow;
+use std::error::Error;
 
 #[derive(Clone, PartialEq)]
 pub enum Document<'a> {

@@ -316,7 +316,7 @@ impl<'a> InternalSubset<'a> {
             map(is_not("%&\"'"), ToString::to_string),
         ))(input)
     }
-    // [74] PEDef ::= EntityValue | ExternalID
+
     // [74] PEDef ::= EntityValue | ExternalID
     fn parse_perameter_definition(
         input: &'a str,
