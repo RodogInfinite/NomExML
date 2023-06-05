@@ -28,6 +28,7 @@ use nom::{
     IResult,
 };
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::error::Error;
 
 #[derive(Clone, PartialEq)]
@@ -250,7 +251,7 @@ impl<'a> Document<'a> {
         let mut result = Vec::new();
 
         match self {
-            Document::Element(start_tag, inner_doc, end_tag) => {
+            Document::Element(start_tag, inner_doc, _end_tag) => {
                 if &start_tag.name == tag {
                     result.push(self.clone());
                 }
@@ -267,20 +268,34 @@ impl<'a> Document<'a> {
         Ok(result)
     }
 
-    pub fn get_content(&self) -> Option<&str> {
-        println!("get_content: {:?}", self);
+    pub fn get_content(&self) -> HashMap<String, String> {
+        let mut results = HashMap::new();
+
         match self {
-            Document::Content(Some(content)) => Some(content),
-            Document::Element(_, inner_doc, _) => inner_doc.get_content(),
+            Document::Element(tag, inner_doc, _) => {
+                let tag_name = tag.name.local_part.to_string();
+                match &**inner_doc {
+                    Document::Content(Some(content)) => {
+                        results.insert(tag_name, content.to_string());
+                    }
+                    Document::Nested(docs) => {
+                        for doc in docs {
+                            let mut inner_results = doc.get_content();
+                            results.extend(inner_results.drain());
+                        }
+                    }
+                    _ => {}
+                }
+            }
             Document::Nested(docs) => {
                 for doc in docs {
-                    if let Some(content) = doc.get_content() {
-                        return Some(content);
-                    }
+                    let mut inner_results = doc.get_content();
+                    results.extend(inner_results.drain());
                 }
-                None
             }
-            _ => None,
+            _ => {}
         }
+
+        results
     }
 }
