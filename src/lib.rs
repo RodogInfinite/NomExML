@@ -329,3 +329,26 @@ impl<'a> Document<'a> {
         results
     }
 }
+
+pub trait AsHashmap {
+    fn as_hashmap(&self) -> Result<HashMap<String, String>, Box<dyn Error>>;
+}
+
+impl<'a> AsHashmap for Result<Vec<Document<'a>>, Box<dyn Error>> {
+    fn as_hashmap(&self) -> Result<HashMap<String, String>, Box<dyn Error>> {
+        let mut map = HashMap::new();
+
+        match self {
+            Ok(docs) => {
+                for doc in docs {
+                    let content = doc.get_content();
+                    for (key, value) in content {
+                        map.insert(key, value);
+                    }
+                }
+                Ok(map)
+            }
+            Err(e) => Err(e.to_string().into()),
+        }
+    }
+}
