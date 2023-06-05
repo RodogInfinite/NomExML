@@ -114,11 +114,11 @@ impl<'a> Document<'a> {
             }),
             map(
                 tuple((
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for readability
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
                     Tag::parse_start_tag,
                     Self::parse_content,
                     Tag::parse_end_tag,
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for readability
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
                 |(_, start_tag, content, end_tag, _)| {
                     Document::Element(start_tag, Box::new(content), end_tag)
@@ -128,7 +128,6 @@ impl<'a> Document<'a> {
         Ok((input, doc))
     }
 
-    // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, (maybe_chardata, elements)) = tuple((
@@ -172,10 +171,13 @@ impl<'a> Document<'a> {
                     let mut vec = Vec::new();
                     vec.push(Document::Content(Some(chardata)));
                     vec.append(&mut content);
-                    Document::Nested(vec)
+                    match vec.as_slice() {
+                        [doc] => doc.clone(),
+                        _ => Document::Nested(vec),
+                    }
                 }
                 _ => match &content[..] {
-                    [Document::Content(content)] => Document::Content(content.clone()),
+                    [doc @ Document::Content(_)] => doc.clone(),
                     _ => Document::Nested(content),
                 },
             },
@@ -249,38 +251,41 @@ pub type Name<'a> = QualifiedName<'a>;
 impl<'a> ParseNamespace<'a> for Document<'a> {}
 
 impl<'a> Document<'a> {
-    fn extract_content(
-        &self,
-        tag: &QualifiedName<'a>,
-        hashmap: &mut HashMap<QualifiedName<'a>, Vec<Document<'a>>>,
-    ) {
+    pub fn extract(&self, tag: &QualifiedName<'a>) -> Result<Vec<Document<'a>>, Box<dyn Error>> {
+        let mut result = Vec::new();
+
         match self {
             Document::Element(start_tag, inner_doc, end_tag) => {
                 if &start_tag.name == tag {
-                    hashmap
-                        .entry(start_tag.name.clone())
-                        .or_default()
-                        .push(self.clone());
+                    result.push(self.clone());
                 }
-                inner_doc.extract_content(tag, hashmap);
+                result.extend(inner_doc.extract(tag)?);
             }
             Document::Nested(docs) => {
                 for doc in docs {
-                    doc.extract_content(tag, hashmap);
+                    result.extend(doc.extract(tag)?);
                 }
             }
             _ => {} // Handle other Document variants if needed
         }
+
+        Ok(result)
     }
 
-    pub fn extract(
-        &self,
-        name: &QualifiedName<'a>,
-    ) -> Result<HashMap<QualifiedName<'a>, Vec<Document<'a>>>, Box<dyn Error>> {
-        let mut hashmap: HashMap<QualifiedName<'a>, Vec<Document<'a>>> = HashMap::new();
-        self.extract_content(name, &mut hashmap);
-        Ok(hashmap)
+    pub fn get_content(&self) -> Option<&str> {
+        println!("get_content: {:?}", self);
+        match self {
+            Document::Content(Some(content)) => Some(content),
+            Document::Element(_, inner_doc, _) => inner_doc.get_content(),
+            Document::Nested(docs) => {
+                for doc in docs {
+                    if let Some(content) = doc.get_content() {
+                        return Some(content);
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
     }
-
-    //pub fn extract_prolog() {}
 }
