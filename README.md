@@ -1,6 +1,6 @@
 # NomExML
 
-[![Crates.io](https://img.shields.io/crates/v/nom-xml)](https://crates.io/crates/nom-xml)  [![docs.rs](https://img.shields.io/docsrs/nom-xml)](https://docs.rs/nom-xml/0.1.0-pre-alpha/nom_xml/) ![Crates.io](https://img.shields.io/crates/l/nom-xml/0.1.0-pre-alpha) ![Crates.io (latest)](https://img.shields.io/crates/dv/nom_xml)
+[![Crates.io](https://img.shields.io/crates/v/nom-xml)](https://crates.io/crates/nom-xml)  [![docs.rs](https://img.shields.io/docsrs/nom-xml)](https://docs.rs/nom-xml/latest/nom_xml/) ![Crates.io](https://img.shields.io/crates/l/nom-xml) ![Crates.io (latest)](https://img.shields.io/crates/dv/nom_xml)
 
 :warning: :construction: Under Heavy Development :construction: :warning:
 
