@@ -19,6 +19,8 @@ use crate::reference::Reference;
 use crate::tag::Tag;
 use crate::{misc::Misc, parse::Parse};
 use attribute::Attribute;
+
+//use extractable::extractable;
 use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
@@ -29,17 +31,21 @@ use nom::{
     IResult,
 };
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 
+
 #[derive(Clone, PartialEq)]
+
 pub enum Document<'a> {
     Prolog {
         xml_decl: Option<XmlDecl<'a>>,
         misc: Option<Vec<Misc<'a>>>,
         doc_type: Option<DocType<'a>>,
     },
+
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
+
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
@@ -127,8 +133,9 @@ impl<'a> Document<'a> {
 
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, (maybe_chardata, elements)) = tuple((
-            opt(Self::parse_char_data),
+        let (input, ((_,maybe_chardata), elements)) = tuple((
+            pair(Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+            opt(Self::parse_char_data)),
             many0(pair(
                 alt((
                     Self::parse_element,
@@ -143,7 +150,8 @@ impl<'a> Document<'a> {
                     ),
                     Self::parse_comment,
                 )),
-                opt(Self::parse_char_data),
+                pair(Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                opt(Self::parse_char_data)),
             )),
         ))(input)?;
 
@@ -152,7 +160,7 @@ impl<'a> Document<'a> {
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
                 vec.push(doc);
-                if let Some(chardata) = maybe_chardata {
+                if let (_,Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
                         vec.push(Document::Content(Some(chardata)));
                     }
@@ -299,6 +307,7 @@ impl<'a> Document<'a> {
 
         results
     }
+
     pub fn get_attributes(&self) -> HashMap<String, String> {
         let mut results = HashMap::new();
 
@@ -328,11 +337,38 @@ impl<'a> Document<'a> {
 
         results
     }
+
+    pub fn extract_duplicate_subtags(
+        &self,
+        outer_tag: &str,
+        inner_tag: &str,
+    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
+        let result = self.extract(&Name {
+            prefix: None,
+            local_part: Cow::Owned(outer_tag.into()),
+        })?
+        .iter()
+        .map(|doc| {
+            doc.extract(&Name {
+                prefix: None,
+                local_part: Cow::Owned(inner_tag.into()),
+            })
+            .as_indexed_map()
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect::<BTreeMap<_, _>>();
+    
+        Ok(result)
+    }
 }
 
 pub trait AsOrderedMap {
     fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>>;
-    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>>;
+    fn as_indexed_map(
+        &self,
+    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>>;
 }
 
 impl<'a> AsOrderedMap for Document<'a> {
@@ -341,30 +377,46 @@ impl<'a> AsOrderedMap for Document<'a> {
 
         let content = self.get_content();
         for (key, value) in content {
+            // Check if the key already exists in the map
+            if map.contains_key(&key) {
+                // If it does, return an error
+                return Err(format!("Duplicate key: {}", key).into());
+            }
+
             map.insert(key, value);
         }
 
         Ok(map)
     }
 
-    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>> {
-        Err("Not applicable for single Document".into())
+    fn as_indexed_map(
+        &self,
+    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
+        Err("Not applicable for non-nested Document. Try `as_map`".into())
     }
 }
 
 impl<'a> AsOrderedMap for Result<Vec<Document<'a>>, Box<dyn Error>> {
     fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
-        Err("Not applicable for multiple Documents".into())
+        Err("Not applicable for Vec<Document>. Try `as_indexed_map`".into())
     }
 
-    fn as_indexed_map(&self) -> Result<BTreeMap<usize, BTreeMap<String, String>>, Box<dyn Error>> {
+    fn as_indexed_map(
+        &self,
+    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
         let mut map = BTreeMap::new();
 
         match self {
             Ok(docs) => {
                 for (index, doc) in docs.iter().enumerate() {
-                    let content = doc.as_map()?;
-                    map.insert(index, content);
+                    match doc {
+                        Document::Element(tag, content, _) => {
+                            let tag_name = tag.name.local_part.to_string();
+                            let mut content = doc.as_map()?;
+                            map.insert((tag_name, index), content);
+                        }
+                        _ => {}
+                    }
                 }
                 Ok(map)
             }
