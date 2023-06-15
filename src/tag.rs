@@ -74,14 +74,18 @@ impl<'a> Tag<'a> {
                 Self::parse_multispace0,
                 char('>'),
             )),
-            |(_, name, attributes, _, _)| Self {
-                name,
-                attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
-                state: TagState::Start,
+            |(_open_char, name, attributes, _whitespace, _close_char)| {
+                let attributes: Vec<_> = attributes.into_iter().map(|(_whitespace, attr)| attr).collect();
+                Self {
+                    name,
+                    attributes: if attributes.is_empty() { None } else { Some(attributes) },
+                    state: TagState::Start,
+                }
             },
         )(input)?;
         Ok((input, x))
     }
+
 
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
