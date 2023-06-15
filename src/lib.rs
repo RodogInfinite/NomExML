@@ -338,7 +338,7 @@ impl<'a> Document<'a> {
         results
     }
 
-    pub fn extract_duplicate_subtags(
+    pub fn get_duplicate_subtags(
         &self,
         outer_tag: &str,
         inner_tag: &str,
