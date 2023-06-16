@@ -43,9 +43,7 @@ pub enum Document<'a> {
         misc: Option<Vec<Misc<'a>>>,
         doc_type: Option<DocType<'a>>,
     },
-
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
-
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
@@ -89,8 +87,8 @@ impl<'a> Document<'a> {
         Ok((input, Cow::Borrowed(data)))
     }
 
-    //[18] CDSect ::= CDStart CData CDEnd
-    //[19] CDStart ::= '<![CDATA['
+    // [18] CDSect ::= CDStart CData CDEnd
+    // [19] CDStart ::= '<![CDATA['
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
     fn parse_cdata(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         // Parse until "]]>" or EOF, checking that characters are valid XML characters
@@ -253,6 +251,24 @@ pub struct QualifiedName<'a> {
 }
 pub type Name<'a> = QualifiedName<'a>;
 
+impl<'a> QualifiedName<'a>{
+    pub fn new(prefix: Option<&'a str>, local_part: &'a str) -> Self {
+        if let Some(prefix) = prefix {
+            Self {
+                prefix: Some(Cow::Borrowed(prefix)),
+                local_part: Cow::Borrowed(local_part),
+            }
+        } else {
+            Self {
+                prefix: None,
+                local_part: Cow::Borrowed(local_part),
+            }
+        }
+      
+    }
+}
+
+
 impl<'a> ParseNamespace<'a> for Document<'a> {}
 
 impl<'a> Document<'a> {
@@ -361,7 +377,8 @@ impl<'a> Document<'a> {
         .collect::<BTreeMap<_, _>>();
     
         Ok(result)
-    }
+    }   
+    
 }
 
 pub trait AsOrderedMap {
