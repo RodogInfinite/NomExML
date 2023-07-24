@@ -7,7 +7,10 @@ use nom_xml::{
     prolog::{
         declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
-        internal_subset::InternalSubset,
+        internal_subset::{
+            EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
+            InternalSubset,
+        },
     },
     tag::{Tag, TagState},
     Document, QualifiedName,
@@ -1201,6 +1204,59 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: QualifiedName::new(None, "doc"),
 
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("023")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Spec {
+                                mixed: Mixed::PCDATA {
+                                    names: None,
+                                    parsed: true,
+                                    zero_or_more: false,
+                                },
+                                children: None,
+                            }),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some("".into()))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },

@@ -24,11 +24,54 @@ pub enum EntityValue<'a> {
     PerameterReference(Reference<'a>),
 }
 
+impl<'a> EntityValue<'a> {
+    pub fn get_value(&self) -> Option<Cow<'a, str>> {
+        match self {
+            EntityValue::Value(value) => Some(value.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn get_reference(&self) -> Option<&Reference<'a>> {
+        if let EntityValue::Reference(reference) = self {
+            Some(reference)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_perameter_reference(&self) -> Option<&Reference<'a>> {
+        if let EntityValue::PerameterReference(reference) = self {
+            Some(reference)
+        } else {
+            None
+        }
+    }
+}
+
 // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
 #[derive(Clone, PartialEq)]
 pub struct GeneralEntityDeclaration<'a> {
     pub name: Name<'a>,
     pub entity_def: EntityDefinition<'a>,
+}
+
+impl<'a> GeneralEntityDeclaration<'a> {
+    pub fn find_name(&self, name: Name<'a>) -> Option<&GeneralEntityDeclaration<'a>> {
+        if self.name == name {
+            Some(self)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_name(&self) -> &Name<'a> {
+        &self.name
+    }
+
+    pub fn get_entity_def(&self) -> &EntityDefinition<'a> {
+        &self.entity_def
+    }
 }
 
 // [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
@@ -39,6 +82,24 @@ pub enum EntityDefinition<'a> {
         id: ExternalID<'a>,
         n_data: Option<Name<'a>>,
     },
+}
+
+impl<'a> EntityDefinition<'a> {
+    pub fn get_entity_value(&self) -> Option<&EntityValue<'a>> {
+        if let EntityDefinition::EntityValue(value) = self {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_external_id(&self) -> Option<&ExternalID<'a>> {
+        if let EntityDefinition::External { id, .. } = self {
+            Some(id)
+        } else {
+            None
+        }
+    }
 }
 
 // [74] PEDef ::= EntityValue | ExternalID
@@ -53,7 +114,31 @@ pub enum EntityDeclaration<'a> {
     General(GeneralEntityDeclaration<'a>),
     Parameter(ParameterEntityDefinition<'a>),
 }
-// [72] PEDecl ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
+
+impl<'a> EntityDeclaration<'a> {
+    pub fn get_general(&self) -> Option<&GeneralEntityDeclaration<'a>> {
+        match self {
+            EntityDeclaration::General(decl) => Some(decl),
+            _ => None,
+        }
+    }
+
+    pub fn get_parameter(&self) -> Option<&ParameterEntityDefinition<'a>> {
+        match self {
+            EntityDeclaration::Parameter(decl) => Some(decl),
+            _ => None,
+        }
+    }
+
+    pub fn find_general_entity_value(&self, name: Name<'a>) -> Option<&EntityValue<'a>> {
+        if let EntityDeclaration::General(decl) = self {
+            if decl.name == name {
+                return decl.entity_def.get_entity_value();
+            }
+        }
+        None
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub enum InternalSubset<'a> {
@@ -63,11 +148,20 @@ pub enum InternalSubset<'a> {
     },
     AttList {
         name: QualifiedName<'a>,
-        att_defs: Option<Vec<Attribute<'a>>>, //Option<Vec<Attribute::Definition>>
+        att_defs: Option<Vec<Attribute<'a>>>,
     },
     Entity(EntityDeclaration<'a>),
     DeclSep(Reference<'a>),
     ProcessingInstruction(ProcessingInstruction<'a>),
+}
+
+impl<'a> InternalSubset<'a> {
+    pub fn get_entity(&self) -> Option<&EntityDeclaration<'a>> {
+        match self {
+            InternalSubset::Entity(decl) => Some(decl),
+            _ => None,
+        }
+    }
 }
 
 impl<'a> Parse<'a> for InternalSubset<'a> {}
@@ -80,34 +174,28 @@ impl<'a> InternalSubset<'a> {
         let mut current_input = input;
 
         loop {
-            let original_input = current_input; // Store current input before trying to parse anything
+            let original_input = current_input;
 
-            // Try parsing markup declaration first
             match Self::parse_markup_decl(current_input) {
                 Ok((new_input, markup_decl)) => {
                     parsed.push(markup_decl);
                     current_input = new_input;
                 }
-                Err(nom::Err::Error(_)) => {
-                    // Try parsing a declaration separator
-                    match Self::parse_decl_sep(current_input) {
-                        Ok((new_input, maybe_decl_sep)) => {
-                            if let Some(decl_sep) = maybe_decl_sep {
-                                parsed.push(decl_sep);
-                            }
-                            current_input = new_input;
+                Err(nom::Err::Error(_)) => match Self::parse_decl_sep(current_input) {
+                    Ok((new_input, maybe_decl_sep)) => {
+                        if let Some(decl_sep) = maybe_decl_sep {
+                            parsed.push(decl_sep);
                         }
-                        Err(e) => {
-                            return Err(e);
-                        }
+                        current_input = new_input;
                     }
-                }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                },
                 Err(e) => {
                     return Err(e);
                 }
             }
-
-            // If the input hasn't changed (i.e., nothing was parsed), break the loop
             if current_input == original_input {
                 break;
             }
@@ -118,18 +206,14 @@ impl<'a> InternalSubset<'a> {
 
     // [28a] DeclSep ::=  S | PEReference
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
-        // Try to match whitespace first
         match Self::parse_multispace0(input) {
             Ok((new_input, _)) => Ok((new_input, None)),
-            Err(nom::Err::Error(_)) => {
-                // Try to match a parameter reference if whitespace fails
-                match Reference::parse_parameter_reference(input) {
-                    Ok((new_input, reference)) => {
-                        Ok((new_input, Some(InternalSubset::DeclSep(reference))))
-                    }
-                    Err(e) => Err(e),
+            Err(nom::Err::Error(_)) => match Reference::parse_parameter_reference(input) {
+                Ok((new_input, reference)) => {
+                    Ok((new_input, Some(InternalSubset::DeclSep(reference))))
                 }
-            }
+                Err(e) => Err(e),
+            },
             Err(e) => Err(e),
         }
     }

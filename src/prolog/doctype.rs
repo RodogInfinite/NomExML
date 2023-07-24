@@ -48,6 +48,8 @@ impl<'a> Parse<'a> for DocType<'a> {
         ))
     }
 }
+
+//TODO integrate this
 impl<'a> DocType<'a> {
     // [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse_qualified_doctype(input: &'a str) -> IResult<&'a str, DocType<'a>> {
