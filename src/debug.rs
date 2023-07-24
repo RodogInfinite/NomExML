@@ -184,7 +184,7 @@ impl<'a> Document<'a> {
             }
             Document::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
-                fmt_indented(f, indent + 4, &format!("target: \"{}\",\n", target));
+                fmt_indented(f, indent + 4, &format!("target: \"{:?}\",\n", target));
                 fmt_indented(
                     f,
                     indent + 4,

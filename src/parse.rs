@@ -10,6 +10,8 @@ use nom::{
     IResult,
 };
 
+use crate::{decode::Decode, Name, QualifiedName};
+
 pub trait Parse<'a>: Sized {
     fn parse(_input: &'a str) -> IResult<&'a str, Self> {
         unimplemented!()
@@ -88,7 +90,7 @@ pub trait Parse<'a>: Sized {
     }
 
     // [5] Name ::= NameStartChar (NameChar)*
-    fn parse_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_name(input: &'a str) -> IResult<&'a str, Name> {
         let (input, start_char) = Self::parse_name_start_char(input)?;
         let (input, rest_chars) = opt(Self::parse_nmtoken)(input)?;
 
@@ -96,11 +98,18 @@ pub trait Parse<'a>: Sized {
         if let Some(rest) = rest_chars {
             name.push_str(&rest);
         }
-        Ok((input, Cow::Owned(name)))
+        name = name.decode().unwrap_or(name);
+        Ok((
+            input,
+            Name {
+                prefix: None,
+                local_part: Cow::Owned(name),
+            },
+        ))
     }
 
     // [6] Names ::= Name (#x20 Name)*
-    fn parse_names(input: &'a str) -> IResult<&'a str, Vec<Cow<'a, str>>> {
+    fn parse_names(input: &'a str) -> IResult<&'a str, Vec<Name>> {
         separated_list1(char(' '), Self::parse_name)(input)
     }
 

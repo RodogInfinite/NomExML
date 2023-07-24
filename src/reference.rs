@@ -12,12 +12,15 @@ use nom::{
     IResult,
 };
 
-use crate::decode::{decode_digit, decode_hex};
 use crate::parse::Parse;
+use crate::{
+    decode::{decode_digit, decode_hex, Decode},
+    Name,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum Reference<'a> {
-    EntityRef(Cow<'a, str>),
+    EntityRef(Name<'a>),
     CharRef {
         value: Cow<'a, str>,
         state: CharRefState,
@@ -25,6 +28,7 @@ pub enum Reference<'a> {
 }
 
 impl<'a> Parse<'a> for Reference<'a> {
+    //[67] Reference ::= EntityRef | CharRef
     fn parse(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
@@ -38,7 +42,9 @@ pub enum CharRefState {
     Hexadecimal,
 }
 
+// TODO: Ensure these conform to standard
 pub trait ParseReference<'a>: Parse<'a> {
+    //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         let (input, _) = tag("&")(input)?;
         let (input, name) = Self::parse_name(input)?;
@@ -46,6 +52,7 @@ pub trait ParseReference<'a>: Parse<'a> {
         Ok((input, Reference::EntityRef(name)))
     }
 
+    //[69] PEReference ::= '%' Name ';'
     fn parse_parameter_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         let (input, _) = tag("%")(input)?;
         let (input, name) = Self::parse_name(input)?;
@@ -53,6 +60,7 @@ pub trait ParseReference<'a>: Parse<'a> {
         Ok((input, Reference::EntityRef(name)))
     }
 
+    //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         alt((
             map(

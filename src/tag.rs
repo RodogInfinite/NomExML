@@ -49,10 +49,7 @@ impl<'a> Tag<'a> {
                 tag("/>"),
             )),
             |(_, name, attributes, _, _)| Self {
-                name: Name {
-                    prefix: None,
-                    local_part: name,
-                },
+                name,
                 attributes: Some(attributes.into_iter().map(|(_, attr)| attr).collect()),
                 state: TagState::Empty,
             },
@@ -66,7 +63,7 @@ impl<'a> Tag<'a> {
         let (input, x) = map(
             tuple((
                 char('<'),
-                Self::parse_qualified_name,
+                alt((Self::parse_name, Self::parse_qualified_name)),
                 many0(pair(
                     Self::parse_multispace1,
                     Attribute::parse_qualified_attribute,
@@ -75,17 +72,23 @@ impl<'a> Tag<'a> {
                 char('>'),
             )),
             |(_open_char, name, attributes, _whitespace, _close_char)| {
-                let attributes: Vec<_> = attributes.into_iter().map(|(_whitespace, attr)| attr).collect();
+                let attributes: Vec<_> = attributes
+                    .into_iter()
+                    .map(|(_whitespace, attr)| attr)
+                    .collect();
                 Self {
                     name,
-                    attributes: if attributes.is_empty() { None } else { Some(attributes) },
+                    attributes: if attributes.is_empty() {
+                        None
+                    } else {
+                        Some(attributes)
+                    },
                     state: TagState::Start,
                 }
             },
         )(input)?;
         Ok((input, x))
     }
-
 
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
@@ -95,7 +98,7 @@ impl<'a> Tag<'a> {
             map(
                 tuple((
                     Self::parse_multispace0,
-                    Self::parse_qualified_name,
+                    alt((Self::parse_name, Self::parse_qualified_name)),
                     Self::parse_multispace0,
                 )),
                 |(_, name, _)| Self {

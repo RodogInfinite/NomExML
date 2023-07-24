@@ -5,7 +5,7 @@ use crate::{
     parse::Parse,
     processing_instruction::ProcessingInstruction,
     reference::{ParseReference, Reference},
-    QualifiedName,
+    Name, QualifiedName,
 };
 use nom::{
     branch::alt,
@@ -27,7 +27,7 @@ pub enum EntityValue<'a> {
 // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
 #[derive(Clone, PartialEq)]
 pub struct GeneralEntityDeclaration<'a> {
-    pub name: Cow<'a, str>,
+    pub name: Name<'a>,
     pub entity_def: EntityDefinition<'a>,
 }
 
@@ -37,7 +37,7 @@ pub enum EntityDefinition<'a> {
     EntityValue(EntityValue<'a>),
     External {
         id: ExternalID<'a>,
-        n_data: Option<Cow<'a, str>>,
+        n_data: Option<Name<'a>>,
     },
 }
 
@@ -147,10 +147,7 @@ impl<'a> InternalSubset<'a> {
         Ok((
             input,
             InternalSubset::Element {
-                name: QualifiedName {
-                    prefix: None,
-                    local_part: name,
-                },
+                name,
                 content_spec: Some(content_spec),
             },
         ))
@@ -185,10 +182,6 @@ impl<'a> InternalSubset<'a> {
         let (input, _) = tag("<!ATTLIST")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
-        let name = QualifiedName {
-            prefix: None,
-            local_part: name,
-        };
         let (input, att_defs) = many0(Attribute::parse_definition)(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
@@ -287,7 +280,7 @@ impl<'a> InternalSubset<'a> {
         ))(input)
     }
     // [76] NDataDecl ::= S 'NDATA' S Name
-    fn parse_ndata_declaration(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_ndata_declaration(input: &'a str) -> IResult<&'a str, Name<'a>> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, _) = tag("NDATA")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
@@ -310,7 +303,7 @@ impl<'a> InternalSubset<'a> {
     fn parse_entity_content(input: &'a str) -> IResult<&'a str, String> {
         alt((
             map(Reference::parse, |reference| match reference {
-                Reference::EntityRef(value) => value.into_owned(),
+                Reference::EntityRef(value) => value.local_part.into_owned(),
                 Reference::CharRef { value, .. } => value.into_owned(),
             }),
             map(is_not("%&\"'"), ToString::to_string),

@@ -10,11 +10,11 @@ use nom::{
     IResult,
 };
 
-use crate::parse::Parse;
+use crate::{parse::Parse, Name};
 
 #[derive(Clone, PartialEq)]
 pub struct ProcessingInstruction<'a> {
-    pub target: Cow<'a, str>,
+    pub target: Name<'a>,
     pub data: Option<Cow<'a, str>>,
 }
 
@@ -46,10 +46,10 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
 
 impl<'a> ProcessingInstruction<'a> {
     //[17] PITarget	::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
-    fn parse_target(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_target(input: &'a str) -> IResult<&'a str, Name> {
         let (input, name) = Self::parse_name(input)?;
 
-        if name.eq_ignore_ascii_case("xml") {
+        if name.local_part.eq_ignore_ascii_case("xml") {
             Err(nom::Err::Failure(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Tag,

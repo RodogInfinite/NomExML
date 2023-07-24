@@ -5,13 +5,13 @@ use nom::{
     IResult,
 };
 
-use crate::{namespaces::ParseNamespace, parse::Parse, QualifiedName};
+use crate::{namespaces::ParseNamespace, parse::Parse, Name};
 
 use super::{external_id::ExternalID, internal_subset::InternalSubset};
 
 #[derive(Clone, PartialEq)]
 pub struct DocType<'a> {
-    pub name: QualifiedName<'a>,
+    pub name: Name<'a>,
     pub external_id: Option<ExternalID<'a>>,
     pub int_subset: Option<Vec<InternalSubset<'a>>>,
 }
@@ -41,10 +41,7 @@ impl<'a> Parse<'a> for DocType<'a> {
         Ok((
             input,
             Self {
-                name: QualifiedName {
-                    prefix: None,
-                    local_part: name,
-                },
+                name,
                 external_id,
                 int_subset,
             },

@@ -22,6 +22,9 @@ use attribute::Attribute;
 
 //use extractable::extractable;
 use namespaces::ParseNamespace;
+use nom::combinator::peek;
+use nom::multi::many1;
+use nom::sequence::delimited;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
@@ -33,7 +36,6 @@ use nom::{
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
-
 
 #[derive(Clone, PartialEq)]
 
@@ -131,15 +133,24 @@ impl<'a> Document<'a> {
 
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, ((_,maybe_chardata), elements)) = tuple((
-            pair(Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
-            opt(Self::parse_char_data)),
+        let (input, ((_, maybe_chardata), elements)) = tuple((
+            pair(
+                Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                opt(Self::parse_char_data),
+            ),
             many0(pair(
                 alt((
                     Self::parse_element,
-                    map(Reference::parse, |reference| match reference {
-                        Reference::EntityRef(entity) => Document::Content(Some(entity)),
-                        Reference::CharRef { value, .. } => Document::Content(Some(value)),
+                    map(many1(Reference::parse), |references| {
+                        let content: String = references
+                            .into_iter()
+                            .map(|reference| match reference {
+                                Reference::EntityRef(entity) => entity.local_part.to_string(),
+                                Reference::CharRef { value, .. } => value.to_string(),
+                            })
+                            .collect();
+
+                        Document::Content(Some(Cow::Owned(content)))
                     }),
                     Self::parse_cdata_section,
                     map(
@@ -148,17 +159,18 @@ impl<'a> Document<'a> {
                     ),
                     Self::parse_comment,
                 )),
-                pair(Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
-                opt(Self::parse_char_data)),
+                pair(
+                    Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                    opt(Self::parse_char_data),
+                ),
             )),
         ))(input)?;
-
         let mut content = elements
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
                 vec.push(doc);
-                if let (_,Some(chardata)) = maybe_chardata {
+                if let (_, Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
                         vec.push(Document::Content(Some(chardata)));
                     }
@@ -179,22 +191,36 @@ impl<'a> Document<'a> {
                         _ => Document::Nested(vec),
                     }
                 }
-                _ => match &content[..] {
-                    [doc @ Document::Content(_)] => doc.clone(),
-                    _ => Document::Nested(content),
-                },
+                _ => {
+                    if content.is_empty() {
+                        Document::Empty
+                    } else {
+                        match &content[..] {
+                            [doc @ Document::Content(_)] => doc.clone(),
+                            [doc @ Document::ProcessingInstruction(_)] => doc.clone(),
+                            [doc @ Document::CDATA(_)] => doc.clone(),
+                            [doc @ Document::Comment(_)] => doc.clone(),
+                            _ => Document::Nested(content),
+                        }
+                    }
+                }
             },
         ))
     }
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        println!("PARSING COMMENT");
         let (input, _) = tag("<!--")(input)?;
-        let (input, (comment_content, _)) =
-            many_till(verify(Self::parse_char, |&c| c != '-'), tag("-->"))(input)?;
-        let comment_string: String = comment_content.into_iter().collect();
-        let (input, _) = tag("-->")(input)?;
 
+        let (input, (comment_content, _)) = many_till(Self::parse_char, tag("-->"))(input)?;
+        let comment_string: String = comment_content.into_iter().collect();
+        if comment_string.contains("--") {
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
         Ok((input, Document::Comment(Cow::Owned(comment_string))))
     }
 
@@ -251,7 +277,7 @@ pub struct QualifiedName<'a> {
 }
 pub type Name<'a> = QualifiedName<'a>;
 
-impl<'a> QualifiedName<'a>{
+impl<'a> QualifiedName<'a> {
     pub fn new(prefix: Option<&'a str>, local_part: &'a str) -> Self {
         if let Some(prefix) = prefix {
             Self {
@@ -264,10 +290,8 @@ impl<'a> QualifiedName<'a>{
                 local_part: Cow::Borrowed(local_part),
             }
         }
-      
     }
 }
-
 
 impl<'a> ParseNamespace<'a> for Document<'a> {}
 
@@ -359,26 +383,26 @@ impl<'a> Document<'a> {
         outer_tag: &str,
         inner_tag: &str,
     ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
-        let result = self.extract(&Name {
-            prefix: None,
-            local_part: Cow::Owned(outer_tag.into()),
-        })?
-        .iter()
-        .map(|doc| {
-            doc.extract(&Name {
+        let result = self
+            .extract(&Name {
                 prefix: None,
-                local_part: Cow::Owned(inner_tag.into()),
+                local_part: Cow::Owned(outer_tag.into()),
+            })?
+            .iter()
+            .map(|doc| {
+                doc.extract(&Name {
+                    prefix: None,
+                    local_part: Cow::Owned(inner_tag.into()),
+                })
+                .as_indexed_map()
             })
-            .as_indexed_map()
-        })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect::<BTreeMap<_, _>>();
-    
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect::<BTreeMap<_, _>>();
+
         Ok(result)
-    }   
-    
+    }
 }
 
 pub trait AsOrderedMap {

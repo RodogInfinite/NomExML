@@ -1,11 +1,12 @@
+use core::panic;
 use std::borrow::Cow;
 
-use crate::{namespaces::ParseNamespace, parse::Parse, reference::Reference, QualifiedName};
+use crate::{namespaces::ParseNamespace, parse::Parse, reference::Reference, Name, QualifiedName};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::char,
-    combinator::{map, opt, value},
+    combinator::{map, map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{delimited, pair, tuple},
     IResult,
@@ -43,16 +44,7 @@ impl<'a> Parse<'a> for Attribute<'a> {
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = Self::parse_eq(input)?;
         let (input, value) = Self::parse_attvalue(input)?;
-        Ok((
-            input,
-            Attribute::Instance {
-                name: QualifiedName {
-                    prefix: None,
-                    local_part: name,
-                },
-                value,
-            },
-        ))
+        Ok((input, Attribute::Instance { name, value }))
     }
 }
 
@@ -70,10 +62,7 @@ impl<'a> Attribute<'a> {
         ))(input)?;
 
         let attribute = Attribute::Definition {
-            name: QualifiedName {
-                prefix: None,
-                local_part: Cow::Owned(name.into()),
-            },
+            name,
             att_type,
             default_decl,
         };
@@ -86,10 +75,7 @@ impl<'a> Attribute<'a> {
             Self::parse_multispace1,
             alt((
                 Self::parse_qualified_name,
-                map(Self::parse_namespace_attribute_name, |name| QualifiedName {
-                    prefix: Some(Cow::Borrowed("xmlns")),
-                    local_part: name,
-                }),
+                Self::parse_namespace_attribute_name,
             )),
             Self::parse_multispace1,
             AttType::parse,
@@ -135,7 +121,7 @@ impl<'a> Attribute<'a> {
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
     pub fn parse_qualified_attribute(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
         alt((
-            map(
+            map_res(
                 tuple((
                     Self::parse_namespace_attribute_name,
                     Self::parse_eq,
@@ -143,17 +129,21 @@ impl<'a> Attribute<'a> {
                 )),
                 |(name, _, value)| {
                     // If name is "xmlns", it's a default namespace declaration
-                    if &*name == "xmlns" {
-                        Attribute::Namespace {
-                            prefix: Prefix::Default,
-                            uri: value,
+                    if let Some(prefix) = name.prefix {
+                        if &prefix == "xmlns" {
+                            Ok(Attribute::Namespace {
+                                prefix: Prefix::Default,
+                                uri: value,
+                            })
+                        } else {
+                            // Otherwise, it's a prefixed namespace declaration
+                            Ok(Attribute::Namespace {
+                                prefix: Prefix::Prefix(prefix),
+                                uri: value,
+                            })
                         }
                     } else {
-                        // Otherwise, it's a prefixed namespace declaration
-                        Attribute::Namespace {
-                            prefix: Prefix::Prefix(name),
-                            uri: value,
-                        }
+                        Err(("Attribute without prefix", nom::error::ErrorKind::MapRes))
                     }
                 },
             ),
@@ -203,7 +193,7 @@ pub enum AttType<'a> {
     CDATA,
     Tokenized(TokenizedType),
     Enumerated {
-        notation: Option<Vec<Cow<'a, str>>>,
+        notation: Option<Vec<Name<'a>>>,
         enumeration: Option<Vec<Cow<'a, str>>>,
     },
 }
@@ -247,7 +237,7 @@ impl<'a> AttType<'a> {
             ),
         ))(input)?;
 
-        let names = names.into_iter().collect();
+        //let names = names.into_iter().collect();
 
         Ok((
             input,

@@ -57,15 +57,7 @@ impl<'a> ContentParticle<'a> {
     // [48] cp ::= (Name | choice | seq) ('?' | '*' | '+')?
     fn parse(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
         let (input, names) = opt(many0(Self::parse_name))(input)?;
-        let names = names.map(|names| {
-            names
-                .into_iter()
-                .map(|name| QualifiedName {
-                    prefix: None,
-                    local_part: name,
-                })
-                .collect()
-        });
+        let names = names.map(|names| names.into_iter().map(|name| name).collect());
 
         let (input, choice) = opt(Self::parse_choice)(input)?;
         let (input, sequence) = opt(Self::parse_seq)(input)?;
@@ -156,15 +148,7 @@ impl<'a> Parse<'a> for Mixed<'a> {
             Self::parse_multispace0,
         ))(input)?;
         let names = if !names.is_empty() {
-            Some(
-                names
-                    .into_iter()
-                    .map(|name| QualifiedName {
-                        prefix: None,
-                        local_part: name,
-                    })
-                    .collect(),
-            )
+            Some(names.into_iter().map(|name| name).collect())
         } else {
             None
         };

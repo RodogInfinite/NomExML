@@ -10,45 +10,19 @@ use nom::{
     IResult,
 };
 
-pub fn decode_entity(input: &str) -> IResult<&str, Cow<str>> {
-    if input.is_empty() {
-        return Ok((input, Cow::Borrowed(input)));
-    }
-    let (input, digit_code) = opt(delimited(
-        tag("&#"),
-        take_while1(|c: char| c.is_numeric()),
-        tag(";"),
-    ))(input)?;
+pub trait Decode<'a> {
+    fn decode(&self) -> Option<String>;
+}
 
-    let (input, hex_code) = opt(delimited(
-        alt((tag("&#x"), tag("&#X"))),
-        take_while1(|c: char| c.is_numeric()),
-        tag(";"),
-    ))(input)?;
-
-    if let Some(code) = digit_code {
-        decode_digit(input, code)
-    } else if let Some(code) = hex_code {
-        decode_hex(input, code)
-    } else {
-        let (input, entity) = opt(delimited(tag("&"), take_until(";"), tag(";")))(input)?;
-
-        if let Some(entity) = entity {
-            let decoded_entity = match entity {
-                "amp" => Cow::Borrowed("&"),
-                "lt" => Cow::Borrowed("<"),
-                "gt" => Cow::Borrowed(">"),
-                "quot" => Cow::Borrowed("\""),
-                "apos" => Cow::Borrowed("'"),
-                _ => Cow::Borrowed(input),
-            };
-            if input == decoded_entity {
-                Ok((input, Cow::Borrowed(input)))
-            } else {
-                Ok((input, decoded_entity))
-            }
-        } else {
-            Ok((input, Cow::Borrowed(input)))
+impl<'a> Decode<'a> for String {
+    fn decode(&self) -> Option<String> {
+        match self.as_ref() {
+            "amp" => Some("&".to_string()),
+            "lt" => Some("<".to_string()),
+            "gt" => Some(">".to_string()),
+            "quot" => Some("\"".to_string()),
+            "apos" => Some("'".to_string()),
+            _ => None,
         }
     }
 }
@@ -81,25 +55,4 @@ pub fn decode_digit<'a>(input: &'a str, code: &'a str) -> IResult<&'a str, Cow<'
     } else {
         Ok((input, decoded_entity))
     }
-}
-
-pub fn decode_entities(input: &str) -> IResult<&str, Cow<str>> {
-    let mut output = String::new();
-    let mut input = input;
-    loop {
-        if input.is_empty() {
-            break;
-        }
-        let (tail, decoded_entity) = decode_entity(input)?;
-        if decoded_entity == Cow::Borrowed(input) {
-            output.push_str(input);
-            input = "";
-        } else if decoded_entity.is_empty() || tail == input {
-            break;
-        } else {
-            output.push_str(&decoded_entity);
-            input = tail;
-        }
-    }
-    Ok((input, Cow::Owned(output)))
 }

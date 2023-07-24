@@ -9,22 +9,29 @@ use nom::{
     IResult,
 };
 
-use crate::{parse::Parse, QualifiedName};
+use crate::{parse::Parse, Name, QualifiedName};
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName
-    fn parse_namespace_attribute_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, name) = alt((
-            Self::parse_prefixed_attribute_name,
-            map(tag("xmlns"), Cow::Borrowed),
-        ))(input)?;
+    fn parse_namespace_attribute_name(input: &'a str) -> IResult<&'a str, Name<'a>> {
+        let (input, name) = alt((Self::parse_name, Self::parse_prefixed_attribute_name))(input)?;
+        if name.prefix.is_none() && name.local_part != "xmlns" {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+
         Ok((input, name))
     }
 
     // [2] PrefixedAttName ::=  'xmlns:' NCName
-    fn parse_prefixed_attribute_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_prefixed_attribute_name(input: &'a str) -> IResult<&'a str, QualifiedName> {
         let (input, _) = tag("xmlns:")(input)?;
-        let (input, name) = Self::parse_non_colonized_name(input)?;
+        let (input, name) = map(Self::parse_non_colonized_name, |local_part| QualifiedName {
+            prefix: Some("xmlns".into()),
+            local_part,
+        })(input)?;
         Ok((input, name))
     }
 
@@ -61,12 +68,13 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
                 prefix: None,
                 local_part,
             }),
+            Self::parse_name, //unprefixed name
         ))(input)
     }
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
     fn parse_prefixed_name(input: &'a str) -> IResult<&'a str, QualifiedName> {
-        let (input, x) = map(
+        let (input, name) = map(
             tuple((
                 Self::parse_non_colonized_name,
                 char(':'),
@@ -77,7 +85,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
                 local_part,
             },
         )(input)?;
-        Ok((input, x))
+        Ok((input, name))
     }
 
     // [9] UnprefixedName ::= LocalPart
