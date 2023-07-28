@@ -1,10 +1,11 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr};
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, digit1},
     combinator::opt,
+    error::ErrorKind,
     multi::many0,
     sequence::delimited,
     IResult,
@@ -13,10 +14,28 @@ use nom::{
 use crate::parse::Parse;
 
 #[derive(Clone, PartialEq)]
+pub enum Standalone {
+    Yes,
+    No,
+}
+
+impl FromStr for Standalone {
+    type Err = nom::Err<nom::error::Error<&'static str>>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "yes" => Ok(Standalone::Yes),
+            "no" => Ok(Standalone::No),
+            _ => Err(nom::Err::Error(nom::error::Error::new("", ErrorKind::Alt))),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct XmlDecl<'a> {
     pub version: Cow<'a, str>,
     pub encoding: Option<Cow<'a, str>>,
-    pub standalone: Option<Cow<'a, str>>,
+    pub standalone: Option<Standalone>,
 }
 impl<'a> Parse<'a> for XmlDecl<'a> {
     // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
@@ -78,7 +97,7 @@ impl<'a> XmlDecl<'a> {
     }
 
     // [32] SDDecl	::= S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
-    fn parse_sd_decl(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_sd_decl(input: &'a str) -> IResult<&'a str, Standalone> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, _) = tag("standalone")(input)?;
         let (input, _) = Self::parse_eq(input)?;
@@ -86,6 +105,7 @@ impl<'a> XmlDecl<'a> {
             delimited(tag("'"), alt((tag("yes"), tag("no"))), tag("'")),
             delimited(tag("\""), alt((tag("yes"), tag("no"))), tag("\"")),
         ))(input)?;
-        Ok((input, standalone.into()))
+        let standalone = Standalone::from_str(standalone)?;
+        Ok((input, standalone))
     }
 }
