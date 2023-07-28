@@ -1,131 +1,42 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, tag::ConditionalState, QualifiedName};
+use crate::{namespaces::ParseNamespace, parse::Parse, QualifiedName};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{opt, value},
-    multi::{many0, separated_list1},
+    combinator::{map, opt},
+    multi::{many0, many1},
     sequence::{delimited, tuple},
     IResult,
 };
+
+use super::content_particle::ContentParticle;
 
 //TODO: Refactor to better comply with the spec
 
 #[derive(Clone, PartialEq)]
 pub enum DeclarationContent<'a> {
-    Spec {
-        mixed: Mixed<'a>,
-        children: Option<Vec<ContentParticle<'a>>>,
-    },
+    Mixed(Mixed<'a>),
+    Children(ContentParticle<'a>),
+    Empty,
+    Any,
 }
 
-impl<'a> DeclarationContent<'a> {
-    pub fn parse_spec(input: &'a str) -> IResult<&'a str, DeclarationContent<'a>> {
-        let (input, mixed_content) = Mixed::parse(input)?;
-        let (input, children) = opt(Self::parse_children)(input)?;
-        Ok((
-            input,
-            DeclarationContent::Spec {
-                mixed: mixed_content,
-                children: children.map(|(particles, _)| particles),
-            },
-        ))
-    }
-    // [47] children ::= (choice | seq) ('?' | '*' | '+')?
-    fn parse_children(
-        input: &'a str,
-    ) -> IResult<&'a str, (Vec<ContentParticle<'a>>, Option<&'a str>)> {
-        let (input, particles) = many0(ContentParticle::parse)(input)?;
-        let (input, quantifier) = opt(alt((tag("?"), tag("*"), tag("+"))))(input)?;
-        Ok((input, (particles, quantifier)))
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ContentParticle<'a> {
-    Particle {
-        names: Option<Vec<QualifiedName<'a>>>,
-        choice: Option<Vec<ContentParticle<'a>>>,
-        sequence: Option<Vec<ContentParticle<'a>>>,
-        conditional_state: Option<ConditionalState>,
-    },
-}
-
-impl<'a> Parse<'a> for ContentParticle<'a> {}
-impl<'a> ParseNamespace<'a> for ContentParticle<'a> {}
-
-impl<'a> ContentParticle<'a> {
-    // [48] cp ::= (Name | choice | seq) ('?' | '*' | '+')?
-    fn parse(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
-        let (input, names) = opt(many0(Self::parse_name))(input)?;
-        let names = names.map(|names| names.into_iter().map(|name| name).collect());
-
-        let (input, choice) = opt(Self::parse_choice)(input)?;
-        let (input, sequence) = opt(Self::parse_seq)(input)?;
-        let (input, conditional_state) = opt(Self::parse_conditional_state)(input)?;
-
-        let content_particle = ContentParticle::Particle {
-            names,
-            choice,
-            sequence,
-            conditional_state,
-        };
-
-        Ok((input, content_particle))
-    }
-
-    // Namespaces (Third Edition) [18] cp ::= (QName | choice | seq) ('?' | '*' | '+')?
-    fn parse_qualified_content_particle(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
-        let (input, names) = opt(many0(Self::parse_qualified_name))(input)?;
-        let (input, choice) = opt(Self::parse_choice)(input)?;
-        let (input, sequence) = opt(Self::parse_seq)(input)?;
-        let (input, conditional_state) = opt(Self::parse_conditional_state)(input)?;
-
-        let content_particle = ContentParticle::Particle {
-            names,
-            choice,
-            sequence,
-            conditional_state,
-        };
-
-        Ok((input, content_particle))
-    }
-
-    // [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
-    fn parse_choice(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
-        let inner = separated_list1(
-            tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
-            Self::parse,
-        );
-        let mut parser = delimited(
-            tuple((tag("("), Self::parse_multispace0)),
-            inner,
-            tuple((Self::parse_multispace0, tag(")"))),
-        );
-        let (input, choice) = parser(input)?;
-        Ok((input, choice))
-    }
-
-    // [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
-    fn parse_seq(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
-        let inner = separated_list1(
-            tuple((Self::parse_multispace0, tag(","), Self::parse_multispace0)),
-            Self::parse,
-        );
-        let mut parser = delimited(
-            tuple((tag("("), Self::parse_multispace0)),
-            inner,
-            tuple((Self::parse_multispace0, tag(")"))),
-        );
-        let (input, sequence) = parser(input)?;
-        Ok((input, sequence))
-    }
-
-    fn parse_conditional_state(input: &'a str) -> IResult<&'a str, ConditionalState> {
+impl<'a> Parse<'a> for DeclarationContent<'a> {
+    // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
+    fn parse(input: &'a str) -> IResult<&'a str, DeclarationContent<'a>> {
+        println!("PARSING DECLARATION CONTENT INPUT: {input}");
         alt((
-            value(ConditionalState::Optional, tag("?")),
-            value(ConditionalState::ZeroOrMore, tag("*")),
-            value(ConditionalState::OneOrMore, tag("+")),
+            map(tag("EMPTY"), |_| Self::Empty),
+            map(tag("ANY"), |_| Self::Any),
+            map(Mixed::parse, Self::Mixed),
+            map(Self::parse_children, Self::Children),
         ))(input)
+    }
+}
+impl<'a> DeclarationContent<'a> {
+    // [47] children ::= (choice | seq) ('?' | '*' | '+')?
+    fn parse_children(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
+        let (input, particle) = ContentParticle::parse(input)?;
+        Ok((input, particle))
     }
 }
 
@@ -148,7 +59,7 @@ impl<'a> Parse<'a> for Mixed<'a> {
             Self::parse_multispace0,
         ))(input)?;
         let names = if !names.is_empty() {
-            Some(names.into_iter().map(|name| name).collect())
+            Some(names.into_iter().collect())
         } else {
             None
         };

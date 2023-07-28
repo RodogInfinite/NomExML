@@ -4,13 +4,14 @@ use crate::{
     misc::{Misc, MiscState},
     processing_instruction::ProcessingInstruction,
     prolog::{
-        declaration_content::{ContentParticle, DeclarationContent, Mixed},
+        content_particle::ContentParticle,
+        declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
         internal_subset::{
             EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
             InternalSubset,
         },
-        xmldecl::XmlDecl,
+        xmldecl::{Standalone, XmlDecl},
     },
     reference::{CharRefState, Reference},
     Document, QualifiedName, Tag,
@@ -218,23 +219,23 @@ impl<'a> fmt::Debug for Document<'a> {
 impl<'a> DeclarationContent<'a> {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
-            DeclarationContent::Spec { mixed, children } => {
-                fmt_indented(f, indent, "Spec {\n");
+            DeclarationContent::Mixed(mixed) => {
+                fmt_indented(f, indent, "Mixed {\n");
                 mixed.fmt_indented_mixed(f, indent + 4);
-                fmt_indented(f, indent + 4, "children:");
-                match children {
-                    Some(children) => {
-                        let mut s = String::new();
-                        for child in children {
-                            child.fmt_indented_content_particle(&mut s, indent + 8);
-                        }
-                        f.push_str(&format!("Some([\n{}\n", s));
-                        fmt_indented(f, indent + 4, "]),\n");
-                    }
-                    None => f.push_str("None,\n"),
-                }
-
                 fmt_indented(f, indent, "},");
+            }
+            DeclarationContent::Children(children) => {
+                fmt_indented(f, indent, "Children {\n");
+                let mut s = String::new();
+                children.fmt_indented_content_particle(&mut s, indent + 4);
+                f.push_str(&format!("[\n{}\n", s));
+                fmt_indented(f, indent, "},");
+            }
+            DeclarationContent::Empty => {
+                fmt_indented(f, indent, "Empty,");
+            }
+            DeclarationContent::Any => {
+                fmt_indented(f, indent, "Any,");
             }
         }
     }
@@ -280,30 +281,9 @@ impl<'a> fmt::Debug for Mixed<'a> {
 impl<'a> ContentParticle<'a> {
     fn fmt_indented_content_particle(&self, f: &mut String, indent: usize) {
         match self {
-            ContentParticle::Particle {
-                names,
-                choice,
-                sequence,
-                conditional_state,
-            } => {
-                fmt_indented(f, indent, "Particle {\n");
-                if let Some(names) = names {
-                    fmt_indented(f, indent + 4, &format!("names: {:?},\n", names));
-                }
-                if let Some(choice) = choice {
-                    fmt_indented(f, indent + 4, "choice: [\n");
-                    for item in choice {
-                        item.fmt_indented_content_particle(f, indent + 8);
-                    }
-                    fmt_indented(f, indent + 4, "],\n");
-                }
-                if let Some(sequence) = sequence {
-                    fmt_indented(f, indent + 4, "sequence: [\n");
-                    for item in sequence {
-                        item.fmt_indented_content_particle(f, indent + 8);
-                    }
-                    fmt_indented(f, indent + 4, "],\n");
-                }
+            ContentParticle::Name(name, conditional_state) => {
+                fmt_indented(f, indent, "Name {\n");
+                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
                 fmt_indented(
                     f,
                     indent + 4,
@@ -311,6 +291,43 @@ impl<'a> ContentParticle<'a> {
                 );
                 fmt_indented(f, indent, "},\n");
             }
+            ContentParticle::Choice(particles, conditional_state) => {
+                fmt_indented(f, indent, "Choice {\n");
+                fmt_indented(f, indent + 4, "particles: [\n");
+                for item in particles {
+                    item.fmt_indented_content_particle(f, indent + 8);
+                }
+                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("conditional_state: {:?},\n", conditional_state),
+                );
+                fmt_indented(f, indent, "},\n");
+            }
+            ContentParticle::Sequence(particles, conditional_state) => {
+                fmt_indented(f, indent, "Seq {\n");
+                fmt_indented(f, indent + 4, "particles: [\n");
+                for item in particles {
+                    item.fmt_indented_content_particle(f, indent + 8);
+                }
+                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("conditional_state: {:?},\n", conditional_state),
+                );
+                fmt_indented(f, indent, "},\n");
+            }
+        }
+    }
+}
+
+impl fmt::Debug for Standalone {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Standalone::Yes => write!(f, "Yes"),
+            Standalone::No => write!(f, "No"),
         }
     }
 }

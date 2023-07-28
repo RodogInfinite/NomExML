@@ -7,7 +7,6 @@ use nom::{
     bytes::complete::tag,
     character::complete::{digit1, hex_digit1},
     combinator::map,
-    multi::many1,
     sequence::delimited,
     IResult,
 };
@@ -42,10 +41,10 @@ pub enum CharRefState {
     Hexadecimal,
 }
 
-// TODO: Ensure these conform to standard
 pub trait ParseReference<'a>: Parse<'a> {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+        println!("\n-----\nPARSING ENTITY REFERENCE");
         let (input, _) = tag("&")(input)?;
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = tag(";")(input)?;
@@ -62,12 +61,12 @@ pub trait ParseReference<'a>: Parse<'a> {
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        alt((
+        println!("\n-----\nPARSING CHAR REFERENCE");
+        let (input, char_ref) = alt((
             map(
-                delimited(tag("&#"), many1(digit1), tag(";")),
-                |digits_vec: Vec<&str>| {
-                    let digits_str = digits_vec.concat();
-                    let (_, decoded) = decode_digit("", &digits_str).unwrap();
+                delimited(tag("&#"), digit1, tag(";")),
+                |digits_str: &str| {
+                    let (_, decoded) = decode_digit("", digits_str).unwrap();
                     Reference::CharRef {
                         value: Cow::Owned(decoded.into_owned()),
                         state: CharRefState::Decimal,
@@ -75,16 +74,17 @@ pub trait ParseReference<'a>: Parse<'a> {
                 },
             ),
             map(
-                delimited(tag("&#x"), many1(hex_digit1), tag(";")),
-                |hex_vec: Vec<&str>| {
-                    let hex_str = hex_vec.concat();
-                    let (_, decoded) = decode_hex("", &hex_str).unwrap();
+                delimited(tag("&#x"), hex_digit1, tag(";")),
+                |hex_str: &str| {
+                    let (_, decoded) = decode_hex("", hex_str).unwrap();
                     Reference::CharRef {
                         value: Cow::Owned(decoded.into_owned()),
                         state: CharRefState::Hexadecimal,
                     }
                 },
             ),
-        ))(input)
+        ))(input)?;
+        println!("PARSED CHAR REFERENCE: {char_ref:?}");
+        Ok((input, char_ref))
     }
 }

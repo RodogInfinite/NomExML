@@ -1,7 +1,7 @@
 use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, QualifiedName};
 use nom::{
     branch::alt,
-    bytes::complete::tag,
+    character::complete::char,
     combinator::{map, opt},
     multi::separated_list1,
     sequence::{delimited, tuple},
@@ -12,7 +12,7 @@ use nom::{
 pub enum ContentParticle<'a> {
     Name(QualifiedName<'a>, ConditionalState),
     Choice(Vec<ContentParticle<'a>>, ConditionalState),
-    Seq(Vec<ContentParticle<'a>>, ConditionalState),
+    Sequence(Vec<ContentParticle<'a>>, ConditionalState),
 }
 
 impl<'a> Parse<'a> for ContentParticle<'a> {}
@@ -24,8 +24,13 @@ impl<'a> ContentParticle<'a> {
     pub fn parse(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
         let (input, res) = alt((
             map(
-                tuple((Self::parse_qualified_name, opt(ConditionalState::parse))),
-                |(name, conditional_state)| {
+                tuple((
+                    opt(char('(')),
+                    alt((Self::parse_name, Self::parse_qualified_name)),
+                    opt(ConditionalState::parse),
+                    opt(char(')')),
+                )),
+                |(_, name, conditional_state, _)| {
                     ContentParticle::Name(name, conditional_state.unwrap_or(ConditionalState::None))
                 },
             ),
@@ -41,7 +46,7 @@ impl<'a> ContentParticle<'a> {
             map(
                 tuple((Self::parse_seq, opt(ConditionalState::parse))),
                 |(sequence, conditional_state)| {
-                    ContentParticle::Seq(
+                    ContentParticle::Sequence(
                         sequence,
                         conditional_state.unwrap_or(ConditionalState::None),
                     )
@@ -55,13 +60,13 @@ impl<'a> ContentParticle<'a> {
     // [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
     fn parse_choice(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
-            tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+            tuple((Self::parse_multispace0, char('|'), Self::parse_multispace0)),
             Self::parse,
         );
         let mut parser = delimited(
-            tuple((tag("("), Self::parse_multispace0)),
+            tuple((char('('), Self::parse_multispace0)),
             inner,
-            tuple((Self::parse_multispace0, tag(")"))),
+            tuple((Self::parse_multispace0, char(')'))),
         );
         let (input, choice) = parser(input)?;
         Ok((input, choice))
@@ -70,13 +75,13 @@ impl<'a> ContentParticle<'a> {
     // [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
     fn parse_seq(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
         let inner = separated_list1(
-            tuple((Self::parse_multispace0, tag(","), Self::parse_multispace0)),
+            tuple((Self::parse_multispace0, char(','), Self::parse_multispace0)),
             Self::parse,
         );
         let mut parser = delimited(
-            tuple((tag("("), Self::parse_multispace0)),
+            tuple((char('('), Self::parse_multispace0)),
             inner,
-            tuple((Self::parse_multispace0, tag(")"))),
+            tuple((Self::parse_multispace0, char(')'))),
         );
         let (input, sequence) = parser(input)?;
         Ok((input, sequence))

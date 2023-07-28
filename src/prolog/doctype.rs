@@ -18,26 +18,39 @@ pub struct DocType<'a> {
 
 impl<'a> Parse<'a> for DocType<'a> {
     // [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+    // Namespaces (Third Edition) [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
+
     fn parse(input: &'a str) -> IResult<&'a str, DocType<'a>> {
+        println!("PARSING DOCTYPE");
         let (input, _) = tag("<!DOCTYPE")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
-
+        println!("PARSED NAME: {name:?}");
         let (input, external_id) =
             opt(preceded(Self::parse_multispace1, ExternalID::parse))(input)?;
-
         let (input, _) = Self::parse_multispace0(input)?;
 
-        let (input, int_subset) = opt(delimited(
+        let (input, int_subset) = delimited(
             pair(tag("["), Self::parse_multispace0),
             InternalSubset::parse_internal_subset,
             pair(Self::parse_multispace0, tag("]")),
-        ))(input)?;
+        )(input)
+        .map(|(next_input, subset)| {
+            (
+                next_input,
+                if subset.is_empty() {
+                    None
+                } else {
+                    Some(subset)
+                },
+            )
+        })?;
 
+        println!("DOCTYPE INPUT AFTER PARSED INTERNAL SUBSET: {input}");
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
-
+        println!("PARSED DOCTYPE");
         Ok((
             input,
             Self {
@@ -51,7 +64,6 @@ impl<'a> Parse<'a> for DocType<'a> {
 
 //TODO integrate this
 impl<'a> DocType<'a> {
-    // [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse_qualified_doctype(input: &'a str) -> IResult<&'a str, DocType<'a>> {
         let (input, _) = tag("<!DOCTYPE")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;

@@ -5,15 +5,17 @@ use nom_xml::{
     io::parse_file,
     processing_instruction::ProcessingInstruction,
     prolog::{
+        content_particle::ContentParticle,
         declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
         internal_subset::{
             EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
             InternalSubset,
         },
+        xmldecl::{Standalone, XmlDecl},
     },
     tag::{Tag, TagState},
-    Document, QualifiedName,
+    ConditionalState, Document, QualifiedName,
 };
 
 fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
@@ -36,14 +38,11 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     }]),
                 }),
             },
@@ -56,7 +55,6 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -80,28 +78,23 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -125,28 +118,23 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -171,14 +159,11 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -194,7 +179,6 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: "v1".into(),
@@ -204,7 +188,6 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -229,14 +212,11 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -252,7 +232,6 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: "v1".into(),
@@ -262,7 +241,6 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -287,14 +265,11 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -310,7 +285,6 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: "v1".into(),
@@ -320,7 +294,6 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -344,28 +317,23 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some(Cow::Owned(" ".into())))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -389,28 +357,23 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some(Cow::Owned("&<>\"'".into())))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -434,28 +397,23 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some(Cow::Owned(" ".into())))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -480,14 +438,11 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -503,7 +458,6 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: "v1".into(),
@@ -513,7 +467,6 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -538,14 +491,11 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -568,7 +518,6 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![
                         Attribute::Instance {
                             name: QualifiedName::new(None, "a1"),
@@ -584,7 +533,6 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -609,14 +557,11 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -632,17 +577,15 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, ":"),
                         value: "v1".into(),
-                    }]),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -667,14 +610,11 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -690,17 +630,15 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "_.-0123456789"),
                         value: "v1".into(),
-                    }]),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -725,14 +663,11 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -748,17 +683,15 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "abcdefghijklmnopqrstuvwxyz"),
                         value: "v1".into(),
-                    }]),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -783,14 +716,11 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
@@ -806,17 +736,15 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
                         value: "v1".into(),
-                    }]),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -840,34 +768,26 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::ProcessingInstruction(ProcessingInstruction {
-                    target: QualifiedName {
-                        prefix: None,
-                        local_part: "pi".into()
-                    },
+                    target: QualifiedName::new(None, "pi"),
                     data: None,
                 })),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -891,43 +811,32 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Nested(vec![
                     Document::ProcessingInstruction(ProcessingInstruction {
-                        target: QualifiedName {
-                            prefix: None,
-                            local_part: "pi".into()
-                        },
+                        target: QualifiedName::new(None, "pi"),
                         data: Some("some data ".into()),
                     }),
                     Document::ProcessingInstruction(ProcessingInstruction {
-                        target: QualifiedName {
-                            prefix: None,
-                            local_part: "x".into()
-                        },
+                        target: QualifiedName::new(None, "x"),
                         data: None,
                     }),
                 ])),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -951,34 +860,26 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::ProcessingInstruction(ProcessingInstruction {
-                    target: QualifiedName {
-                        prefix: None,
-                        local_part: "pi".into()
-                    },
+                    target: QualifiedName::new(None, "pi"),
                     data: Some("some data ? > <?".into()),
                 })),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1002,28 +903,23 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::CDATA("<foo>".into())),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1047,28 +943,23 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::CDATA("<&".into())),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1092,28 +983,23 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::CDATA("<&]>]".into())),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1137,28 +1023,23 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Comment(" a comment ".into())),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1182,28 +1063,23 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Spec {
-                            mixed: Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                                zero_or_more: false,
-                            },
-                            children: None,
-                        }),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
                     },]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Comment(" a comment ->".into())),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-
                     attributes: None,
                     state: TagState::End,
                 },
@@ -1228,14 +1104,11 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Spec {
-                                mixed: Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                    zero_or_more: false,
-                                },
-                                children: None,
-                            }),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
                         },
                         InternalSubset::Entity(EntityDeclaration::General(
                             GeneralEntityDeclaration {
@@ -1255,6 +1128,555 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("".into()))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("024")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "foo"),
+                                    ConditionalState::None
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "foo"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo></foo>".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some("<foo></foo>".into()))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("025")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "foo"),
+                                    ConditionalState::ZeroOrMore
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "foo"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                    ),
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Start,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::End,
+                        },
+                    ),
+                ])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("026")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "foo"),
+                                    ConditionalState::ZeroOrMore
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "foo"),
+                            content_spec: Some(DeclarationContent::Empty),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                    ),
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Start,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::End,
+                        },
+                    ),
+                ])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("027")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "foo"),
+                                    ConditionalState::ZeroOrMore
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "foo"),
+                            content_spec: Some(DeclarationContent::Any),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        },
+                    ),
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::Start,
+                        },
+                        Box::new(Document::Empty),
+                        Tag {
+                            name: QualifiedName::new(None, "foo"),
+                            attributes: None,
+                            state: TagState::End,
+                        },
+                    ),
+                ])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("028")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: None,
+                    standalone: None,
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("029")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: None,
+                    standalone: None,
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("030")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: None,
+                    standalone: None,
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("031")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: Some(Cow::Borrowed("UTF-8")),
+                    standalone: None,
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("032")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: None,
+                    standalone: Some(Standalone::Yes),
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("033")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: Some(Cow::Borrowed("UTF-8")),
+                    standalone: Some(Standalone::Yes),
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,

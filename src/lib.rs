@@ -21,7 +21,7 @@ use crate::{misc::Misc, parse::Parse};
 use attribute::Attribute;
 
 use namespaces::ParseNamespace;
-use nom::combinator::peek;
+use nom::combinator::{peek, value};
 use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::{
@@ -33,9 +33,10 @@ use nom::{
     IResult,
 };
 use prolog::internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset};
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
+use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Clone, PartialEq)]
@@ -68,9 +69,10 @@ impl<'a> Document<'a> {
         ),
     > {
         let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
+        let (input, _) = Self::parse_multispace0(input)?; // Not strictly in the spec, but allows whitespace after XmlDecl for human readability
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
-
+        println!("Attempting to parse doctype");
         let (input, doc_type) = opt(DocType::parse)(input)?;
         let entity_references = match &doc_type {
             Some(dt) => Self::collect_entity_references(dt),
@@ -94,19 +96,21 @@ impl<'a> Document<'a> {
                 doc_type,
             }),
         };
-
+        println!("PROLOG: {prolog:?}");
         Ok((input, (prolog, entity_references)))
     }
 
     fn collect_entity_references(
         doc_type: &DocType<'a>,
     ) -> Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>> {
+        println!("COLLECTING ENTITY REFERENCES");
         let mut entity_references = HashMap::new();
 
         if let Some(int_subset) = &doc_type.int_subset {
             for internal_subset in int_subset {
                 if let InternalSubset::Entity(EntityDeclaration::General(decl)) = internal_subset {
                     if let EntityDefinition::EntityValue(value) = &decl.entity_def {
+                        println!("Adding entity {} to references", decl.name.local_part); // Add debug output here
                         entity_references.insert(decl.name.clone(), value.clone());
                     }
                 }
@@ -168,7 +172,34 @@ impl<'a> Document<'a> {
         ))(input)?;
         Ok((input, doc))
     }
+    pub fn process_references(
+        entity_references: Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> impl Fn(Vec<Reference<'a>>) -> Document<'a> + 'a {
+        println!("\nxxxxx\nPROCESSING REFERENCES");
+        move |references| {
+            let content: String = references
+                .into_iter()
+                .map(|reference| match reference {
+                    Reference::EntityRef(name) => {
+                        if let Some(refs) = &entity_references {
+                            if let Some(EntityValue::Value(value)) = refs.deref().get(&name) {
+                                value.clone()
+                            } else {
+                                name.local_part.clone()
+                            }
+                        } else {
+                            name.local_part
+                        }
+                    }
+                    Reference::CharRef { value, .. } => value,
+                })
+                .collect();
+            println!("CONTENT: {}", content);
+            Document::Content(Some(Cow::Owned(content)))
+        }
+    }
 
+    // TODO: add validation for elements using the ConditionalState in the ContentParticle from the prolog
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(
         input: &'a str,
@@ -182,27 +213,10 @@ impl<'a> Document<'a> {
             many0(pair(
                 alt((
                     |i| Self::parse_element(i, entity_references.clone()),
-                    map(many1(Reference::parse), |references| {
-                        let content: String = references
-                            .into_iter()
-                            .map(|reference| match reference {
-                                Reference::EntityRef(name) => {
-                                    if let Some(refs) = &entity_references {
-                                        if let Some(EntityValue::Value(value)) = refs.get(&name) {
-                                            value.clone()
-                                        } else {
-                                            name.local_part
-                                        }
-                                    } else {
-                                        name.local_part
-                                    }
-                                }
-                                Reference::CharRef { value, .. } => value,
-                            })
-                            .collect();
-                        println!("CONTENT: {content:}");
-                        Document::Content(Some(Cow::Owned(content)))
-                    }),
+                    map(
+                        many1(Reference::parse),
+                        Self::process_references(entity_references.clone()),
+                    ),
                     Self::parse_cdata_section,
                     map(
                         ProcessingInstruction::parse,
@@ -457,6 +471,23 @@ impl<'a> Document<'a> {
             .collect::<BTreeMap<_, _>>();
 
         Ok(result)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ConditionalState {
+    None,
+    Optional,
+    ZeroOrMore,
+    OneOrMore,
+}
+impl<'a> Parse<'a> for ConditionalState {
+    fn parse(input: &'a str) -> IResult<&'a str, ConditionalState> {
+        alt((
+            value(ConditionalState::Optional, tag("?")),
+            value(ConditionalState::ZeroOrMore, tag("*")),
+            value(ConditionalState::OneOrMore, tag("+")),
+        ))(input)
     }
 }
 
