@@ -13,10 +13,10 @@ Things are likely to change and break often until testing has been completed.
 ---
 | Task | Priority Level | Status |
 |:----------------------|:----------:|:-----:|
+| Implement full test suite | High | :construction: |
 | Implement all [production rules](docs/parser_implementation_tracking.md)  | High | :construction: |
 | Add ability to parse content and children from specific tags | High | :construction: |
 | Add better error handling | High | :thought_balloon: |
-| Implement full test suite | Medium | :thought_balloon: |
 | Fix debug output | Medium | :thought_balloon: |
 | Add streaming for parsing large XML documents | Low | :thought_balloon: |
 | Implement Display | Low | :thought_balloon: |
