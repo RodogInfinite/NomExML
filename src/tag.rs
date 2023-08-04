@@ -67,6 +67,7 @@ impl<'a> Tag<'a> {
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
     pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
+        println!("PARSING END TAG: {input}");
         delimited(
             tag("</"),
             map(

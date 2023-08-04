@@ -21,7 +21,7 @@ use crate::{misc::Misc, parse::Parse};
 use attribute::Attribute;
 
 use namespaces::ParseNamespace;
-use nom::combinator::{peek, value};
+use nom::combinator::{complete, peek, value};
 use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::{
@@ -50,6 +50,7 @@ pub enum Document<'a> {
     Content(Option<Cow<'a, str>>),
     Nested(Vec<Document<'a>>),
     Empty,
+    EmptyTag(Tag<'a>),
     ProcessingInstruction(ProcessingInstruction<'a>),
     Comment(Cow<'a, str>),
     CDATA(Cow<'a, str>),
@@ -126,8 +127,9 @@ impl<'a> Document<'a> {
 
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, data) = take_till(|c: char| c == '<' || c == '&')(input)?;
-        let (input, _) = not(tag("]]>"))(input)?;
+        println!("\nPARSING CHAR DATA");
+        let (input, (data, _)) =
+            tuple((take_till(|c: char| c == '<' || c == '&'), not(tag("]]>"))))(input)?;
         Ok((input, Cow::Borrowed(data)))
     }
 
@@ -153,9 +155,10 @@ impl<'a> Document<'a> {
         input: &'a str,
         entity_references: Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
+        println!("PARSING ELEMENT");
         let (input, doc) = alt((
             map(Tag::parse_empty_element_tag, |tag| {
-                Document::Element(tag.clone(), Box::new(Document::Empty), tag.clone())
+                Document::EmptyTag(tag.clone())
             }),
             map(
                 tuple((
@@ -267,6 +270,7 @@ impl<'a> Document<'a> {
                             [doc @ Document::ProcessingInstruction(_)] => doc.clone(),
                             [doc @ Document::CDATA(_)] => doc.clone(),
                             [doc @ Document::Comment(_)] => doc.clone(),
+                            [doc @ Document::EmptyTag(_)] => doc.clone(),
                             _ => Document::Nested(content),
                         }
                     }
@@ -292,41 +296,102 @@ impl<'a> Document<'a> {
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, prolog_and_references) = opt(Self::parse_prolog)(input)?;
-
+        println!("INPUT AFTER PROLOG: {}", input);
         let (prolog, entity_references) = match prolog_and_references {
             Some((p, r)) => (p, r),
             None => (None, None),
         };
 
-        let (input, start_tag) = Tag::parse_start_tag(input)?;
+        let (input, start_tag) = opt(Tag::parse_start_tag)(input)?;
+        println!("INPUT AFTER PARSE START TAG: {}", input);
         let (input, content) = Self::parse_content(input, entity_references.clone())?;
-        let (input, end_tag) = Tag::parse_end_tag(input)?;
+        let (input, end_tag) = opt(Tag::parse_end_tag)(input)?;
+        println!("INPUT AFTER PARSE END TAG: {}", input);
 
-        Self::construct_document(input, prolog, start_tag, content, end_tag)
+        let empty_tag = if let Document::EmptyTag(empty_tag) = &content {
+            Some(empty_tag.clone())
+        } else {
+            None
+        };
+
+        Self::construct_document(input, prolog, start_tag, content, end_tag, empty_tag)
     }
 
     fn construct_document(
         input: &'a str,
         prolog: Option<Document<'a>>,
-        start_tag: Tag<'a>,
+        start_tag: Option<Tag<'a>>,
         content: Document<'a>,
-        end_tag: Tag<'a>,
+        end_tag: Option<Tag<'a>>,
+        empty_tag: Option<Tag<'a>>,
     ) -> IResult<&'a str, Document<'a>> {
-        match (&start_tag, &end_tag) {
-            (
-                Tag {
-                    name: start_name, ..
-                },
-                Tag { name: end_name, .. },
-            ) if start_name == end_name => {
+        println!("\nCONSTRUCTING DOCUMENT. Input: {input}");
+        println!("START TAG: {start_tag:?}");
+        println!("CONTENT: {content:?}");
+        println!("END TAG: {end_tag:?}");
+        println!("EMPTY TAG: {empty_tag:?}");
+
+        match (start_tag, end_tag, &content, empty_tag) {
+            (Some(start), Some(end), _, None) => {
+                if start.name != end.name {
+                    return Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )));
+                }
+
                 let document = match prolog {
                     Some(prolog) => Document::Nested(vec![
                         prolog,
-                        Document::Element(start_tag.clone(), Box::new(content), end_tag.clone()),
+                        Document::Element(start.clone(), Box::new(content), end.clone()),
                     ]),
-                    None => {
-                        Document::Element(start_tag.clone(), Box::new(content), end_tag.clone())
+                    None => Document::Element(start.clone(), Box::new(content), end.clone()),
+                };
+
+                Ok((input, document))
+            }
+            (Some(_), None, Document::Element(start, inner_content, end), None) => {
+                if start.name != end.name {
+                    return Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )));
+                }
+
+                let document = match prolog {
+                    Some(prolog) => Document::Nested(vec![
+                        prolog,
+                        Document::Element(start.clone(), inner_content.clone(), end.clone()),
+                    ]),
+                    None => Document::Element(start.clone(), inner_content.clone(), end.clone()),
+                };
+
+                Ok((input, document))
+            }
+            (None, None, Document::Element(start, inner_content, end), None) => {
+                if start.name != end.name {
+                    return Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )));
+                }
+
+                let document = match prolog {
+                    Some(prolog) => Document::Nested(vec![
+                        prolog,
+                        Document::Element(start.clone(), inner_content.clone(), end.clone()),
+                    ]),
+                    None => Document::Element(start.clone(), inner_content.clone(), end.clone()),
+                };
+
+                Ok((input, document))
+            }
+            (None, None, _, Some(empty)) => {
+                let document = match prolog {
+                    Some(prolog) => {
+                        Document::Nested(vec![prolog, Document::EmptyTag(empty.clone())])
                     }
+                    None => Document::EmptyTag(empty.clone()),
                 };
 
                 Ok((input, document))

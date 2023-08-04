@@ -183,6 +183,11 @@ impl<'a> Document<'a> {
             Document::Empty => {
                 fmt_indented(f, indent, "Empty,\n");
             }
+            Document::EmptyTag(tag) => {
+                fmt_indented(f, indent, "EmptyTag(\n");
+                tag.fmt_indented_tag(f, indent + 4);
+                fmt_indented(f, indent, "),\n");
+            }
             Document::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
                 fmt_indented(f, indent + 4, &format!("target: \"{:?}\",\n", target));

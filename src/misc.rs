@@ -20,7 +20,7 @@ impl<'a> Misc<'a> {
     pub fn parse(input: &'a str, state: MiscState) -> IResult<&'a str, Self> {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document<'a>> = vec![];
-
+        println!("\n\nPARSING MISC");
         loop {
             let parse_result = alt((
                 Document::parse_comment,
@@ -53,7 +53,7 @@ impl<'a> Misc<'a> {
         }
 
         let content = Box::new(Document::Nested(content_vec));
-
+        println!("PARSED MISC");
         Ok((input_remaining, Misc { content, state }))
     }
 }
