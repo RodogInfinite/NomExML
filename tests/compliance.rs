@@ -3,6 +3,7 @@ use std::{borrow::Cow, error::Error, fs::File};
 use nom_xml::{
     attribute::{AttType, Attribute, DefaultDecl},
     io::parse_file,
+    misc::{Misc, MiscState},
     processing_instruction::ProcessingInstruction,
     prolog::{
         content_particle::ContentParticle,
@@ -1723,6 +1724,184 @@ fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
                 attributes: None,
                 state: TagState::Empty,
             },),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("036")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                }
+            ),
+            Document::ProcessingInstruction(ProcessingInstruction {
+                target: QualifiedName::new(None, "pi"),
+                data: Some("data".into()),
+            }),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("037")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                }
+            ),
+            Document::Comment(" comment ".into()),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("038")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: Some(vec![Misc {
+                    content: Box::new(Document::Nested(vec![Document::Comment(
+                        " comment ".into()
+                    )])),
+                    state: MiscState::BeforeDoctype,
+                },]),
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                }
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("039")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: Some(vec![Misc {
+                    content: Box::new(Document::Nested(vec![Document::ProcessingInstruction(
+                        ProcessingInstruction {
+                            target: QualifiedName::new(None, "pi"),
+                            data: Some("data".into()),
+                        },
+                    )])),
+                    state: MiscState::BeforeDoctype,
+                },]),
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                }
+            ),
         ]),
     );
     Ok(())
