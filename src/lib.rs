@@ -21,19 +21,19 @@ use crate::{misc::Misc, parse::Parse};
 use attribute::Attribute;
 
 use namespaces::ParseNamespace;
-use nom::combinator::{complete, peek, value};
+use nom::combinator::value;
 use nom::multi::many1;
-use nom::sequence::delimited;
+
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
-    combinator::{map, not, opt, verify},
+    combinator::{map, not, opt},
     multi::{many0, many_till},
     sequence::{pair, tuple},
     IResult,
 };
 use prolog::internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset};
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::ops::Deref;
@@ -518,6 +518,7 @@ impl<'a> Document<'a> {
                 for attribute in attributes {
                     if let Attribute::Instance { name, value } = attribute {
                         let attr_name = name.local_part.to_string();
+                        println!("\n\nVALUE IS HERE !!!!!!!!!!!!!!!!!!!!!!: {value}");
                         let attr_value = value.to_string();
                         results.insert(attr_name, attr_value);
                     }

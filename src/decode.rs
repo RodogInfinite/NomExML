@@ -3,11 +3,7 @@
 use std::borrow::Cow;
 
 use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_until, take_while1},
-    combinator::opt,
     error::{Error, ErrorKind},
-    sequence::delimited,
     IResult,
 };
 

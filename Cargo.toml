@@ -10,6 +10,7 @@ repository = "https://github.com/RodogInfinite/NomExML"
 readme = "README.md"
 
 [dependencies]
+encoding_rs = "0.8.32"
 nom.workspace = true
 rayon = "1.7.0"
 serde = { version = "1.0", features = ["derive"] }

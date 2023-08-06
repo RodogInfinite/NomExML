@@ -13,7 +13,7 @@ use nom::{
 
 use crate::parse::Parse;
 use crate::{
-    decode::{decode_digit, decode_hex, Decode},
+    decode::{decode_digit, decode_hex},
     Name,
 };
 
@@ -30,6 +30,15 @@ impl<'a> Parse<'a> for Reference<'a> {
     //[67] Reference ::= EntityRef | CharRef
     fn parse(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
+    }
+}
+
+impl<'a> Reference<'a> {
+    pub fn normalize(&self) -> Cow<'a, str> {
+        match self {
+            Reference::EntityRef(name) => Cow::Owned(name.local_part.to_string()),
+            Reference::CharRef { value, .. } => Cow::Owned(value.to_string()),
+        }
     }
 }
 

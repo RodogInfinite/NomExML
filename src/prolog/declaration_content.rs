@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{map, opt},
-    multi::{many0, many1},
+    multi::many0,
     sequence::{delimited, tuple},
     IResult,
 };

@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 
 use nom::{
     branch::alt,
@@ -10,7 +9,7 @@ use nom::{
     IResult,
 };
 
-use crate::{attribute::Attribute, namespaces::ParseNamespace, parse::Parse, Name, QualifiedName};
+use crate::{attribute::Attribute, namespaces::ParseNamespace, parse::Parse, Name};
 
 #[derive(Clone, Debug, PartialEq)]
 
@@ -40,7 +39,7 @@ impl<'a> Tag<'a> {
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 many0(pair(
                     Self::parse_multispace1,
-                    Attribute::parse_qualified_attribute,
+                    Attribute::parse_qualified_attribute, //TODO merge behavior with parse_attribute
                 )),
                 Self::parse_multispace0,
                 char('>'),

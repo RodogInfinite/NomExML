@@ -1,4 +1,3 @@
-use core::panic;
 use std::borrow::Cow;
 
 use crate::{namespaces::ParseNamespace, parse::Parse, reference::Reference, Name, QualifiedName};
@@ -98,9 +97,7 @@ impl<'a> Attribute<'a> {
                 tag("\""),
                 many0(alt((
                     map(is_not("<&\""), Cow::Borrowed),
-                    map(Reference::parse, |reference| {
-                        Cow::Owned(format!("{:?}", reference))
-                    }),
+                    map(Reference::parse, |reference| reference.normalize()),
                 ))),
                 tag("\""),
             ),
@@ -108,14 +105,31 @@ impl<'a> Attribute<'a> {
                 tag("'"),
                 many0(alt((
                     map(is_not("<&'"), Cow::Borrowed),
-                    map(Reference::parse, |reference| {
-                        Cow::Owned(format!("{:?}", reference))
-                    }),
+                    map(Reference::parse, |reference| reference.normalize()),
                 ))),
                 char('\''),
             ),
         ))(input)
-        .map(|(remaining, contents)| (remaining, Cow::Owned(contents.concat())))
+        .map(|(remaining, contents)| {
+            let mut buffer = contents
+                .into_iter()
+                .flat_map(|cow| cow.chars().collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+
+            // End-of-Line Handling: https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
+            let mut i = 0;
+            while i < buffer.len() {
+                if buffer[i] == '\r' {
+                    if i + 1 < buffer.len() && buffer[i + 1] == '\n' {
+                        buffer.remove(i);
+                    } else {
+                        buffer[i] = '\n';
+                    }
+                }
+                i += 1;
+            }
+            (remaining, Cow::Owned(buffer.into_iter().collect()))
+        })
     }
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue

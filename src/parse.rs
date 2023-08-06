@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::{decode::Decode, Name, QualifiedName};
+use crate::{decode::Decode, Name};
 
 pub trait Parse<'a>: Sized {
     fn parse(_input: &'a str) -> IResult<&'a str, Self> {

@@ -11,8 +11,8 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     combinator::{map, opt},
-    multi::{many0, many1},
-    sequence::{delimited, pair, tuple},
+    multi::many0,
+    sequence::{delimited, tuple},
     IResult,
 };
 use std::borrow::Cow;
@@ -176,20 +176,31 @@ impl<'a> InternalSubset<'a> {
         let (input, parsed) =
             many0(tuple((Self::parse_markup_decl, opt(Self::parse_decl_sep))))(input)?;
 
-        let parsed: Vec<InternalSubset<'a>> = parsed
-            .into_iter()
-            .flat_map(|(markup, opt_decl_sep)| {
-                let mut res = vec![markup];
-                if let Some(Some(decl_sep)) = opt_decl_sep {
-                    res.push(decl_sep);
+        let mut consolidated: Vec<InternalSubset<'a>> = vec![];
+        for (markup, opt_decl_sep) in parsed {
+            if let InternalSubset::AttList {
+                name,
+                att_defs: Some(new_defs),
+            } = &markup
+            {
+                if let Some(existing) = consolidated.iter_mut().find(|i| {
+                    matches!(i, InternalSubset::AttList { name: existing_name, .. } if *existing_name == *name)
+                }) {
+                    if let InternalSubset::AttList { att_defs: Some(existing_defs), .. } = existing {
+                        existing_defs.extend(new_defs.clone());  // note that you might need to clone new_defs
+                    }
+                    continue;
                 }
-                res
-            })
-            .collect();
+            }
+            consolidated.push(markup);
+            if let Some(Some(decl_sep)) = opt_decl_sep {
+                consolidated.push(decl_sep);
+            }
+        }
 
-        println!("PARSED INTERNAL SUBSET: {:?}", parsed);
+        println!("PARSED INTERNAL SUBSET: {:?}", consolidated);
         println!("INPUT AFTER PARSED INTERNAL SUBSET: {}", input);
-        Ok((input, parsed))
+        Ok((input, consolidated))
     }
 
     // [28a] DeclSep ::=  S | PEReference
