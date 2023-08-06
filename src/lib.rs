@@ -169,10 +169,13 @@ impl<'a> Document<'a> {
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
                 |(_, start_tag, content, end_tag, _)| {
+                    // should we do an if content starts with "<" or peek(char('<')) then parse_content or parse_element
+
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),
         ))(input)?;
+
         Ok((input, doc))
     }
     pub fn process_references(
@@ -197,7 +200,8 @@ impl<'a> Document<'a> {
                     Reference::CharRef { value, .. } => value,
                 })
                 .collect();
-            println!("CONTENT: {}", content);
+            println!("CONTENT!: {}", content);
+
             Document::Content(Some(Cow::Owned(content)))
         }
     }
@@ -237,11 +241,11 @@ impl<'a> Document<'a> {
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
-                println!("DOC: {:?}", doc);
+                println!("DOC!: {:?}", doc);
                 vec.push(doc);
                 if let (_, Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
-                        println!("CHARDATA: {:?}", chardata);
+                        println!("CONTENT!?: {chardata}");
                         vec.push(Document::Content(Some(chardata)));
                     }
                 }
@@ -254,6 +258,7 @@ impl<'a> Document<'a> {
             match maybe_chardata {
                 Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
+                    println!("CHARDATA: {:?}", chardata);
                     vec.push(Document::Content(Some(chardata)));
                     vec.append(&mut content);
                     match vec.as_slice() {
@@ -266,7 +271,10 @@ impl<'a> Document<'a> {
                         Document::Empty
                     } else {
                         match &content[..] {
-                            [doc @ Document::Content(_)] => doc.clone(),
+                            [doc @ Document::Content(_)] => {
+                                println!("CONTENT?: {doc:?}");
+                                doc.clone()
+                            }
                             [doc @ Document::ProcessingInstruction(_)] => doc.clone(),
                             [doc @ Document::CDATA(_)] => doc.clone(),
                             [doc @ Document::Comment(_)] => doc.clone(),

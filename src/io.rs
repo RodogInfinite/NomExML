@@ -30,6 +30,7 @@ fn read_file(file: &mut File) -> std::io::Result<String> {
 pub fn parse_file(file: &mut File) -> Result<Document<'static>, CustomError> {
     let mut content = read_file(file)?;
     content = content.replace("\r\n", "\n");
+    // TODO: consider major refactor to avoid global cache leaking
     let content = Box::leak(content.into_boxed_str());
     let (_, document) = Document::parse_xml_str(content).map_err(|err| match err {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
