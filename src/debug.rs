@@ -39,8 +39,12 @@ impl<'a> Tag<'a> {
         } = self;
 
         fmt_indented(f, indent, "Tag {\n");
-        fmt_indented(f, indent + 4, "name: ");
-        name.fmt_qualified_name(f, indent + 4); // Using new fmt_qualified_name here
+        fmt_indented(
+            f,
+            indent + 4,
+            &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
+        );
+        // Removed the extra line here
 
         fmt_indented(f, indent + 4, "attributes: ");
 
@@ -63,27 +67,33 @@ impl<'a> Tag<'a> {
 
 impl<'a> fmt::Debug for QualifiedName<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut s = String::new();
-        self.fmt_qualified_name(&mut s, 0);
-        write!(f, "{}", s)
+        write!(f, "{}", self.fmt_qualified_name(0))
     }
 }
 
 impl<'a> QualifiedName<'a> {
-    fn fmt_qualified_name(&self, f: &mut String, indent: usize) {
+    fn fmt_qualified_name(&self, indent: usize) -> String {
         let QualifiedName { prefix, local_part } = self;
-        f.push_str("QualifiedName{\n");
-        //fmt_indented(f, indent, "QualifiedName {\n");
+        let mut f = String::new();
+
+        fmt_indented(&mut f, indent, "QualifiedName {\n");
+
         match prefix {
             Some(p) => {
-                fmt_indented(f, indent + 4, &format!("prefix: Some(\"{}\"),\n", p));
+                fmt_indented(&mut f, indent + 4, &format!("prefix: Some(\"{}\"),\n", p));
             }
             None => {
-                fmt_indented(f, indent + 4, "prefix: None,\n");
+                fmt_indented(&mut f, indent + 4, "prefix: None,\n");
             }
         }
-        fmt_indented(f, indent + 4, &format!("local_part: \"{}\",\n", local_part));
-        fmt_indented(f, indent, "},\n");
+        fmt_indented(
+            &mut f,
+            indent + 4,
+            &format!("local_part: \"{}\",\n", local_part),
+        );
+        fmt_indented(&mut f, indent, "},");
+
+        f
     }
 }
 
@@ -188,6 +198,7 @@ impl<'a> Document<'a> {
                 tag.fmt_indented_tag(f, indent + 4);
                 fmt_indented(f, indent, "),\n");
             }
+
             Document::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
                 fmt_indented(f, indent + 4, &format!("target: \"{:?}\",\n", target));
@@ -288,7 +299,7 @@ impl<'a> ContentParticle<'a> {
         match self {
             ContentParticle::Name(name, conditional_state) => {
                 fmt_indented(f, indent, "Name {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, &format!("name: {:?}\n", name));
                 fmt_indented(
                     f,
                     indent + 4,
@@ -364,7 +375,11 @@ impl<'a> std::fmt::Debug for DocType<'a> {
 impl<'a> DocType<'a> {
     fn fmt_indented_doc_type(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "DocType {\n");
-        fmt_indented(f, indent + 4, &format!("name: {:?},\n", self.name));
+        fmt_indented(
+            f,
+            indent + 4,
+            &format!("name: \n{}\n", self.name.fmt_qualified_name(indent + 8)),
+        );
         fmt_indented(
             f,
             indent + 4,
@@ -384,7 +399,11 @@ impl<'a> InternalSubset<'a> {
         match self {
             InternalSubset::Element { name, content_spec } => {
                 fmt_indented(f, indent, "Element {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
+                );
                 fmt_indented(f, indent + 4, "content_spec: ");
                 match content_spec {
                     Some(spec) => {
@@ -397,9 +416,14 @@ impl<'a> InternalSubset<'a> {
                 }
                 fmt_indented(f, indent, "},\n");
             }
+
             InternalSubset::AttList { name, att_defs } => {
                 fmt_indented(f, indent, "AttList {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
+                );
                 fmt_indented(f, indent + 4, "att_defs: [\n");
                 if let Some(def) = att_defs {
                     for def_item in def.iter() {
@@ -409,6 +433,7 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
+
             InternalSubset::Entity(entity_declaration) => {
                 match entity_declaration {
                     EntityDeclaration::General(general_declaration) => {
@@ -468,7 +493,11 @@ impl<'a> Attribute<'a> {
                 default_decl,
             } => {
                 fmt_indented(f, indent, "Definition {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
+                );
                 fmt_indented(f, indent + 4, &format!("att_type: {:?},\n", att_type));
                 fmt_indented(
                     f,
@@ -488,7 +517,7 @@ impl<'a> Attribute<'a> {
             }
             Attribute::Instance { name, value } => {
                 fmt_indented(f, indent, "Instance {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?},\n", name));
+                fmt_indented(f, indent + 4, &format!("name: {:?}\n", name));
                 fmt_indented(f, indent + 4, &format!("value: {:?},\n", value));
                 fmt_indented(f, indent, "},\n");
             }
