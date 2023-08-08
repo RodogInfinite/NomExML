@@ -5,7 +5,7 @@ use crate::{
     parse::Parse,
     processing_instruction::ProcessingInstruction,
     reference::{ParseReference, Reference},
-    Name, QualifiedName,
+    Document, Name, QualifiedName,
 };
 use nom::{
     branch::alt,
@@ -15,7 +15,7 @@ use nom::{
     sequence::{delimited, tuple},
     IResult,
 };
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub enum EntityValue<'a> {
@@ -49,7 +49,6 @@ impl<'a> EntityValue<'a> {
     }
 }
 
-// [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
 #[derive(Clone, PartialEq)]
 pub struct GeneralEntityDeclaration<'a> {
     pub name: Name<'a>,
@@ -74,7 +73,6 @@ impl<'a> GeneralEntityDeclaration<'a> {
     }
 }
 
-// [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
 #[derive(Clone, PartialEq)]
 pub enum EntityDefinition<'a> {
     EntityValue(EntityValue<'a>),
@@ -102,7 +100,6 @@ impl<'a> EntityDefinition<'a> {
     }
 }
 
-// [74] PEDef ::= EntityValue | ExternalID
 #[derive(Clone, Debug, PartialEq)]
 pub enum ParameterEntityDefinition<'a> {
     EntityValue(EntityValue<'a>),
@@ -153,6 +150,7 @@ pub enum InternalSubset<'a> {
     Entity(EntityDeclaration<'a>),
     DeclSep(Reference<'a>),
     ProcessingInstruction(ProcessingInstruction<'a>),
+    Comment(Document<'a>),
 }
 
 impl<'a> InternalSubset<'a> {
@@ -164,17 +162,19 @@ impl<'a> InternalSubset<'a> {
     }
 }
 
-impl<'a> Parse<'a> for InternalSubset<'a> {}
 impl<'a> ParseNamespace<'a> for InternalSubset<'a> {}
 
-impl<'a> InternalSubset<'a> {
-    // [28b] intSubset ::= (markupdecl | DeclSep)*
-    pub fn parse_internal_subset(input: &'a str) -> IResult<&'a str, Vec<InternalSubset<'a>>> {
+impl<'a> Parse<'a> for InternalSubset<'a> {
+    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+    type Output = IResult<&'a str, Vec<InternalSubset<'a>>>;
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         println!("\n-----\nPARSING INTERNAL SUBSET");
         println!("INITIAL PARSE INTERNAL SUBSET INPUT: {}", input);
 
-        let (input, parsed) =
-            many0(tuple((Self::parse_markup_decl, opt(Self::parse_decl_sep))))(input)?;
+        let (input, parsed) = many0(tuple((
+            |i| Self::parse_markup_decl(i, args.clone()),
+            opt(Self::parse_decl_sep),
+        )))(input)?;
 
         let mut consolidated: Vec<InternalSubset<'a>> = vec![];
         for (markup, opt_decl_sep) in parsed {
@@ -202,7 +202,8 @@ impl<'a> InternalSubset<'a> {
         println!("INPUT AFTER PARSED INTERNAL SUBSET: {}", input);
         Ok((input, consolidated))
     }
-
+}
+impl<'a> InternalSubset<'a> {
     // [28a] DeclSep ::=  S | PEReference
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
         alt((
@@ -223,7 +224,7 @@ impl<'a> InternalSubset<'a> {
         println!("PARSED ELEMENT DECL NAME: {name:?}");
         let (input, _) = Self::parse_multispace1(input)?;
         println!("BEFORE CONTENT SPEC INPUT: {input}");
-        let (input, content_spec) = DeclarationContent::parse(input)?;
+        let (input, content_spec) = DeclarationContent::parse(input, ())?;
         println!("PARSED CONTENT SPEC: {content_spec:?}");
         let (input, _) = Self::parse_multispace0(input)?;
         println!("BEFORE TAG INPUT: {input}");
@@ -240,7 +241,7 @@ impl<'a> InternalSubset<'a> {
 
     fn parse_processing_instruction(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         println!("\n-----\nPARSING PROCESSING INSTRUCTION");
-        let (input, processing_instruction) = ProcessingInstruction::parse(input)?;
+        let (input, processing_instruction) = ProcessingInstruction::parse(input, ())?;
         println!("PARSED PROCESSING INSTRUCTION\n");
         Ok((
             input,
@@ -249,11 +250,15 @@ impl<'a> InternalSubset<'a> {
     }
     // [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
     // Namespaces (Third Edition) [20] AttlistDecl ::= '<!ATTLIST' S QName AttDef* S? '>'
-    pub fn parse_attlist_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+    pub fn parse_attlist_declaration(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
         let (input, _) = tag("<!ATTLIST")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = alt((Self::parse_name, Self::parse_qualified_name))(input)?;
-        let (input, att_defs) = many0(Attribute::parse_definition)(input)?;
+        let (input, att_defs) =
+            many0(|i| Attribute::parse_definition(i, entity_references.clone()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
         Ok((
@@ -266,14 +271,20 @@ impl<'a> InternalSubset<'a> {
     }
 
     // [70] EntityDecl ::= GEDecl | PEDecl
-    fn parse_entity(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+    fn parse_entity(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
         alt((
-            Self::parse_general_entity_declaration,
-            Self::parse_parameter_entity_declaration,
+            |i| Self::parse_general_entity_declaration(i, entity_references.clone()),
+            |i| Self::parse_parameter_entity_declaration(i, entity_references.clone()),
         ))(input)
     }
     // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
-    fn parse_general_entity_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+    fn parse_general_entity_declaration(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
         println!("\n-----\nPARSING GENERAL ENTITY DECLARATION");
         println!("GEN ENTITY DECL INPUT: {input:?}\n");
         let (input, _) = tag("<!ENTITY")(input)?;
@@ -283,7 +294,7 @@ impl<'a> InternalSubset<'a> {
         let (input, name) = Self::parse_name(input)?;
         println!("GENERAL ENTITY DECL NAME: {name:?}");
         let (input, _) = Self::parse_multispace1(input)?;
-        let (input, entity_def) = Self::parse_entity_def(input)?;
+        let (input, entity_def) = Self::parse_entity_def(input, entity_references.clone())?;
         println!("PARSED ENTITY DEF");
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
@@ -298,7 +309,10 @@ impl<'a> InternalSubset<'a> {
     }
 
     // [72]    PEDecl ::=    '<!ENTITY' S '%' S Name S PEDef S? '>'
-    fn parse_parameter_entity_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+    fn parse_parameter_entity_declaration(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
         println!("\n-----\nPARSING PARAMETER ENTITY DECLARATION");
         let (input, _) = tag("<!ENTITY")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
@@ -306,7 +320,7 @@ impl<'a> InternalSubset<'a> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
-        let (input, pedef) = Self::parse_parameter_definition(input)?;
+        let (input, pedef) = Self::parse_parameter_definition(input, entity_references.clone())?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
         println!("PARSED PARAMETER ENTITY DECLARATION");
@@ -319,24 +333,37 @@ impl<'a> InternalSubset<'a> {
     // [74] PEDef ::= EntityValue | ExternalID
     fn parse_parameter_definition(
         input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, ParameterEntityDefinition<'a>> {
         alt((
             map(
-                Self::parse_entity_value,
+                |i| Self::parse_entity_value(i, entity_references.clone()),
                 ParameterEntityDefinition::EntityValue,
             ),
-            map(ExternalID::parse, ParameterEntityDefinition::ExternalID),
+            map(
+                |i| ExternalID::parse(i, ()),
+                ParameterEntityDefinition::ExternalID,
+            ),
         ))(input)
     }
 
     //TODO: dig into this, this is probably causing the failure
     // [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
-    fn parse_entity_def(input: &'a str) -> IResult<&'a str, EntityDefinition<'a>> {
+    fn parse_entity_def(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, EntityDefinition<'a>> {
         println!("PARSING ENTITY DEF");
         alt((
-            map(Self::parse_entity_value, EntityDefinition::EntityValue),
             map(
-                tuple((ExternalID::parse, opt(Self::parse_ndata_declaration))),
+                |i| Self::parse_entity_value(i, entity_references.clone()),
+                EntityDefinition::EntityValue,
+            ),
+            map(
+                tuple((
+                    |i| ExternalID::parse(i, ()),
+                    opt(Self::parse_ndata_declaration),
+                )),
                 |(id, n_data)| EntityDefinition::External { id, n_data },
             ),
         ))(input)
@@ -353,23 +380,24 @@ impl<'a> InternalSubset<'a> {
     }
 
     // [9] EntityValue	::= '"' ([^%&"] | PEReference | Reference)* '"'|  "'" ([^%&'] | PEReference | Reference)* "'"
-    fn parse_entity_value(input: &'a str) -> IResult<&'a str, EntityValue<'a>> {
+    fn parse_entity_value(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, EntityValue<'a>> {
         println!("\n-----\nPARSING ENTITY VALUE");
         let (input, data) = alt((
             delimited(
                 tag("\""),
-                many0(alt((
-                    map(is_not("%&\""), ToString::to_string),
-                    Self::parse_entity_content,
-                ))),
+                many0(alt((map(is_not("%&\""), ToString::to_string), |i| {
+                    Self::parse_entity_content(i, entity_references.clone())
+                }))),
                 tag("\""),
             ),
             delimited(
                 tag("\'"),
-                many0(alt((
-                    map(is_not("%&'"), ToString::to_string),
-                    Self::parse_entity_content,
-                ))),
+                many0(alt((map(is_not("%&'"), ToString::to_string), |i| {
+                    Self::parse_entity_content(i, entity_references.clone())
+                }))),
                 tag("\'"),
             ),
         ))(input)?;
@@ -378,8 +406,11 @@ impl<'a> InternalSubset<'a> {
         Ok((input, EntityValue::Value(Cow::Owned(value))))
     }
 
-    fn parse_entity_content(input: &'a str) -> IResult<&'a str, String> {
-        let (input, reference) = Reference::parse(input)?;
+    fn parse_entity_content(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, String> {
+        let (input, reference) = Reference::parse(input, entity_references.clone())?;
         let result = match reference {
             Reference::EntityRef(value) => value.local_part.into_owned(),
             Reference::CharRef { value, .. } => value.into_owned(),
@@ -390,26 +421,47 @@ impl<'a> InternalSubset<'a> {
     // [74] PEDef ::= EntityValue | ExternalID
     fn parse_perameter_definition(
         input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, ParameterEntityDefinition<'a>> {
         alt((
             map(
-                Self::parse_entity_value,
+                |i| Self::parse_entity_value(i, entity_references.clone()),
                 ParameterEntityDefinition::EntityValue,
             ),
-            map(ExternalID::parse, ParameterEntityDefinition::ExternalID),
+            map(
+                |i| ExternalID::parse(i, ()),
+                ParameterEntityDefinition::ExternalID,
+            ),
         ))(input)
     }
 
+    fn parse_comment(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+        let (remaining, doc) = Document::parse_comment(input)?;
+        match doc {
+            Document::Comment(comment) => Ok((
+                remaining,
+                InternalSubset::Comment(Document::Comment(comment)),
+            )),
+            _ => Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Verify,
+            ))),
+        }
+    }
+
     // [29] markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
-    fn parse_markup_decl(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
+    fn parse_markup_decl(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, InternalSubset<'a>> {
         println!("PARSING MARKUP DECL INPUT: {input}");
         alt((
             Self::parse_element_declaration,
-            Self::parse_attlist_declaration,
-            Self::parse_entity,
+            |i| Self::parse_attlist_declaration(i, entity_references.clone()),
+            |i| Self::parse_entity(i, entity_references.clone()),
             //Self::parse_notation,
             Self::parse_processing_instruction,
-            //Self::parse_comment,
+            Self::parse_comment,
         ))(input)
     }
 }

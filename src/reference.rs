@@ -1,6 +1,6 @@
 // reference.rs
 
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
 
 use nom::{
     branch::alt,
@@ -11,11 +11,11 @@ use nom::{
     IResult,
 };
 
-use crate::parse::Parse;
 use crate::{
     decode::{decode_digit, decode_hex},
     Name,
 };
+use crate::{parse::Parse, prolog::internal_subset::EntityValue};
 
 #[derive(Clone, PartialEq)]
 pub enum Reference<'a> {
@@ -27,16 +27,27 @@ pub enum Reference<'a> {
 }
 
 impl<'a> Parse<'a> for Reference<'a> {
+    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+    type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
-    fn parse(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
 }
 
 impl<'a> Reference<'a> {
-    pub fn normalize(&self) -> Cow<'a, str> {
+    pub fn normalize(
+        &self,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> Cow<'a, str> {
         match self {
-            Reference::EntityRef(name) => Cow::Owned(name.local_part.to_string()),
+            Reference::EntityRef(name) => {
+                let refs_map = entity_references.borrow();
+                if let Some(EntityValue::Value(value)) = refs_map.get(name) {
+                    return value.clone();
+                }
+                Cow::Owned(name.local_part.to_string())
+            }
             Reference::CharRef { value, .. } => Cow::Owned(value.to_string()),
         }
     }
@@ -53,6 +64,7 @@ pub enum CharRefState {
 pub trait ParseReference<'a>: Parse<'a> {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+        //TODO: decode here?
         println!("\n-----\nPARSING ENTITY REFERENCE");
         let (input, _) = tag("&")(input)?;
         let (input, name) = Self::parse_name(input)?;

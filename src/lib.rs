@@ -34,6 +34,7 @@ use nom::{
 };
 use prolog::internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset};
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::ops::Deref;
@@ -56,33 +57,39 @@ pub enum Document<'a> {
     CDATA(Cow<'a, str>),
 }
 
-impl<'a> Parse<'a> for Document<'a> {}
+impl<'a> Parse<'a> for Document<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
+}
 
 impl<'a> Document<'a> {
     //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
     pub fn parse_prolog(
         input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<
         &'a str,
         (
             Option<Document<'a>>,
-            Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
+            Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
         ),
     > {
-        let (input, xml_decl) = opt(XmlDecl::parse)(input)?;
-        let (input, _) = Self::parse_multispace0(input)?; // Not strictly in the spec, but allows whitespace after XmlDecl for human readability
+        let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
+        let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
+
         println!("Attempting to parse doctype");
-        let (input, doc_type) = opt(DocType::parse)(input)?;
-        let entity_references = match &doc_type {
-            Some(dt) => Self::collect_entity_references(dt),
-            None => None,
-        };
+        let (input, doc_type) = opt(|i| DocType::parse(i, entity_references.clone()))(input)?;
 
         let (input, misc_after) = match &doc_type {
             Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
             None => (input, None),
+        };
+
+        let updated_entity_references = match &doc_type {
+            Some(dt) => Self::collect_entity_references(dt, entity_references.clone()),
+            None => entity_references.clone(),
         };
 
         let miscs: Vec<Option<Misc<'a>>> = vec![misc_before, misc_after];
@@ -97,31 +104,34 @@ impl<'a> Document<'a> {
                 doc_type,
             }),
         };
-        println!("PROLOG: {prolog:?}");
-        Ok((input, (prolog, entity_references)))
+
+        println!("PROLOG: {:?}", prolog);
+        Ok((input, (prolog, updated_entity_references)))
     }
 
     fn collect_entity_references(
         doc_type: &DocType<'a>,
-    ) -> Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>> {
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>> {
         println!("COLLECTING ENTITY REFERENCES");
-        let mut entity_references = HashMap::new();
 
         if let Some(int_subset) = &doc_type.int_subset {
             for internal_subset in int_subset {
                 if let InternalSubset::Entity(EntityDeclaration::General(decl)) = internal_subset {
                     if let EntityDefinition::EntityValue(value) = &decl.entity_def {
-                        println!("Adding entity {} to references", decl.name.local_part); // Add debug output here
-                        entity_references.insert(decl.name.clone(), value.clone());
+                        println!("Adding entity {} to references", decl.name.local_part);
+                        entity_references
+                            .borrow_mut()
+                            .insert(decl.name.clone(), value.clone());
                     }
                 }
             }
         }
 
-        if entity_references.is_empty() {
-            None
+        if entity_references.borrow().is_empty() {
+            Rc::new(RefCell::new(HashMap::new()))
         } else {
-            Some(Rc::new(entity_references))
+            entity_references
         }
     }
 
@@ -153,24 +163,24 @@ impl<'a> Document<'a> {
     // [39] element	::= EmptyElemTag | STag content ETag
     pub fn parse_element(
         input: &'a str,
-        entity_references: Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
         println!("PARSING ELEMENT");
         let (input, doc) = alt((
-            map(Tag::parse_empty_element_tag, |tag| {
-                Document::EmptyTag(tag.clone())
-            }),
+            map(
+                |i| Tag::parse_empty_element_tag(i, entity_references.clone()),
+                |tag| Document::EmptyTag(tag.clone()),
+            ),
             map(
                 tuple((
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
-                    Tag::parse_start_tag,
+                    |i| Tag::parse_start_tag(i, entity_references.clone()),
                     |i| Self::parse_content(i, entity_references.clone()),
                     Tag::parse_end_tag,
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
                 |(_, start_tag, content, end_tag, _)| {
                     // should we do an if content starts with "<" or peek(char('<')) then parse_content or parse_element
-
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),
@@ -178,30 +188,17 @@ impl<'a> Document<'a> {
 
         Ok((input, doc))
     }
+
     pub fn process_references(
-        entity_references: Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> impl Fn(Vec<Reference<'a>>) -> Document<'a> + 'a {
         println!("\nxxxxx\nPROCESSING REFERENCES");
         move |references| {
             let content: String = references
                 .into_iter()
-                .map(|reference| match reference {
-                    Reference::EntityRef(name) => {
-                        if let Some(refs) = &entity_references {
-                            if let Some(EntityValue::Value(value)) = refs.deref().get(&name) {
-                                value.clone()
-                            } else {
-                                name.local_part.clone()
-                            }
-                        } else {
-                            name.local_part
-                        }
-                    }
-                    Reference::CharRef { value, .. } => value,
-                })
+                .map(|reference| reference.normalize(entity_references.clone()))
                 .collect();
-            println!("CONTENT!: {}", content);
-
+            println!("References CONTENT: {}", content);
             Document::Content(Some(Cow::Owned(content)))
         }
     }
@@ -210,7 +207,7 @@ impl<'a> Document<'a> {
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     fn parse_content(
         input: &'a str,
-        entity_references: Option<Rc<HashMap<Name<'a>, EntityValue<'a>>>>,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
         let (input, ((_, maybe_chardata), elements)) = tuple((
             pair(
@@ -221,12 +218,12 @@ impl<'a> Document<'a> {
                 alt((
                     |i| Self::parse_element(i, entity_references.clone()),
                     map(
-                        many1(Reference::parse),
+                        many1(|i| Reference::parse(i, entity_references.clone())),
                         Self::process_references(entity_references.clone()),
                     ),
                     Self::parse_cdata_section,
                     map(
-                        ProcessingInstruction::parse,
+                        |i| ProcessingInstruction::parse(i, ()),
                         Document::ProcessingInstruction,
                     ),
                     Self::parse_comment,
@@ -241,11 +238,11 @@ impl<'a> Document<'a> {
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
-                println!("DOC!: {:?}", doc);
+                println!("DOC: {:?}", doc);
                 vec.push(doc);
                 if let (_, Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
-                        println!("CONTENT!?: {chardata}");
+                        println!("CHARDATA1: {:?}", chardata);
                         vec.push(Document::Content(Some(chardata)));
                     }
                 }
@@ -258,7 +255,7 @@ impl<'a> Document<'a> {
             match maybe_chardata {
                 Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
-                    println!("CHARDATA: {:?}", chardata);
+                    println!("CHARDATA2: {:?}", chardata);
                     vec.push(Document::Content(Some(chardata)));
                     vec.append(&mut content);
                     match vec.as_slice() {
@@ -271,10 +268,7 @@ impl<'a> Document<'a> {
                         Document::Empty
                     } else {
                         match &content[..] {
-                            [doc @ Document::Content(_)] => {
-                                println!("CONTENT?: {doc:?}");
-                                doc.clone()
-                            }
+                            [doc @ Document::Content(_)] => doc.clone(),
                             [doc @ Document::ProcessingInstruction(_)] => doc.clone(),
                             [doc @ Document::CDATA(_)] => doc.clone(),
                             [doc @ Document::Comment(_)] => doc.clone(),
@@ -289,32 +283,43 @@ impl<'a> Document<'a> {
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
+        println!("PARSING COMMENT: {input}");
         let (input, _) = tag("<!--")(input)?;
 
         let (input, (comment_content, _)) = many_till(Self::parse_char, tag("-->"))(input)?;
         let comment_string: String = comment_content.into_iter().collect();
+        println!("COMMENT STRING: {comment_string}");
         if comment_string.contains("--") {
             return Err(nom::Err::Failure(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Verify,
             )));
         }
+
+        println!("COMMENT PARSED: {comment_string}");
         Ok((input, Document::Comment(Cow::Owned(comment_string))))
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, prolog_and_references) = opt(Self::parse_prolog)(input)?;
-        let (prolog, entity_references) = match prolog_and_references {
+        println!("PARSING XML STR");
+        let entity_references = Rc::new(RefCell::new(HashMap::new()));
+        let (input, prolog_and_references) =
+            opt(|i| Self::parse_prolog(i, entity_references.clone()))(input)?;
+
+        let (prolog, new_entity_references) = match prolog_and_references {
             Some((p, r)) => (p, r),
-            None => (None, None),
+            None => (None, entity_references.clone()),
         };
 
         let mut documents = Vec::new();
 
         let mut current_input = input;
+        println!("HERE");
         while !current_input.is_empty() {
-            let (input, start_tag) = opt(Tag::parse_start_tag)(current_input)?;
-            let (input, content) = Self::parse_content(input, entity_references.clone())?;
+            println!("CURRENT INPUT: {current_input}");
+            let (input, start_tag) =
+                opt(|i| Tag::parse_start_tag(i, new_entity_references.clone()))(current_input)?;
+            let (input, content) = Self::parse_content(input, new_entity_references.clone())?;
             let (input, end_tag) = opt(Tag::parse_end_tag)(input)?;
 
             let empty_tag = if let Document::EmptyTag(empty_tag) = &content {
@@ -322,15 +327,20 @@ impl<'a> Document<'a> {
             } else {
                 None
             };
-
+            println!("1START TAG: {start_tag:?}");
+            println!("1CONTENT: {content:?}");
+            println!("1END TAG: {end_tag:?}");
             let (input, doc) =
                 Self::construct_document_element(input, start_tag, content, end_tag, empty_tag)?;
             if let Document::Empty = &doc {
                 break;
             }
+            println!("DOC AFTER CONSTRUCT DOCUMENT ELEMENT: {doc:?}");
+
             documents.push(doc);
             current_input = input;
         }
+
         let (input, documents) = Self::construct_document(input, prolog, documents)?;
 
         Ok((input, documents))
@@ -584,7 +594,9 @@ pub enum ConditionalState {
     OneOrMore,
 }
 impl<'a> Parse<'a> for ConditionalState {
-    fn parse(input: &'a str) -> IResult<&'a str, ConditionalState> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         alt((
             value(ConditionalState::Optional, tag("?")),
             value(ConditionalState::ZeroOrMore, tag("*")),

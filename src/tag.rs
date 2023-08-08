@@ -1,3 +1,4 @@
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use nom::{
     branch::alt,
@@ -9,7 +10,10 @@ use nom::{
     IResult,
 };
 
-use crate::{attribute::Attribute, namespaces::ParseNamespace, parse::Parse, Name};
+use crate::{
+    attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
+    prolog::internal_subset::EntityValue, Name,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 
@@ -26,25 +30,32 @@ pub struct Tag<'a> {
     pub state: TagState,
 }
 
-impl<'a> Parse<'a> for Tag<'a> {}
+impl<'a> Parse<'a> for Tag<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
+}
 impl<'a> ParseNamespace<'a> for Tag<'a> {}
 
 impl<'a> Tag<'a> {
     // [40] STag ::= '<' Name (S Attribute)* S? '>'
     // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
-    pub fn parse_start_tag(input: &'a str) -> IResult<&'a str, Self> {
-        let (input, x) = map(
+    pub fn parse_start_tag(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Self> {
+        let (input, tag) = map(
             tuple((
                 char('<'),
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 many0(pair(
                     Self::parse_multispace1,
-                    Attribute::parse_qualified_attribute, //TODO merge behavior with parse_attribute
+                    |i| Attribute::parse_qualified_attribute(i, entity_references.clone()), //TODO merge behavior with parse_attribute
                 )),
                 Self::parse_multispace0,
                 char('>'),
             )),
             |(_open_char, name, attributes, _whitespace, _close_char)| {
+                println!("ATTRIBUTE WITHIN TAG: {attributes:?}");
                 let attributes: Vec<_> = attributes
                     .into_iter()
                     .map(|(_whitespace, attr)| attr)
@@ -60,7 +71,7 @@ impl<'a> Tag<'a> {
                 }
             },
         )(input)?;
-        Ok((input, x))
+        Ok((input, tag))
     }
 
     // [42] ETag ::= '</' Name S? '>'
@@ -86,13 +97,18 @@ impl<'a> Tag<'a> {
     }
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
-    pub fn parse_empty_element_tag(input: &'a str) -> IResult<&'a str, Tag<'a>> {
+    pub fn parse_empty_element_tag(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Tag<'a>> {
         println!("PARSING EMPTY ELEMENT TAG: {input}");
         map(
             tuple((
                 char('<'),
                 alt((Self::parse_name, Self::parse_qualified_name)),
-                opt(many1(pair(Self::parse_multispace1, Attribute::parse))),
+                opt(many1(pair(Self::parse_multispace1, |i| {
+                    Attribute::parse(i, entity_references.clone())
+                }))),
                 Self::parse_multispace0,
                 tag("/>"),
             )),
