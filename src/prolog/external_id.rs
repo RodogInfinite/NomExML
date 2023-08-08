@@ -20,8 +20,10 @@ pub enum ExternalID<'a> {
 }
 
 impl<'a> Parse<'a> for ExternalID<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
     //[75] ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
-    fn parse(input: &'a str) -> IResult<&'a str, ExternalID<'a>> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         alt((Self::parse_system, Self::parse_public))(input)
     }
 }

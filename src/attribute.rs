@@ -1,6 +1,9 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{namespaces::ParseNamespace, parse::Parse, reference::Reference, Name, QualifiedName};
+use crate::{
+    namespaces::ParseNamespace, parse::Parse, prolog::internal_subset::EntityValue,
+    reference::Reference, Name, QualifiedName,
+};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
@@ -38,11 +41,14 @@ pub enum Attribute<'a> {
 }
 
 impl<'a> Parse<'a> for Attribute<'a> {
+    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+
+    type Output = IResult<&'a str, Self>;
     // [41] Attribute ::= Name Eq AttValue
-    fn parse(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = Self::parse_eq(input)?;
-        let (input, value) = Self::parse_attvalue(input)?;
+        let (input, value) = Self::parse_attvalue(input, args.clone())?;
         Ok((input, Attribute::Instance { name, value }))
     }
 }
@@ -50,14 +56,17 @@ impl<'a> Parse<'a> for Attribute<'a> {
 impl<'a> ParseNamespace<'a> for Attribute<'a> {}
 impl<'a> Attribute<'a> {
     // [53] AttDef ::= S Name S AttType S DefaultDecl
-    pub fn parse_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+    pub fn parse_definition(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Attribute<'a>> {
         let (input, (_, name, _, att_type, _, default_decl)) = tuple((
             Self::parse_multispace1,
             Self::parse_name,
             Self::parse_multispace1,
-            AttType::parse,
+            |i| AttType::parse(i, ()),
             Self::parse_multispace1,
-            DefaultDecl::parse,
+            |i| DefaultDecl::parse(i, entity_references.clone()),
         ))(input)?;
 
         let attribute = Attribute::Definition {
@@ -69,7 +78,10 @@ impl<'a> Attribute<'a> {
     }
 
     // Namespaces (Third Edition) [21] AttDef ::= S (QName | NSAttName) S AttType S DefaultDecl
-    pub fn parse_qualified_definition(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+    pub fn parse_qualified_definition(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Attribute<'a>> {
         let (input, (_, name, _, att_type, _, default_decl)) = tuple((
             Self::parse_multispace1,
             alt((
@@ -77,9 +89,9 @@ impl<'a> Attribute<'a> {
                 Self::parse_namespace_attribute_name,
             )),
             Self::parse_multispace1,
-            AttType::parse,
+            |i| AttType::parse(i, ()),
             Self::parse_multispace1,
-            DefaultDecl::parse,
+            |i| DefaultDecl::parse(i, entity_references.clone()),
         ))(input)?;
 
         let attribute = Attribute::Definition {
@@ -91,13 +103,19 @@ impl<'a> Attribute<'a> {
     }
 
     // [10] AttValue ::= '"' ([^<&"] | Reference)* '"'|  "'" ([^<&'] | Reference)* "'"
-    pub fn parse_attvalue(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    pub fn parse_attvalue(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Cow<'a, str>> {
         alt((
             delimited(
                 tag("\""),
                 many0(alt((
                     map(is_not("<&\""), Cow::Borrowed),
-                    map(Reference::parse, |reference| reference.normalize()),
+                    map(
+                        |i| Reference::parse(i, entity_references.clone()),
+                        |reference| reference.normalize(entity_references.clone()),
+                    ),
                 ))),
                 tag("\""),
             ),
@@ -105,12 +123,16 @@ impl<'a> Attribute<'a> {
                 tag("'"),
                 many0(alt((
                     map(is_not("<&'"), Cow::Borrowed),
-                    map(Reference::parse, |reference| reference.normalize()),
+                    map(
+                        |i| Reference::parse(i, entity_references.clone()),
+                        |reference| reference.normalize(entity_references.clone()),
+                    ),
                 ))),
                 char('\''),
             ),
         ))(input)
         .map(|(remaining, contents)| {
+            println!("buff CONTENTS: {contents:?}"); //TODO: decoding is not working here
             let mut buffer = contents
                 .into_iter()
                 .flat_map(|cow| cow.chars().collect::<Vec<_>>())
@@ -128,19 +150,21 @@ impl<'a> Attribute<'a> {
                 }
                 i += 1;
             }
+
             (remaining, Cow::Owned(buffer.into_iter().collect()))
         })
     }
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
-    pub fn parse_qualified_attribute(input: &'a str) -> IResult<&'a str, Attribute<'a>> {
+    pub fn parse_qualified_attribute(
+        input: &'a str,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> IResult<&'a str, Attribute<'a>> {
         alt((
             map_res(
-                tuple((
-                    Self::parse_namespace_attribute_name,
-                    Self::parse_eq,
-                    Attribute::parse_attvalue,
-                )),
+                tuple((Self::parse_namespace_attribute_name, Self::parse_eq, |i| {
+                    Attribute::parse_attvalue(i, entity_references.clone())
+                })),
                 |(name, _, value)| {
                     // If name is "xmlns", it's a default namespace declaration
                     if let Some(prefix) = name.prefix {
@@ -162,11 +186,9 @@ impl<'a> Attribute<'a> {
                 },
             ),
             map(
-                tuple((
-                    Self::parse_qualified_name,
-                    Self::parse_eq,
-                    Self::parse_attvalue,
-                )),
+                tuple((Self::parse_qualified_name, Self::parse_eq, |i| {
+                    Self::parse_attvalue(i, entity_references.clone())
+                })),
                 |(QualifiedName { prefix, local_part }, _, value)| Attribute::Instance {
                     name: QualifiedName { prefix, local_part },
                     value,
@@ -196,8 +218,8 @@ impl TokenizedType {
             value(TokenizedType::IDREFS, tag("IDREFS")),
             value(TokenizedType::ENTITY, tag("ENTITY")),
             value(TokenizedType::ENTITIES, tag("ENTITIES")),
-            value(TokenizedType::NMTOKEN, tag("NMTOKEN")),
             value(TokenizedType::NMTOKENS, tag("NMTOKENS")),
+            value(TokenizedType::NMTOKEN, tag("NMTOKEN")),
         ))(input)
     }
 }
@@ -213,8 +235,10 @@ pub enum AttType<'a> {
 }
 
 impl<'a> Parse<'a> for AttType<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
     //[54] AttType ::=  StringType | TokenizedType | EnumeratedType
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (input, att_type) = alt((
             // [55] StringType ::= 'CDATA'
             value(AttType::CDATA, tag("CDATA")),
@@ -222,7 +246,7 @@ impl<'a> Parse<'a> for AttType<'a> {
             map(TokenizedType::parse, AttType::Tokenized),
             Self::parse_enumerated_type,
         ))(input)?;
-
+        println!("PARSED ATTRIBUTE TYPE: {:?}", att_type);
         Ok((input, att_type))
     }
 }
@@ -292,16 +316,17 @@ pub enum DefaultDecl<'a> {
 }
 
 impl<'a> Parse<'a> for DefaultDecl<'a> {
+    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+    type Output = IResult<&'a str, Self>;
     // [60] DefaultDecl ::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
             map(
-                pair(
-                    opt(tuple((tag("#FIXED"), Self::parse_multispace1))),
-                    Attribute::parse_attvalue,
-                ),
+                pair(opt(tuple((tag("#FIXED"), Self::parse_multispace1))), |i| {
+                    Attribute::parse_attvalue(i, args.clone())
+                }),
                 |(fixed, attvalue)| match fixed {
                     Some(_) => DefaultDecl::Fixed(attvalue),
                     None => DefaultDecl::Value(attvalue),

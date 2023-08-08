@@ -19,8 +19,10 @@ pub struct ProcessingInstruction<'a> {
 }
 
 impl<'a> Parse<'a> for ProcessingInstruction<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
     // [16] PI ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
-    fn parse(input: &'a str) -> IResult<&'a str, Self> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         println!("PROCESSING INSTRUCTION PARSE BEGIN: {:?}", input);
         let (input, _) = tag("<?")(input)?;
 

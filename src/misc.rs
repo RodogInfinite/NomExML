@@ -13,23 +13,25 @@ pub struct Misc<'a> {
     pub state: MiscState,
 }
 
-impl<'a> Parse<'a> for Misc<'a> {}
+impl<'a> Parse<'a> for Misc<'a> {
+    type Args = MiscState;
+    type Output = IResult<&'a str, Self>;
 
-impl<'a> Misc<'a> {
     //[27] Misc ::= Comment | PI | S
-    pub fn parse(input: &'a str, state: MiscState) -> IResult<&'a str, Self> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document<'a>> = vec![];
         println!("\n\nPARSING MISC");
         loop {
             let parse_result = alt((
                 Document::parse_comment,
-                map(ProcessingInstruction::parse, |pi| {
-                    Document::ProcessingInstruction(pi)
-                }),
+                map(
+                    |i| ProcessingInstruction::parse(i, ()),
+                    |pi| Document::ProcessingInstruction(pi),
+                ),
                 map(Self::parse_multispace1, |_| Document::Empty),
             ))(input_remaining);
-
+            println!("MISC PARSE RESULT: {:?}", parse_result);
             match parse_result {
                 Ok((remaining, document)) => {
                     match document {
@@ -38,7 +40,7 @@ impl<'a> Misc<'a> {
                     }
                     input_remaining = remaining;
                 }
-                Err(nom::Err::Incomplete(_)) => continue,
+
                 Err(_) => {
                     if !content_vec.is_empty() {
                         break;
@@ -54,6 +56,12 @@ impl<'a> Misc<'a> {
 
         let content = Box::new(Document::Nested(content_vec));
         println!("PARSED MISC");
-        Ok((input_remaining, Misc { content, state }))
+        Ok((
+            input_remaining,
+            Misc {
+                content,
+                state: args,
+            },
+        ))
     }
 }

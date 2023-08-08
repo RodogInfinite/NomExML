@@ -21,13 +21,15 @@ pub enum DeclarationContent<'a> {
 }
 
 impl<'a> Parse<'a> for DeclarationContent<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
     // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
-    fn parse(input: &'a str) -> IResult<&'a str, DeclarationContent<'a>> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         println!("PARSING DECLARATION CONTENT INPUT: {input}");
         alt((
             map(tag("EMPTY"), |_| Self::Empty),
             map(tag("ANY"), |_| Self::Any),
-            map(Mixed::parse, Self::Mixed),
+            map(|i| Mixed::parse(i, args), Self::Mixed),
             map(Self::parse_children, Self::Children),
         ))(input)
     }
@@ -35,7 +37,7 @@ impl<'a> Parse<'a> for DeclarationContent<'a> {
 impl<'a> DeclarationContent<'a> {
     // [47] children ::= (choice | seq) ('?' | '*' | '+')?
     fn parse_children(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
-        let (input, particle) = ContentParticle::parse(input)?;
+        let (input, particle) = ContentParticle::parse(input, ())?;
         Ok((input, particle))
     }
 }
@@ -49,8 +51,10 @@ pub enum Mixed<'a> {
     },
 }
 impl<'a> Parse<'a> for Mixed<'a> {
+    type Args = ();
+    type Output = IResult<&'a str, Self>;
     // [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
-    fn parse(input: &'a str) -> IResult<&'a str, Mixed<'a>> {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (input, _) = tuple((tag("("), Self::parse_multispace0))(input)?;
         let (input, pcdata) = tag("#PCDATA")(input)?;
         let (input, names) = many0(delimited(

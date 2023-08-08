@@ -13,7 +13,9 @@ use nom::{
 use crate::{decode::Decode, Name};
 
 pub trait Parse<'a>: Sized {
-    fn parse(_input: &'a str) -> IResult<&'a str, Self> {
+    type Args;
+    type Output; //TODO: refactor this when associated type defaults are stabalized
+    fn parse(_input: &'a str, args: Self::Args) -> Self::Output {
         unimplemented!()
     }
 

@@ -462,6 +462,19 @@ impl<'a> InternalSubset<'a> {
                 fmt_indented(f, indent + 4, &format!("data: {:?},\n", data));
                 fmt_indented(f, indent, "},\n");
             }
+            InternalSubset::Comment(comment) => {
+                fmt_indented(f, indent, "Comment(\n");
+                match comment {
+                    Document::Comment(comment_str) => {
+                        fmt_indented(f, indent + 4, &format!("{:?}\n", comment_str));
+                    }
+                    // If `Document` has other variants, you can match them here
+                    _ => {
+                        fmt_indented(f, indent + 4, "Unsupported comment variant,\n");
+                    }
+                }
+                fmt_indented(f, indent, "),\n");
+            }
         }
     }
 }
