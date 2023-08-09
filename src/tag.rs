@@ -1,5 +1,7 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
+use crate::{
+    attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
+    prolog::internal_subset::EntityValue, Name,
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -9,11 +11,7 @@ use nom::{
     sequence::{delimited, pair, tuple},
     IResult,
 };
-
-use crate::{
-    attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
-    prolog::internal_subset::EntityValue, Name,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, Debug, PartialEq)]
 

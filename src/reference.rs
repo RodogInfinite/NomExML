@@ -1,7 +1,11 @@
 // reference.rs
 
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
-
+use crate::{
+    decode::{decode_digit, decode_hex},
+    parse::Parse,
+    prolog::internal_subset::EntityValue,
+    Name,
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -10,12 +14,7 @@ use nom::{
     sequence::delimited,
     IResult,
 };
-
-use crate::{
-    decode::{decode_digit, decode_hex},
-    Name,
-};
-use crate::{parse::Parse, prolog::internal_subset::EntityValue};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub enum Reference<'a> {

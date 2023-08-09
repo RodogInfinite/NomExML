@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-
+use crate::{parse::Parse, Name, QualifiedName};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -8,8 +7,7 @@ use nom::{
     sequence::tuple,
     IResult,
 };
-
-use crate::{parse::Parse, Name, QualifiedName};
+use std::borrow::Cow;
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName

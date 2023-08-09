@@ -17,7 +17,6 @@ use crate::{
     reference::{CharRefState, Reference},
     Document, QualifiedName, Tag,
 };
-
 use std::fmt::{self, Formatter};
 
 fn fmt_indented(f: &mut String, indent: usize, s: &str) {

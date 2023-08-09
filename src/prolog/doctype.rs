@@ -1,18 +1,15 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
+use super::{
+    external_id::ExternalID,
+    internal_subset::{EntityValue, InternalSubset},
+};
+use crate::{namespaces::ParseNamespace, parse::Parse, Name};
 use nom::{
     bytes::complete::tag,
     combinator::opt,
     sequence::{delimited, pair, preceded},
     IResult,
 };
-
-use crate::{namespaces::ParseNamespace, parse::Parse, Name};
-
-use super::{
-    external_id::ExternalID,
-    internal_subset::{EntityValue, InternalSubset},
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub struct DocType<'a> {

@@ -10,8 +10,6 @@ use nom::{
 
 use super::content_particle::ContentParticle;
 
-//TODO: Refactor to better comply with the spec
-
 #[derive(Clone, PartialEq)]
 pub enum DeclarationContent<'a> {
     Mixed(Mixed<'a>),

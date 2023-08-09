@@ -1,7 +1,6 @@
 // processing_instruction.rs
 
-use std::borrow::Cow;
-
+use crate::{parse::Parse, Name};
 use nom::{
     bytes::complete::tag,
     combinator::{opt, peek},
@@ -9,8 +8,7 @@ use nom::{
     sequence::preceded,
     IResult,
 };
-
-use crate::{parse::Parse, Name};
+use std::borrow::Cow;
 
 #[derive(Clone, PartialEq)]
 pub struct ProcessingInstruction<'a> {

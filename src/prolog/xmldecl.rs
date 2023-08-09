@@ -1,5 +1,4 @@
-use std::{borrow::Cow, str::FromStr};
-
+use crate::parse::Parse;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -10,8 +9,7 @@ use nom::{
     sequence::delimited,
     IResult,
 };
-
-use crate::parse::Parse;
+use std::{borrow::Cow, str::FromStr};
 
 #[derive(Clone, PartialEq)]
 pub enum Standalone {

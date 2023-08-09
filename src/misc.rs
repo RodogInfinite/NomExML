@@ -1,6 +1,7 @@
 // misc.rs
 use crate::{parse::Parse, processing_instruction::ProcessingInstruction, Document};
 use nom::{branch::alt, combinator::map, IResult};
+
 #[derive(Clone, PartialEq)]
 pub enum MiscState {
     BeforeDoctype,

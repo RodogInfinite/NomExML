@@ -1,5 +1,6 @@
 // io.rs
-use crate::error::CustomError;
+use crate::{error::CustomError, Document};
+use encoding_rs::*;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::io::BufReader;
 use std::path::Path;
@@ -7,10 +8,6 @@ use std::{
     fs::{self, File},
     io::Read,
 };
-
-use crate::Document;
-
-use encoding_rs::*;
 
 fn read_file(file: &mut File) -> std::io::Result<String> {
     let mut reader = BufReader::new(file);

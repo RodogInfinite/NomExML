@@ -1,7 +1,6 @@
 //parse.rs
 
-use std::borrow::Cow;
-
+use crate::{decode::Decode, Name};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, satisfy},
@@ -9,8 +8,7 @@ use nom::{
     multi::{many0, many1, separated_list1},
     IResult,
 };
-
-use crate::{decode::Decode, Name};
+use std::borrow::Cow;
 
 pub trait Parse<'a>: Sized {
     type Args;

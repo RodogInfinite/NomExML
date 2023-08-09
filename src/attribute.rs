@@ -1,5 +1,3 @@
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
-
 use crate::{
     namespaces::ParseNamespace, parse::Parse, prolog::internal_subset::EntityValue,
     reference::Reference, Name, QualifiedName,
@@ -13,6 +11,7 @@ use nom::{
     sequence::{delimited, pair, tuple},
     IResult,
 };
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub enum Prefix<'a> {

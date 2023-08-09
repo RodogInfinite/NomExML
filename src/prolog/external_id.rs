@@ -1,3 +1,5 @@
+use super::internal_subset::ID;
+use crate::parse::Parse;
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
@@ -5,10 +7,6 @@ use nom::{
     IResult,
 };
 use std::borrow::Cow;
-
-use crate::parse::Parse;
-
-use super::internal_subset::ID;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExternalID<'a> {

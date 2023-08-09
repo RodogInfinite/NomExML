@@ -1,11 +1,10 @@
 // decode.rs
 
-use std::borrow::Cow;
-
 use nom::{
     error::{Error, ErrorKind},
     IResult,
 };
+use std::borrow::Cow;
 
 pub trait Decode<'a> {
     fn decode(&self) -> Option<String>;

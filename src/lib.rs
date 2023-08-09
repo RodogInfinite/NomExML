@@ -11,34 +11,35 @@ pub mod prolog;
 pub mod reference;
 pub mod tag;
 
-use crate::misc::MiscState;
-use crate::processing_instruction::ProcessingInstruction;
-use crate::prolog::doctype::DocType;
-use crate::prolog::xmldecl::XmlDecl;
-use crate::reference::Reference;
-use crate::tag::Tag;
-use crate::{misc::Misc, parse::Parse};
+use crate::{
+    misc::{Misc, MiscState},
+    parse::Parse,
+    processing_instruction::ProcessingInstruction,
+    prolog::{
+        doctype::DocType,
+        internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset},
+        xmldecl::XmlDecl,
+    },
+    reference::Reference,
+    tag::Tag,
+};
 use attribute::Attribute;
-
 use namespaces::ParseNamespace;
-use nom::combinator::value;
-use nom::multi::many1;
-
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
-    combinator::{map, not, opt},
-    multi::{many0, many_till},
+    combinator::{map, not, opt, value},
+    multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
     IResult,
 };
-use prolog::internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset};
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
-use std::ops::Deref;
-use std::rc::Rc;
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    collections::{BTreeMap, HashMap},
+    error::Error,
+    rc::Rc,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum Document<'a> {
