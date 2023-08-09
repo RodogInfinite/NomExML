@@ -21,7 +21,7 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
 
     // [48] cp ::= (Name | choice | seq) ('?' | '*' | '+')?
     // Namespaces (Third Edition) [18] cp ::= (QName | choice | seq) ('?' | '*' | '+')?
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         let (input, res) = alt((
             map(
                 tuple((
@@ -29,9 +29,20 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
                     alt((Self::parse_name, Self::parse_qualified_name)),
                     opt(|i| ConditionalState::parse(i, ())),
                     opt(char(')')),
+                    opt(|i| ConditionalState::parse(i, ())), //TODO: verify that this should be here
                 )),
-                |(_, name, conditional_state, _)| {
-                    ContentParticle::Name(name, conditional_state.unwrap_or(ConditionalState::None))
+                |(_, name, conditional_state, _, conditional_state_outter)| match (
+                    conditional_state,
+                    conditional_state_outter,
+                ) {
+                    (Some(conditional_state), None) => {
+                        ContentParticle::Name(name, conditional_state)
+                    }
+                    (None, Some(conditional_state_outter)) => {
+                        ContentParticle::Name(name, conditional_state_outter)
+                    }
+                    (None, None) => ContentParticle::Name(name, ConditionalState::None),
+                    _ => panic!("parsing of ContentParticle failed"),
                 },
             ),
             map(

@@ -213,9 +213,9 @@ impl TokenizedType {
     // [56] TokenizedType ::= 'ID' | 'IDRef' | 'IDREFS | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
     fn parse(input: &str) -> IResult<&str, TokenizedType> {
         alt((
-            value(TokenizedType::ID, tag("ID")),
-            value(TokenizedType::IDREF, tag("IDREF")),
             value(TokenizedType::IDREFS, tag("IDREFS")),
+            value(TokenizedType::IDREF, tag("IDREF")),
+            value(TokenizedType::ID, tag("ID")),
             value(TokenizedType::ENTITY, tag("ENTITY")),
             value(TokenizedType::ENTITIES, tag("ENTITIES")),
             value(TokenizedType::NMTOKENS, tag("NMTOKENS")),

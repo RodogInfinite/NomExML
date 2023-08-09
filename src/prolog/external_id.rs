@@ -10,6 +10,8 @@ use std::borrow::Cow;
 
 use crate::parse::Parse;
 
+use super::internal_subset::ID;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExternalID<'a> {
     System(Cow<'a, str>),
@@ -39,7 +41,7 @@ impl<'a> ExternalID<'a> {
     fn parse_public(input: &'a str) -> IResult<&'a str, ExternalID<'a>> {
         let (input, _) = tag("PUBLIC")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
-        let (input, pubid_literal) = Self::parse_public_id_literal(input)?;
+        let (input, pubid_literal) = ID::parse_public_id_literal(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, system_literal) = Self::parse_system_literal(input)?;
         Ok((
@@ -58,19 +60,5 @@ impl<'a> ExternalID<'a> {
             delimited(tag("'"), is_not("'"), tag("'")),
         ))(input)?;
         Ok((input, Cow::Borrowed(system_literal)))
-    }
-
-    // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
-    fn parse_public_id_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, pubid_literal) = alt((
-            delimited(tag("\""), many1(Self::parse_pubid_char), tag("\"")),
-            delimited(tag("'"), many1(Self::parse_pubid_char), tag("'")),
-        ))(input)?;
-        Ok((input, Cow::Owned(pubid_literal.join(""))))
-    }
-
-    // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
-    fn parse_pubid_char(input: &'a str) -> IResult<&'a str, &'a str> {
-        alt((alphanumeric1, is_a(" \r\n-'()+,./:=?;!*#@$_%")))(input)
     }
 }

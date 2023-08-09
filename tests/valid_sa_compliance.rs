@@ -9,12 +9,14 @@ use nom_xml::{
         content_particle::ContentParticle,
         declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
+        external_id::ExternalID,
         internal_subset::{
             EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
-            InternalSubset,
+            InternalSubset, ParameterEntityDefinition, ID,
         },
         xmldecl::{Standalone, XmlDecl},
     },
+    reference::Reference,
     tag::{Tag, TagState},
     ConditionalState, Document, QualifiedName,
 };
@@ -2558,6 +2560,7 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// TODO: Make test 053 work
 // #[test]
 // fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
 //     let document = test_valid_sa_file("053")?;
@@ -3276,6 +3279,2718 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("067")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("\r")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("068")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\r".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("\r")))), // "&#13;" is a carriage return
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("069")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Notation {
+                            name: QualifiedName::new(None, "n"),
+                            id: ID::PublicID("whatever".into()),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: Test 070
+// #[test]
+// fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("070")?;
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Entity(EntityDeclaration::Parameter(
+//                             ParameterEntityDefinition::EntityValue(EntityValue::Value(
+//                                 "<!ELEMENT doc (#PCDATA)>".into()
+//                             )),
+//                         )),
+//                         InternalSubset::DeclSep(Reference::EntityRef(QualifiedName::new(
+//                             None, "e"
+//                         ))),
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Empty),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+
+#[test]
+fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("071")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::ID),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("072")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::IDREF),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("073")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::IDREFS),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("074")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::ENTITY),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("075")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::ENTITIES),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: test 076
+
+#[test]
+fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("077")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Enumerated {
+                                    notation: None,
+                                    enumeration: Some(vec![Cow::Borrowed("1"), Cow::Borrowed("2")]),
+                                },
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        }
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("078")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Required,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("v"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("079")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Fixed(Cow::Borrowed("v")),
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("v"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("080")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Fixed(Cow::Borrowed("v")),
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+// TODO: test 081
+// #[test]
+// fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("081")?;
+
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "doc"),
+//                             content_spec: Some(DeclarationContent::Children(
+//                                 ContentParticle::Sequence(
+//                                     vec![
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "a"),
+//                                             ConditionalState::None
+//                                         ),
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "b"),
+//                                             ConditionalState::None
+//                                         ),
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "c"),
+//                                             ConditionalState::None
+//                                         ),
+//                                     ],
+//                                     ConditionalState::None
+//                                 )
+//                             )),
+//                         },
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "a"),
+//                             content_spec: Some(DeclarationContent::Children(
+//                                 ContentParticle::Name(
+//                                     QualifiedName::new(None, "a"),
+//                                     ConditionalState::Optional
+//                                 )
+//                             )),
+//                         },
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "b"),
+//                             content_spec: Some(DeclarationContent::Children(
+//                                 ContentParticle::Name(
+//                                     QualifiedName::new(None, "b"),
+//                                     ConditionalState::ZeroOrMore
+//                                 )
+//                             )),
+//                         },
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "c"),
+//                             content_spec: Some(DeclarationContent::Children(
+//                                 ContentParticle::Choice(
+//                                     vec![
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "a"),
+//                                             ConditionalState::None
+//                                         ),
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "b"),
+//                                             ConditionalState::None
+//                                         ),
+//                                     ],
+//                                     ConditionalState::OneOrMore
+//                                 )
+//                             )),
+//                         },
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Nested(vec![
+//                     Document::EmptyTag(Tag {
+//                         name: QualifiedName::new(None, "a"),
+//                         attributes: None,
+//                         state: TagState::Empty,
+//                     }),
+//                     Document::EmptyTag(Tag {
+//                         name: QualifiedName::new(None, "b"),
+//                         attributes: None,
+//                         state: TagState::Empty,
+//                     }),
+//                     Document::Element(
+//                         Tag {
+//                             name: QualifiedName::new(None, "c"),
+//                             attributes: None,
+//                             state: TagState::Start,
+//                         },
+//                         Box::new(Document::EmptyTag(Tag {
+//                             name: QualifiedName::new(None, "a"),
+//                             attributes: None,
+//                             state: TagState::Empty,
+//                         })),
+//                         Tag {
+//                             name: QualifiedName::new(None, "c"),
+//                             attributes: None,
+//                             state: TagState::End,
+//                         },
+//                     ),
+//                 ])),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+
+#[test]
+fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("082")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDeclaration::Parameter(
+                            ParameterEntityDefinition::ExternalID(ExternalID::System(
+                                Cow::Borrowed("e.dtd")
+                            ))
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: test 083
+// #[test]
+// fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("083")?;
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Entity(EntityDeclaration::Parameter(
+//                             ParameterEntityDefinition::ExternalID(ExternalID::Public {
+//                                 pubid: Cow::Borrowed("whatever"),
+//                                 system_identifier: Box::new(ExternalID::System(Cow::Borrowed(
+//                                     "e.dtd"
+//                                 )))
+//                             })
+//                         )),
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "doc"),
+//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+//                                 names: None,
+//                                 parsed: true,
+//                                 zero_or_more: false,
+//                             })),
+//                         },
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Empty),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+
+#[test]
+fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("084")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("085")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::Parameter(
+                            ParameterEntityDefinition::EntityValue(EntityValue::Value(
+                                "<foo>".into()
+                            ))
+                        )),
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("086")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".into()
+                                )),
+                            }
+                        )),
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo>".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))), //TODO: should this be parsed as a tag?
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("087")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo/>".into()
+                                )),
+                            }
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "foo"),
+                                    ConditionalState::None
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "foo"),
+                            content_spec: Some(DeclarationContent::Empty),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("<foo/>")))), //TODO: should this be parsed as an empty element?
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("088")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo>".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("089")?;
+
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\u{10000}\u{10FFFD}\u{10FFFF}".into()
+                                )),
+                            }
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        }
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed(
+                    "\u{10000}\u{10FFFD}\u{10FFFF}"
+                )))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("090")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "e"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Enumerated {
+                                    notation: Some(vec![QualifiedName::new(None, "n")]),
+                                    enumeration: None,
+                                },
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "e"),
+                                    ConditionalState::ZeroOrMore
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "e"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Notation {
+                            name: QualifiedName::new(None, "n"),
+                            id: ID::PublicID("whatever".into()),
+                        }
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("091")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Notation {
+                            name: QualifiedName::new(None, "n"),
+                            id: ID::ExternalID(ExternalID::System(Cow::Borrowed(
+                                "http://www.w3.org/"
+                            )))
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::System(Cow::Borrowed("http://www.w3.org/")),
+                                    n_data: Some(QualifiedName::new(None, "n")),
+                                }
+                            }
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::ENTITY),
+                                default_decl: DefaultDecl::Value(Cow::Borrowed("e")),
+                            }]),
+                        }
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("092")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "a"),
+                                    ConditionalState::ZeroOrMore
+                                ),
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "a"),
+                            content_spec: Some(DeclarationContent::Empty),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::EmptyTag(Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::Empty,
+                    }),
+                    Document::EmptyTag(Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::Empty,
+                    }),
+                    Document::EmptyTag(Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::Empty,
+                    }),
+                ])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("093")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("094")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDeclaration::Parameter(
+                            ParameterEntityDefinition::EntityValue(EntityValue::Value(
+                                "foo".into()
+                            )),
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a1"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Value("%e;".into()),
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("095")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![
+                                Attribute::Definition {
+                                    name: QualifiedName::new(None, "a1"),
+                                    att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Implied,
+                                },
+                                Attribute::Definition {
+                                    name: QualifiedName::new(None, "a1"),
+                                    att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
+                                    default_decl: DefaultDecl::Implied,
+                                }
+                            ]),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a1"),
+                        value: Cow::Borrowed("1  2"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("096")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a1"),
+                                att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
+                                default_decl: DefaultDecl::Value(" 1  \t2 \t".into()),
+                            }]),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: Test 097 with lookup in test 097.ent
+
+#[test]
+fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("098")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::ProcessingInstruction(ProcessingInstruction {
+                    target: QualifiedName::new(None, "pi"),
+                    data: Some(Cow::Borrowed("x\ny")),
+                })),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("099")?;
+
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: Some(XmlDecl {
+                    version: Cow::Borrowed("1.0"),
+                    encoding: Some(Cow::Borrowed("utf-8")),
+                    standalone: None,
+                }),
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("100")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::Public {
+                                        pubid: ";!*#@$_%".into(),
+                                        system_identifier: Box::new(ExternalID::System(
+                                            "100.xml".into()
+                                        ))
+                                    },
+                                    n_data: None,
+                                },
+                            }
+                        )),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("101")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\"".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("102")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("\""),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("103")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::Content(Some("<".into())), //TODO: look at post-processing step to merge these into <doc> then parse it as an element
+                    Document::Content(Some("doc>".into())),
+                ]),),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("104")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ty"), // decoded tab character
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("105")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ty"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("106")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ny"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("107")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ny"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("108")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\n".into()
+                                )),
+                            }
+                        )),
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ny"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("109")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed(""),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: Test 110. Need to verify normalization behavior for `\r\n` current parsing replaces all instances of that with `\n`
+#[test]
+fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("110")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\r\n".into()
+                                )),
+                            }
+                        )),
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed("x\ny"),
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("111")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: Cow::Borrowed(" x  y "), // &#32; decodes to space
+                    }]),
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: test 112
+#[test]
+// fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("112")?;
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "doc"),
+//                             content_spec: Some(DeclarationContent::Children(
+//                                 ContentParticle::Choice(
+//                                     vec![
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "a"),
+//                                             ConditionalState::None
+//                                         ),
+//                                         ContentParticle::Name(
+//                                             QualifiedName::new(None, "b"),
+//                                             ConditionalState::None
+//                                         ),
+//                                     ],
+//                                     ConditionalState::None,
+//                                 )
+//                             )),
+//                         },
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "a"),
+//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+//                                 names: None,
+//                                 parsed: true,
+//                                 zero_or_more: false,
+//                             })),
+//                         },
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Nested(vec![Document::Element(
+//                     Tag {
+//                         name: QualifiedName::new(None, "a"),
+//                         attributes: None,
+//                         state: TagState::Start,
+//                     },
+//                     Box::new(Document::Empty),
+//                     Tag {
+//                         name: QualifiedName::new(None, "a"),
+//                         attributes: None,
+//                         state: TagState::End,
+//                     },
+//                 ),])),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+#[test]
+fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("113")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "e"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+//TODO: Test 114. may need to decode within the Document::Element section instead of directly in the attribute because CDATA is not supposed to decode and if it's in the content, then it should avoid decoding
+// #[test]
+// fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("114")?;
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "doc"),
+//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+//                                 names: None,
+//                                 parsed: true,
+//                                 zero_or_more: false,
+//                             })),
+//                         },
+//                         InternalSubset::AttList {
+//                             name: QualifiedName::new(None, "e"),
+//                             att_defs: Some(vec![Attribute::Definition {
+//                                 name: QualifiedName::new(None, "a"),
+//                                 att_type: AttType::CDATA,
+//                                 default_decl: DefaultDecl::Implied,
+//                             }]),
+//                         },
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Empty),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+
+//TODO: Test 115
+// #[test]
+// fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
+//     let document = test_valid_sa_file("115")?;
+//     assert_eq!(
+//         document,
+//         Document::Nested(vec![
+//             Document::Prolog {
+//                 xml_decl: None,
+//                 misc: None,
+//                 doc_type: Some(DocType {
+//                     name: QualifiedName::new(None, "doc"),
+//                     external_id: None,
+//                     int_subset: Some(vec![
+//                         InternalSubset::Element {
+//                             name: QualifiedName::new(None, "doc"),
+//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+//                                 names: None,
+//                                 parsed: true,
+//                                 zero_or_more: false,
+//                             })),
+//                         },
+//                         InternalSubset::Entity(EntityDeclaration::General(
+//                             GeneralEntityDeclaration {
+//                                 name: QualifiedName::new(None, "e1"),
+//                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+//                                     Reference::EntityRef(QualifiedName::new(None, "e2"))
+//                                 )),
+//                             }
+//                         )),
+//                         InternalSubset::Entity(EntityDeclaration::General(
+//                             GeneralEntityDeclaration {
+//                                 name: QualifiedName::new(None, "e2"),
+//                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+//                                     "v".into()
+//                                 )),
+//                             }
+//                         )),
+//                     ]),
+//                 }),
+//             },
+//             Document::Element(
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::Start,
+//                 },
+//                 Box::new(Document::Content(Some(Cow::Borrowed("v")))),
+//                 Tag {
+//                     name: QualifiedName::new(None, "doc"),
+//                     attributes: None,
+//                     state: TagState::End,
+//                 },
+//             ),
+//         ]),
+//     );
+//     Ok(())
+// }
+
+#[test]
+fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("116")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                            names: None,
+                            parsed: true,
+                            zero_or_more: false,
+                        })),
+                    },]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::CDATA("\n".into())),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("117")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "rsqb"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "]".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("]")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("118")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDeclaration::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "rsqb"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "]]".into()
+                                )),
+                            }
+                        )),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("]]")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
+
+#[test]
+fn test_valid_sa_119() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_sa_file("119")?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![InternalSubset::Element {
+                        name: QualifiedName::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Any),
+                    }]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Comment(Cow::Borrowed(" -á "))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,

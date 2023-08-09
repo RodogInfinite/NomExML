@@ -29,7 +29,7 @@ use nom::{
     bytes::complete::{tag, take_till},
     combinator::{map, not, opt},
     multi::{many0, many_till},
-    sequence::{pair, tuple},
+    sequence::{pair, preceded, tuple},
     IResult,
 };
 use prolog::internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset};
@@ -48,7 +48,7 @@ pub enum Document<'a> {
         doc_type: Option<DocType<'a>>,
     },
     Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
-    Content(Option<Cow<'a, str>>),
+    Content(Option<Cow<'a, str>>), //TODO: Investigate if content can ever be None. I think Empty handles this case. If so, remove the Option
     Nested(Vec<Document<'a>>),
     Empty,
     EmptyTag(Tag<'a>),
@@ -147,11 +147,16 @@ impl<'a> Document<'a> {
     // [19] CDStart ::= '<![CDATA['
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
     fn parse_cdata(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, (data, _)) = many_till(Self::parse_char, tag("]]>"))(input)?;
-        let data: String = data.into_iter().collect();
+        let original_input = input; // remember the starting position
 
-        Ok((input, Cow::Owned(data)))
+        let (input, _) = many_till(Self::parse_char, tag("]]>"))(input)?;
+
+        let parsed_length = original_input.len() - input.len() - 3; // subtract 3 for ']]>'
+        let cdata_slice = &original_input[..parsed_length];
+
+        Ok((input, Cow::Borrowed(cdata_slice)))
     }
+
     //[21] CDEnd ::= ']]>'
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         let (input, _) = tag("<![CDATA[")(input)?;
@@ -167,9 +172,12 @@ impl<'a> Document<'a> {
     ) -> IResult<&'a str, Document<'a>> {
         println!("PARSING ELEMENT");
         let (input, doc) = alt((
-            map(
-                |i| Tag::parse_empty_element_tag(i, entity_references.clone()),
-                |tag| Document::EmptyTag(tag.clone()),
+            preceded(
+                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                map(
+                    |i| Tag::parse_empty_element_tag(i, entity_references.clone()),
+                    |tag| Document::EmptyTag(tag.clone()),
+                ),
             ),
             map(
                 tuple((
@@ -198,7 +206,7 @@ impl<'a> Document<'a> {
                 .into_iter()
                 .map(|reference| reference.normalize(entity_references.clone()))
                 .collect();
-            println!("References CONTENT: {}", content);
+            println!("References CONTENT: {}", content); //TODO: for test 053 this is "<e/>" here
             Document::Content(Some(Cow::Owned(content)))
         }
     }

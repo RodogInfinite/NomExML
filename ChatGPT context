@@ -1,0 +1,177 @@
+pub enum Document<'a> {
+    Prolog {
+        xml_decl: Option<XmlDecl<'a>>,
+        misc: Option<Vec<Misc<'a>>>,
+        doc_type: Option<DocType<'a>>,
+    },
+    Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
+    Content(Option<Cow<'a, str>>),
+    Nested(Vec<Document<'a>>),
+    Empty,
+    EmptyTag(Tag<'a>),
+    ProcessingInstruction(ProcessingInstruction<'a>),
+    Comment(Cow<'a, str>),
+    CDATA(Cow<'a, str>),
+}
+pub enum TagState {
+    Start,
+    End,
+    Empty,
+}
+pub struct Tag<'a> {
+    pub name: Name<'a>,
+    pub attributes: Option<Vec<Attribute<'a>>>, // Attribute::Instance
+    pub state: TagState,
+}
+pub struct DocType<'a> {
+    pub name: Name<'a>,
+    pub external_id: Option<ExternalID<'a>>,
+    pub int_subset: Option<Vec<InternalSubset<'a>>>,
+}
+pub enum EntityValue<'a> {
+    Value(Cow<'a, str>),
+    Reference(Reference<'a>),
+    PerameterReference(Reference<'a>),
+}
+pub struct GeneralEntityDeclaration<'a> {
+    pub name: Name<'a>,
+    pub entity_def: EntityDefinition<'a>,
+}
+pub enum EntityDefinition<'a> {
+    EntityValue(EntityValue<'a>),
+    External {
+        id: ExternalID<'a>,
+        n_data: Option<Name<'a>>,
+    },
+}
+pub enum ParameterEntityDefinition<'a> {
+    EntityValue(EntityValue<'a>),
+    ExternalID(ExternalID<'a>),
+}
+pub enum EntityDeclaration<'a> {
+    General(GeneralEntityDeclaration<'a>),
+    Parameter(ParameterEntityDefinition<'a>),
+}
+pub enum ID<'a> {
+    ExternalID(ExternalID<'a>),
+    PublicID(Cow<'a, str>),
+}
+pub enum InternalSubset<'a> {
+    Element {
+        name: QualifiedName<'a>,
+        content_spec: Option<DeclarationContent<'a>>,
+    },
+    AttList {
+        name: QualifiedName<'a>,
+        att_defs: Option<Vec<Attribute<'a>>>,
+    },
+    Notation {
+        name: QualifiedName<'a>,
+        id: ID<'a>,
+    },
+    Entity(EntityDeclaration<'a>),
+    DeclSep(Reference<'a>),
+    ProcessingInstruction(ProcessingInstruction<'a>),
+    Comment(Document<'a>),
+}
+pub enum Standalone {
+    Yes,
+    No,
+}
+pub enum DeclarationContent<'a> {
+    Mixed(Mixed<'a>),
+    Children(ContentParticle<'a>),
+    Empty,
+    Any,
+}
+pub enum Mixed<'a> {
+    PCDATA {
+        names: Option<Vec<QualifiedName<'a>>>,
+        parsed: bool,
+        zero_or_more: bool,
+    },
+}
+pub struct XmlDecl<'a> {
+    pub version: Cow<'a, str>,
+    pub encoding: Option<Cow<'a, str>>,
+    pub standalone: Option<Standalone>,
+}
+pub struct QualifiedName<'a> {
+    pub prefix: Option<Cow<'a, str>>,
+    pub local_part: Cow<'a, str>,
+}
+pub type Name<'a> = QualifiedName<'a>;
+pub enum Prefix<'a> {
+    Default,
+    Prefix(Cow<'a, str>),
+}
+pub enum Attribute<'a> {
+    Definition {
+        name: QualifiedName<'a>,
+        att_type: AttType<'a>,
+        default_decl: DefaultDecl<'a>,
+    },
+    Reference(Reference<'a>),
+    Instance {
+        name: QualifiedName<'a>,
+        value: Cow<'a, str>,
+    },
+    Required,
+    Implied,
+    Namespace {
+        prefix: Prefix<'a>,
+        uri: Cow<'a, str>,
+    },
+}
+pub enum TokenizedType {
+    ID,
+    IDREF,
+    IDREFS,
+    ENTITY,
+    ENTITIES,
+    NMTOKEN,
+    NMTOKENS,
+}
+pub enum AttType<'a> {
+    CDATA,
+    Tokenized(TokenizedType),
+    Enumerated {
+        notation: Option<Vec<Name<'a>>>,
+        enumeration: Option<Vec<Cow<'a, str>>>,
+    },
+}
+pub enum DefaultDecl<'a> {
+    Required,
+    Implied,
+    Fixed(Cow<'a, str>),
+    Value(Cow<'a, str>),
+}
+pub enum ConditionalState {
+    None,
+    Optional,
+    ZeroOrMore,
+    OneOrMore,
+}
+pub enum ContentParticle<'a> {
+    Name(QualifiedName<'a>, ConditionalState),
+    Choice(Vec<ContentParticle<'a>>, ConditionalState),
+    Sequence(Vec<ContentParticle<'a>>, ConditionalState),
+}
+pub enum ExternalID<'a> {
+    System(Cow<'a, str>),
+    Public {
+        pubid: Cow<'a, str>,
+        system_identifier: Box<ExternalID<'a>>, // Box<ExternalID::System>
+    },
+}
+pub struct ProcessingInstruction<'a> {
+    pub target: Name<'a>,
+    pub data: Option<Cow<'a, str>>,
+}
+pub enum Reference<'a> {
+    EntityRef(Name<'a>),
+    CharRef {
+        value: Cow<'a, str>,
+        state: CharRefState,
+    },
+}

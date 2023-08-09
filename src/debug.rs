@@ -7,9 +7,10 @@ use crate::{
         content_particle::ContentParticle,
         declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
+        external_id::ExternalID,
         internal_subset::{
             EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
-            InternalSubset,
+            InternalSubset, ID,
         },
         xmldecl::{Standalone, XmlDecl},
     },
@@ -393,6 +394,49 @@ impl<'a> DocType<'a> {
         fmt_indented(f, indent, "},\n");
     }
 }
+impl<'a> ExternalID<'a> {
+    fn fmt_indented_external_id(&self, f: &mut String, indent: usize) {
+        match self {
+            ExternalID::System(system) => {
+                fmt_indented(f, indent, &format!("System({:?}),\n", system));
+            }
+            ExternalID::Public {
+                pubid,
+                system_identifier,
+            } => {
+                fmt_indented(f, indent, "Public {\n");
+                fmt_indented(f, indent + 4, &format!("pubid: {:?},\n", pubid));
+                fmt_indented(f, indent + 4, "system_identifier: ");
+                system_identifier.fmt_indented_external_id(f, indent + 8);
+                fmt_indented(f, indent, "},\n");
+            }
+        }
+    }
+}
+
+impl<'a> std::fmt::Debug for ID<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ID::ExternalID(external_id) => f.debug_tuple("ExternalID").field(&external_id).finish(),
+            ID::PublicID(pubid_literal) => f.debug_tuple("PublicID").field(&pubid_literal).finish(),
+        }
+    }
+}
+
+impl<'a> ID<'a> {
+    fn fmt_indented_id(&self, f: &mut String, indent: usize) {
+        match self {
+            ID::ExternalID(external_id) => {
+                fmt_indented(f, indent, "ExternalID {\n");
+                external_id.fmt_indented_external_id(f, indent + 4); // Assumes a function like `fmt_indented_external_id` exists for `ExternalID`
+                fmt_indented(f, indent, "},\n");
+            }
+            ID::PublicID(pubid_literal) => {
+                fmt_indented(f, indent, &format!("PublicID({:?}),\n", pubid_literal));
+            }
+        }
+    }
+}
 
 impl<'a> InternalSubset<'a> {
     fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
@@ -431,6 +475,20 @@ impl<'a> InternalSubset<'a> {
                     }
                 }
                 fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(f, indent, "},\n");
+            }
+            InternalSubset::Notation { name, id } => {
+                fmt_indented(f, indent, "Notation {\n");
+                fmt_indented(
+                    f,
+                    indent + 4,
+                    &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
+                );
+                fmt_indented(f, indent + 4, "id: ");
+
+                // Use the fmt_indented_id function here
+                id.fmt_indented_id(f, indent + 8);
+
                 fmt_indented(f, indent, "},\n");
             }
 
