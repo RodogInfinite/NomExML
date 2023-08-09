@@ -63,6 +63,7 @@ impl<'a> Parse<'a> for Document<'a> {
 }
 
 impl<'a> Document<'a> {
+    //TODO: Consider refactor to pull parse into its own struct that implements the Parse trait
     //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
     pub fn parse_prolog(
         input: &'a str,
@@ -604,7 +605,7 @@ pub enum ConditionalState {
 impl<'a> Parse<'a> for ConditionalState {
     type Args = ();
     type Output = IResult<&'a str, Self>;
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((
             value(ConditionalState::Optional, tag("?")),
             value(ConditionalState::ZeroOrMore, tag("*")),
@@ -653,21 +654,17 @@ impl<'a> AsOrderedMap for Result<Vec<Document<'a>>, Box<dyn Error>> {
     ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
         let mut map = BTreeMap::new();
 
-        match self {
-            Ok(docs) => {
-                for (index, doc) in docs.iter().enumerate() {
-                    match doc {
-                        Document::Element(tag, content, _) => {
-                            let tag_name = tag.name.local_part.to_string();
-                            let mut content = doc.as_map()?;
-                            map.insert((tag_name, index), content);
-                        }
-                        _ => {}
-                    }
+        if let Ok(docs) = self {
+            for (index, doc) in docs.iter().enumerate() {
+                if let Document::Element(tag, _content, _) = doc {
+                    let tag_name = tag.name.local_part.to_string();
+                    let content_map = doc.as_map()?; // renamed to avoid shadowing
+                    map.insert((tag_name, index), content_map);
                 }
-                Ok(map)
             }
-            Err(e) => Err(e.to_string().into()),
+            Ok(map)
+        } else {
+            Err("An error occurred while processing the documents.".into())
         }
     }
 }

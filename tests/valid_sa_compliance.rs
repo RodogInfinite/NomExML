@@ -16,7 +16,7 @@ use nom_xml::{
         },
         xmldecl::{Standalone, XmlDecl},
     },
-    reference::Reference,
+
     tag::{Tag, TagState},
     ConditionalState, Document, QualifiedName,
 };

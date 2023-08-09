@@ -27,7 +27,7 @@ impl<'a> Parse<'a> for Misc<'a> {
                 Document::parse_comment,
                 map(
                     |i| ProcessingInstruction::parse(i, ()),
-                    |pi| Document::ProcessingInstruction(pi),
+                    Document::ProcessingInstruction,
                 ),
                 map(Self::parse_multispace1, |_| Document::Empty),
             ))(input_remaining);

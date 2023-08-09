@@ -238,7 +238,7 @@ impl<'a> Parse<'a> for AttType<'a> {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[54] AttType ::=  StringType | TokenizedType | EnumeratedType
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         let (input, att_type) = alt((
             // [55] StringType ::= 'CDATA'
             value(AttType::CDATA, tag("CDATA")),

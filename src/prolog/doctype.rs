@@ -7,7 +7,7 @@ use nom::{
     IResult,
 };
 
-use crate::{namespaces::ParseNamespace, parse::Parse, Document, Name};
+use crate::{namespaces::ParseNamespace, parse::Parse, Name};
 
 use super::{
     external_id::ExternalID,
@@ -55,16 +55,6 @@ impl<'a> Parse<'a> for DocType<'a> {
             )
         })?;
 
-        // Using the existing collect_entity_references method
-        let entity_references = Document::collect_entity_references(
-            &DocType {
-                name: name.clone(),
-                external_id: external_id.clone(),
-                int_subset: int_subset.clone(),
-            },
-            args,
-        );
-
         println!("DOCTYPE INPUT AFTER PARSED INTERNAL SUBSET: {input}");
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
@@ -83,7 +73,8 @@ impl<'a> Parse<'a> for DocType<'a> {
 
 //TODO integrate this
 impl<'a> DocType<'a> {
-    fn parse_qualified_doctype(
+    //TODO: figure out how to integrate this or remove
+    fn _parse_qualified_doctype(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, DocType<'a>> {

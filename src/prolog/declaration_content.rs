@@ -54,7 +54,7 @@ impl<'a> Parse<'a> for Mixed<'a> {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         let (input, _) = tuple((tag("("), Self::parse_multispace0))(input)?;
         let (input, pcdata) = tag("#PCDATA")(input)?;
         let (input, names) = many0(delimited(

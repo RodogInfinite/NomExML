@@ -1,8 +1,6 @@
 use nom::{
     branch::alt,
-    bytes::complete::{is_a, is_not, tag},
-    character::complete::alphanumeric1,
-    multi::many1,
+    bytes::complete::{is_not, tag},
     sequence::delimited,
     IResult,
 };
@@ -25,7 +23,7 @@ impl<'a> Parse<'a> for ExternalID<'a> {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[75] ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((Self::parse_system, Self::parse_public))(input)
     }
 }

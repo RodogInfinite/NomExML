@@ -41,7 +41,7 @@ impl<'a> Parse<'a> for XmlDecl<'a> {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         let (input, _) = tag("<?xml")(input)?;
         let (input, version) = Self::parse_version_info(input)?;
         let (input, encoding) = opt(Self::parse_encoding_decl)(input)?;

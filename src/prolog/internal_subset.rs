@@ -383,7 +383,7 @@ impl<'a> InternalSubset<'a> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, _) = tag("%")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = Self::parse_name(input)?;
+        let (input, _name) = Self::parse_name(input)?; //TODO: figure out what to do with name
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, pedef) = Self::parse_parameter_definition(input, entity_references.clone())?;
         let (input, _) = Self::parse_multispace0(input)?;
@@ -483,8 +483,9 @@ impl<'a> InternalSubset<'a> {
         Ok((input, result))
     }
 
+    //TODO: figure out how to integrate this
     // [74] PEDef ::= EntityValue | ExternalID
-    fn parse_perameter_definition(
+    fn _parse_perameter_definition(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, ParameterEntityDefinition<'a>> {

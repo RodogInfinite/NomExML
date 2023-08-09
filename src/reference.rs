@@ -1,6 +1,6 @@
 // reference.rs
 
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, ops::Deref, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 use nom::{
     branch::alt,
@@ -30,7 +30,7 @@ impl<'a> Parse<'a> for Reference<'a> {
     type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
     type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
 }
