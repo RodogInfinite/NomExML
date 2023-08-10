@@ -1,6 +1,5 @@
 pub mod attribute;
 mod debug;
-pub mod decode;
 mod error;
 pub mod io;
 pub mod misc;
@@ -10,6 +9,7 @@ pub mod processing_instruction;
 pub mod prolog;
 pub mod reference;
 pub mod tag;
+pub mod transcode;
 
 use crate::{
     misc::{Misc, MiscState},

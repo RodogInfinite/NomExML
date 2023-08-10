@@ -1,17 +1,18 @@
 // reference.rs
 
 use crate::{
-    decode::{decode_digit, decode_hex},
     parse::Parse,
     prolog::internal_subset::EntityValue,
+    //transcode::{decode_digit, decode_hex},
+    transcode::Decode,
     Name,
 };
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1, hex_digit1},
-    combinator::map,
-    sequence::delimited,
+    combinator::{map, peek},
+    sequence::{delimited, tuple},
     IResult,
 };
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
@@ -67,8 +68,6 @@ impl<'a> Reference<'a> {
 //                 println!("NAME in NORMALIZE: {:?}", name);
 
 //                 if let Some(EntityValue::Value(value)) = refs_map.get(name) {
-//                     // For this example, assuming Document::parse_element returns a Result type
-//                     // You might need to change this part depending on the actual signature
 //                     match Document::parse_element(value, entity_references.clone()) {
 //                         Ok((_, element)) => {
 //                             return Ok((None, Some(element)));
@@ -90,6 +89,14 @@ impl<'a> Reference<'a> {
 // }
 
 impl<'a> ParseReference<'a> for Reference<'a> {}
+impl<'a> Decode for Reference<'a> {
+    fn as_str(&self) -> &str {
+        match self {
+            Reference::EntityRef(name) => &name.local_part,
+            Reference::CharRef { value, .. } => &value,
+        }
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub enum CharRefState {
@@ -97,7 +104,7 @@ pub enum CharRefState {
     Hexadecimal,
 }
 
-pub trait ParseReference<'a>: Parse<'a> {
+pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         //TODO: decode here?
@@ -118,30 +125,81 @@ pub trait ParseReference<'a>: Parse<'a> {
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        println!("\n-----\nPARSING CHAR REFERENCE");
         let (input, char_ref) = alt((
             map(
-                delimited(tag("&#"), digit1, tag(";")),
-                |digits_str: &str| {
-                    let (_, decoded) = decode_digit("", digits_str).unwrap();
+                tuple((tag("&#"), digit1, tag(";"))),
+                |(start, digits, end): (&str, &str, &str)| {
+                    let reconstructed = format!("{}{}{}", start, digits, end);
+                    println!("DIGITS STR: {:?}", reconstructed);
+                    let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
-                        value: Cow::Owned(decoded.into_owned()),
+                        value: Cow::Owned(decoded),
                         state: CharRefState::Decimal,
                     }
                 },
             ),
             map(
-                delimited(tag("&#x"), hex_digit1, tag(";")),
-                |hex_str: &str| {
-                    let (_, decoded) = decode_hex("", hex_str).unwrap();
+                tuple((tag("&#x"), hex_digit1, tag(";"))),
+                |(start, hex, end): (&str, &str, &str)| {
+                    let reconstructed = format!("{}{}{}", start, hex, end);
+                    println!("HEX STR: {:?}", reconstructed);
+                    let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
-                        value: Cow::Owned(decoded.into_owned()),
+                        value: Cow::Owned(decoded),
                         state: CharRefState::Hexadecimal,
                     }
                 },
             ),
         ))(input)?;
-        println!("PARSED CHAR REFERENCE: {char_ref:?}");
         Ok((input, char_ref))
     }
 }
+
+// pub trait ParseReference<'a>: Parse<'a> {
+//     //[68] EntityRef ::= '&' Name ';'
+//     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+//         //TODO: decode here?
+//         println!("\n-----\nPARSING ENTITY REFERENCE");
+//         let (input, _) = char('&')(input)?;
+//         let (input, name) = Self::parse_name(input)?;
+//         let (input, _) = char(';')(input)?;
+//         Ok((input, Reference::EntityRef(name)))
+//     }
+
+//     //[69] PEReference ::= '%' Name ';'
+//     fn parse_parameter_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+//         let (input, _) = char('%')(input)?;
+//         let (input, name) = Self::parse_name(input)?;
+//         let (input, _) = char(';')(input)?;
+//         Ok((input, Reference::EntityRef(name)))
+//     }
+
+//     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
+//     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+//         println!("\n-----\nPARSING CHAR REFERENCE");
+//         let (input, char_ref) = alt((
+//             map(
+//                 delimited(tag("&#"), digit1, tag(";")),
+//                 |digits_str: &str| {
+//                     let (_, decoded) = decode_digit("", digits_str).unwrap();
+//                     Reference::CharRef {
+//                         value: Cow::Owned(decoded.into_owned()),
+//                         state: CharRefState::Decimal,
+//                     }
+//                 },
+//             ),
+//             map(
+//                 delimited(tag("&#x"), hex_digit1, tag(";")),
+//                 |hex_str: &str| {
+//                     let (_, decoded) = decode_hex("", hex_str).unwrap();
+//                     Reference::CharRef {
+//                         value: Cow::Owned(decoded.into_owned()),
+//                         state: CharRefState::Hexadecimal,
+//                     }
+//                 },
+//             ),
+//         ))(input)?;
+//         println!("PARSED CHAR REFERENCE: {char_ref:?}");
+//         Ok((input, char_ref))
+//     }
+// }

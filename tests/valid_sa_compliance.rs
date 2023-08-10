@@ -1,5 +1,3 @@
-use std::{borrow::Cow, error::Error, fs::File};
-
 use nom_xml::{
     attribute::{AttType, Attribute, DefaultDecl, TokenizedType},
     io::parse_file,
@@ -16,10 +14,10 @@ use nom_xml::{
         },
         xmldecl::{Standalone, XmlDecl},
     },
-
     tag::{Tag, TagState},
     ConditionalState, Document, QualifiedName,
 };
+use std::{borrow::Cow, error::Error, fs::File};
 
 fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
