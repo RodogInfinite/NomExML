@@ -1,6 +1,6 @@
 //parse.rs
 
-use crate::{decode::Decode, Name};
+use crate::{transcode::Decode, Name};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, satisfy},
@@ -98,12 +98,19 @@ pub trait Parse<'a>: Sized {
         if let Some(rest) = rest_chars {
             name.push_str(&rest);
         }
-        name = name.decode().unwrap_or(name);
+
+        let name_clone = name.clone();
+        // Attempt to decode the cloned name.
+        let local_part = match name_clone.decode() {
+            Ok(decoded) => decoded.into_owned(), // If decoding succeeds, use the decoded value.
+            Err(_) => name,                      // If it fails, use the original name.
+        };
+
         Ok((
             input,
             Name {
                 prefix: None,
-                local_part: Cow::Owned(name),
+                local_part: Cow::Owned(local_part),
             },
         ))
     }
