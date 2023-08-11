@@ -15,7 +15,7 @@ use nom_xml::{
             },
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
-            internal_subset::InternalSubset,
+            InternalSubset,
         },
         xmldecl::{Standalone, XmlDecl},
     },

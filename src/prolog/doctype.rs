@@ -9,7 +9,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::{
     external_id::ExternalID,
-    internal_subset::{entity_value::EntityValue, internal_subset::InternalSubset},
+    internal_subset::{entity_value::EntityValue, InternalSubset},
 };
 
 #[derive(Clone, PartialEq)]

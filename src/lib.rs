@@ -19,7 +19,7 @@ use crate::{
         doctype::DocType,
         internal_subset::{
             entity_declaration::EntityDeclaration, entity_definition::EntityDefinition,
-            internal_subset::InternalSubset,
+            InternalSubset,
         },
         xmldecl::XmlDecl,
     },

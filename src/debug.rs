@@ -13,7 +13,7 @@ use crate::{
             entity_declaration::{EntityDeclaration, GeneralEntityDeclaration},
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
-            internal_subset::InternalSubset,
+            InternalSubset,
         },
         xmldecl::{Standalone, XmlDecl},
     },
