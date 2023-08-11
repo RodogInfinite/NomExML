@@ -261,16 +261,18 @@ impl<'a> InternalSubset<'a> {
     // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
     fn parse_element_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         dbg!(&input, "parse_element_declaration input");
-        let (input, _) = tag("<!ELEMENT")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = alt((Self::parse_name, Self::parse_qualified_name))(input)?;
-        dbg!(&name);
-        let (input, _) = Self::parse_multispace1(input)?;
-
-        let (input, content_spec) = DeclarationContent::parse(input, ())?;
-        dbg!(&content_spec);
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
+        let (
+            input,
+            (_element, _whitespace1, name, _whitespace2, content_spec, _whitespace, _close),
+        ) = tuple((
+            tag("<!ELEMENT"),
+            Self::parse_multispace1,
+            alt((Self::parse_name, Self::parse_qualified_name)),
+            Self::parse_multispace1,
+            |i| DeclarationContent::parse(i, ()),
+            Self::parse_multispace0,
+            tag(">"),
+        ))(input)?;
         Ok((
             input,
             InternalSubset::Element {
@@ -283,16 +285,18 @@ impl<'a> InternalSubset<'a> {
     // [82] NotationDecl ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'	[VC: Unique Notation Name]
     fn parse_notation(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
         dbg!(&input, "parse_notation input");
-        let (input, _) = tag("<!NOTATION")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = alt((Self::parse_name, Self::parse_qualified_name))(input)?;
-        dbg!(&name);
-        let (input, _) = Self::parse_multispace1(input)?;
-        // Parsing the ID
-        let (input, id) = ID::parse(input, ())?;
-        dbg!(&id);
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
+
+        let (input, (_notation, _whitespace1, name, _whitespace2, id, _whitespace3, _close)) =
+            tuple((
+                tag("<!NOTATION"),
+                Self::parse_multispace1,
+                alt((Self::parse_name, Self::parse_qualified_name)),
+                Self::parse_multispace1,
+                |i| ID::parse(i, ()),
+                Self::parse_multispace0,
+                tag(">"),
+            ))(input)?;
+
         Ok((input, InternalSubset::Notation { name, id }))
     }
 
@@ -310,13 +314,16 @@ impl<'a> InternalSubset<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, InternalSubset<'a>> {
-        let (input, _) = tag("<!ATTLIST")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = alt((Self::parse_name, Self::parse_qualified_name))(input)?;
-        let (input, att_defs) =
-            many0(|i| Attribute::parse_definition(i, entity_references.clone()))(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
+        let (input, (_start, _whitespace1, name, att_defs, _whitespace2, _close)) =
+            tuple((
+                tag("<!ATTLIST"),
+                Self::parse_multispace1,
+                alt((Self::parse_name, Self::parse_qualified_name)),
+                many0(|i| Attribute::parse_definition(i, entity_references.clone())),
+                Self::parse_multispace0,
+                tag(">"),
+            ))(input)?;
+
         Ok((
             input,
             InternalSubset::AttList {
@@ -342,13 +349,18 @@ impl<'a> InternalSubset<'a> {
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, InternalSubset<'a>> {
         dbg!(&input, "parse_general_entity_declaration input");
-        let (input, _) = tag("<!ENTITY")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = Self::parse_name(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, entity_def) = Self::parse_entity_def(input, entity_references.clone())?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
+
+        let (input, (_start, _whitespace1, name, _whitespace2, entity_def, _whitespace3, _close)) =
+            tuple((
+                tag("<!ENTITY"),
+                Self::parse_multispace1,
+                Self::parse_name,
+                Self::parse_multispace1,
+                move |i| Self::parse_entity_def(i, entity_references.clone()),
+                Self::parse_multispace0,
+                tag(">"),
+            ))(input)?;
+
         Ok((
             input,
             InternalSubset::Entity(EntityDeclaration::General(GeneralEntityDeclaration {
@@ -363,16 +375,33 @@ impl<'a> InternalSubset<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, InternalSubset<'a>> {
-        dbg!(&input, "parse_perameter_entity_declaration input");
-        let (input, _) = tag("<!ENTITY")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, _) = tag("%")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, _name) = Self::parse_name(input)?; //TODO: figure out what to do with name
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, pedef) = Self::parse_parameter_definition(input, entity_references.clone())?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
+        dbg!(&input, "parse_parameter_entity_declaration input");
+
+        let (
+            input,
+            (
+                _start,
+                _whitespace1,
+                _percent,
+                _whitespace2,
+                _name, // Note: We can reintroduce the handling of this value if needed in the future.
+                _whitespace3,
+                pedef,
+                _whitespace4,
+                _close,
+            ),
+        ) = tuple((
+            tag("<!ENTITY"),
+            Self::parse_multispace1,
+            tag("%"),
+            Self::parse_multispace1,
+            Self::parse_name,
+            Self::parse_multispace1,
+            move |i| Self::parse_parameter_definition(i, entity_references.clone()),
+            Self::parse_multispace0,
+            tag(">"),
+        ))(input)?;
+
         Ok((
             input,
             InternalSubset::Entity(EntityDeclaration::Parameter(pedef)),
