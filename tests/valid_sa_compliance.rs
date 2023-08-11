@@ -8,9 +8,14 @@ use nom_xml::{
         declaration_content::{DeclarationContent, Mixed},
         doctype::DocType,
         external_id::ExternalID,
+        id::ID,
         internal_subset::{
-            EntityDeclaration, EntityDefinition, EntityValue, GeneralEntityDeclaration,
-            InternalSubset, ParameterEntityDefinition, ID,
+            entity_declaration::{
+                EntityDeclaration, GeneralEntityDeclaration, ParameterEntityDefinition,
+            },
+            entity_definition::EntityDefinition,
+            entity_value::EntityValue,
+            internal_subset::InternalSubset,
         },
         xmldecl::{Standalone, XmlDecl},
     },

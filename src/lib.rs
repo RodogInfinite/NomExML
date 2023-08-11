@@ -17,7 +17,10 @@ use crate::{
     processing_instruction::ProcessingInstruction,
     prolog::{
         doctype::DocType,
-        internal_subset::{EntityDeclaration, EntityDefinition, EntityValue, InternalSubset},
+        internal_subset::{
+            entity_declaration::EntityDeclaration, entity_definition::EntityDefinition,
+            internal_subset::InternalSubset,
+        },
         xmldecl::XmlDecl,
     },
     reference::Reference,
@@ -33,6 +36,7 @@ use nom::{
     sequence::{pair, preceded, tuple},
     IResult,
 };
+use prolog::internal_subset::entity_value::EntityValue;
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -189,7 +193,6 @@ impl<'a> Document<'a> {
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
                 |(_, start_tag, content, end_tag, _)| {
-                    // should we do an if content starts with "<" or peek(char('<')) then parse_content or parse_element
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),

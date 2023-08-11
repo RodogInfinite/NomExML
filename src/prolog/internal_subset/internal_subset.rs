@@ -1,182 +1,32 @@
-use super::{declaration_content::DeclarationContent, external_id::ExternalID};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+
+use nom::{
+    branch::alt,
+    bytes::complete::{is_not, tag},
+    combinator::{map, opt},
+    multi::many0,
+    sequence::{delimited, tuple},
+    IResult,
+};
+
 use crate::{
     attribute::Attribute,
     namespaces::ParseNamespace,
     parse::Parse,
     processing_instruction::ProcessingInstruction,
+    prolog::{
+        declaration_content::DeclarationContent, external_id::ExternalID, id::ID,
+        internal_subset::entity_declaration::GeneralEntityDeclaration,
+    },
     reference::{ParseReference, Reference},
     Document, Name, QualifiedName,
 };
-use nom::{
-    branch::alt,
-    bytes::complete::{is_a, is_not, tag},
-    character::complete::alphanumeric1,
-    combinator::{map, opt},
-    multi::{many0, many1},
-    sequence::{delimited, pair, preceded, tuple},
-    IResult,
+
+use super::{
+    entity_declaration::{EntityDeclaration, ParameterEntityDefinition},
+    entity_definition::EntityDefinition,
+    entity_value::EntityValue,
 };
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
-
-#[derive(Clone, PartialEq)]
-pub enum EntityValue<'a> {
-    Value(Cow<'a, str>),
-    Reference(Reference<'a>),
-    PerameterReference(Reference<'a>),
-}
-
-impl<'a> EntityValue<'a> {
-    pub fn get_value(&self) -> Option<Cow<'a, str>> {
-        match self {
-            EntityValue::Value(value) => Some(value.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn get_reference(&self) -> Option<&Reference<'a>> {
-        if let EntityValue::Reference(reference) = self {
-            Some(reference)
-        } else {
-            None
-        }
-    }
-
-    pub fn get_perameter_reference(&self) -> Option<&Reference<'a>> {
-        if let EntityValue::PerameterReference(reference) = self {
-            Some(reference)
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Clone, PartialEq)]
-pub struct GeneralEntityDeclaration<'a> {
-    pub name: Name<'a>,
-    pub entity_def: EntityDefinition<'a>,
-}
-
-impl<'a> GeneralEntityDeclaration<'a> {
-    pub fn find_name(&self, name: Name<'a>) -> Option<&GeneralEntityDeclaration<'a>> {
-        if self.name == name {
-            Some(self)
-        } else {
-            None
-        }
-    }
-
-    pub fn get_name(&self) -> &Name<'a> {
-        &self.name
-    }
-
-    pub fn get_entity_def(&self) -> &EntityDefinition<'a> {
-        &self.entity_def
-    }
-}
-
-#[derive(Clone, PartialEq)]
-pub enum EntityDefinition<'a> {
-    EntityValue(EntityValue<'a>),
-    External {
-        id: ExternalID<'a>,
-        n_data: Option<Name<'a>>,
-    },
-}
-
-impl<'a> EntityDefinition<'a> {
-    pub fn get_entity_value(&self) -> Option<&EntityValue<'a>> {
-        if let EntityDefinition::EntityValue(value) = self {
-            Some(value)
-        } else {
-            None
-        }
-    }
-
-    pub fn get_external_id(&self) -> Option<&ExternalID<'a>> {
-        if let EntityDefinition::External { id, .. } = self {
-            Some(id)
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ParameterEntityDefinition<'a> {
-    EntityValue(EntityValue<'a>),
-    ExternalID(ExternalID<'a>),
-}
-
-#[derive(Clone, PartialEq)]
-pub enum EntityDeclaration<'a> {
-    General(GeneralEntityDeclaration<'a>),
-    Parameter(ParameterEntityDefinition<'a>),
-}
-
-impl<'a> EntityDeclaration<'a> {
-    pub fn get_general(&self) -> Option<&GeneralEntityDeclaration<'a>> {
-        match self {
-            EntityDeclaration::General(decl) => Some(decl),
-            _ => None,
-        }
-    }
-
-    pub fn get_parameter(&self) -> Option<&ParameterEntityDefinition<'a>> {
-        match self {
-            EntityDeclaration::Parameter(decl) => Some(decl),
-            _ => None,
-        }
-    }
-
-    pub fn find_general_entity_value(&self, name: Name<'a>) -> Option<&EntityValue<'a>> {
-        if let EntityDeclaration::General(decl) = self {
-            if decl.name == name {
-                return decl.entity_def.get_entity_value();
-            }
-        }
-        None
-    }
-}
-
-#[derive(Clone, PartialEq)]
-pub enum ID<'a> {
-    ExternalID(ExternalID<'a>),
-    PublicID(Cow<'a, str>),
-}
-
-impl<'a> Parse<'a> for ID<'a> {
-    type Args = ();
-    type Output = IResult<&'a str, Self>;
-    // [83] PublicID ::= 'PUBLIC' S PubidLiteral
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        alt((
-            map(
-                preceded(
-                    pair(tag("PUBLIC"), Self::parse_multispace1),
-                    Self::parse_public_id_literal,
-                ),
-                ID::PublicID,
-            ),
-            map(|i| ExternalID::parse(i, ()), ID::ExternalID),
-        ))(input)
-    }
-}
-
-impl<'a> ID<'a> {
-    // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
-    pub fn parse_public_id_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, pubid_literal) = alt((
-            delimited(tag("\""), many1(Self::parse_pubid_char), tag("\"")),
-            delimited(tag("'"), many1(Self::parse_pubid_char), tag("'")),
-        ))(input)?;
-        Ok((input, Cow::Owned(pubid_literal.join(""))))
-    }
-
-    // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
-    pub fn parse_pubid_char(input: &'a str) -> IResult<&'a str, &'a str> {
-        alt((alphanumeric1, is_a(" \r\n-'()+,./:=?;!*#@$_%")))(input)
-    }
-}
 
 #[derive(Clone, PartialEq)]
 pub enum InternalSubset<'a> {

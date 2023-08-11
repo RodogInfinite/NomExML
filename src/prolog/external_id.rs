@@ -1,4 +1,3 @@
-use super::internal_subset::ID;
 use crate::parse::Parse;
 use nom::{
     branch::alt,
@@ -7,6 +6,8 @@ use nom::{
     IResult,
 };
 use std::borrow::Cow;
+
+use super::id::ID;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExternalID<'a> {
