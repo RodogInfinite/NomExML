@@ -22,7 +22,7 @@ impl<'a> Parse<'a> for Misc<'a> {
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document<'a>> = vec![];
-        println!("\n\nPARSING MISC");
+        dbg!(&input, "MISC::parse input");
         loop {
             let parse_result = alt((
                 Document::parse_comment,
@@ -32,7 +32,7 @@ impl<'a> Parse<'a> for Misc<'a> {
                 ),
                 map(Self::parse_multispace1, |_| Document::Empty),
             ))(input_remaining);
-            println!("MISC PARSE RESULT: {:?}", parse_result);
+            dbg!(&parse_result);
             match parse_result {
                 Ok((remaining, document)) => {
                     match document {
@@ -56,7 +56,6 @@ impl<'a> Parse<'a> for Misc<'a> {
         }
 
         let content = Box::new(Document::Nested(content_vec));
-        println!("PARSED MISC");
         Ok((
             input_remaining,
             Misc {

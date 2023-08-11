@@ -131,7 +131,7 @@ impl<'a> Attribute<'a> {
             ),
         ))(input)
         .map(|(remaining, contents)| {
-            println!("buff CONTENTS: {contents:?}"); //TODO: decoding is not working here
+            dbg!(&contents); //TODO: decoding is not working here
             let mut buffer = contents
                 .into_iter()
                 .flat_map(|cow| cow.chars().collect::<Vec<_>>())
@@ -245,7 +245,7 @@ impl<'a> Parse<'a> for AttType<'a> {
             map(TokenizedType::parse, AttType::Tokenized),
             Self::parse_enumerated_type,
         ))(input)?;
-        println!("PARSED ATTRIBUTE TYPE: {:?}", att_type);
+        dbg!(&att_type);
         Ok((input, att_type))
     }
 }

@@ -43,7 +43,7 @@ impl<'a> Reference<'a> {
         match self {
             Reference::EntityRef(name) => {
                 let refs_map = entity_references.borrow();
-                println!("NAME in NORMALIZE: {name:?}");
+                dbg!(&name);
 
                 if let Some(EntityValue::Value(value)) = refs_map.get(name) {
                     //TODO: for test 053 value is "<e/>" here need to figure out how to parse it
@@ -65,7 +65,6 @@ impl<'a> Reference<'a> {
 //         match self {
 //             Reference::EntityRef(name) => {
 //                 let refs_map = entity_references.borrow();
-//                 println!("NAME in NORMALIZE: {:?}", name);
 
 //                 if let Some(EntityValue::Value(value)) = refs_map.get(name) {
 //                     match Document::parse_element(value, entity_references.clone()) {
@@ -108,7 +107,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         //TODO: decode here?
-        println!("\n-----\nPARSING ENTITY REFERENCE");
+        dbg!(&input, "parse entity ref input");
         let (input, _) = char('&')(input)?;
         let (input, name) = Self::parse_name(input)?;
         let (input, _) = char(';')(input)?;
@@ -130,7 +129,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 tuple((tag("&#"), digit1, tag(";"))),
                 |(start, digits, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, digits, end);
-                    println!("DIGITS STR: {:?}", reconstructed);
+                    dbg!(&reconstructed, "digit str");
                     let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
                         value: Cow::Owned(decoded),
@@ -142,7 +141,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 tuple((tag("&#x"), hex_digit1, tag(";"))),
                 |(start, hex, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, hex, end);
-                    println!("HEX STR: {:?}", reconstructed);
+                    dbg!(&reconstructed, "hex str");
                     let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
                         value: Cow::Owned(decoded),
@@ -159,7 +158,6 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
 //     //[68] EntityRef ::= '&' Name ';'
 //     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
 //         //TODO: decode here?
-//         println!("\n-----\nPARSING ENTITY REFERENCE");
 //         let (input, _) = char('&')(input)?;
 //         let (input, name) = Self::parse_name(input)?;
 //         let (input, _) = char(';')(input)?;
@@ -176,7 +174,6 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
 
 //     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
 //     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-//         println!("\n-----\nPARSING CHAR REFERENCE");
 //         let (input, char_ref) = alt((
 //             map(
 //                 delimited(tag("&#"), digit1, tag(";")),
@@ -199,7 +196,6 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
 //                 },
 //             ),
 //         ))(input)?;
-//         println!("PARSED CHAR REFERENCE: {char_ref:?}");
 //         Ok((input, char_ref))
 //     }
 // }

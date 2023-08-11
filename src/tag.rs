@@ -53,7 +53,7 @@ impl<'a> Tag<'a> {
                 char('>'),
             )),
             |(_open_char, name, attributes, _whitespace, _close_char)| {
-                println!("ATTRIBUTE WITHIN TAG: {attributes:?}");
+                dbg!(&attributes);
                 let attributes: Vec<_> = attributes
                     .into_iter()
                     .map(|(_whitespace, attr)| attr)
@@ -75,7 +75,7 @@ impl<'a> Tag<'a> {
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
     pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
-        println!("PARSING END TAG: {input}");
+        dbg!(&input, "PARSING END TAG");
         delimited(
             tag("</"),
             map(
@@ -99,7 +99,7 @@ impl<'a> Tag<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Tag<'a>> {
-        println!("PARSING EMPTY ELEMENT TAG: {input}");
+        dbg!(&input, "PARSING EMPTY TAG");
         map(
             tuple((
                 char('<'),

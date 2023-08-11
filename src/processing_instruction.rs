@@ -21,7 +21,7 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
     type Output = IResult<&'a str, Self>;
     // [16] PI ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        println!("PROCESSING INSTRUCTION PARSE BEGIN: {:?}", input);
+        dbg!(&input, "ProcessingInstruction::parse input");
         let (input, _) = tag("<?")(input)?;
 
         let (input, target) = Self::parse_target(input)?;
@@ -34,10 +34,10 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
         let data: Option<String> = data_chars.map(|(chars, _)| chars.into_iter().collect());
 
         let (input, _) = tag("?>")(input)?;
-        println!(
-            "PROCESSING INSTRUCTION PARSE END \ntarget{:?} \ndata{:?}",
-            target, data
-        );
+
+        dbg!(&target);
+        dbg!(&data);
+
         Ok((
             input,
             ProcessingInstruction {
@@ -51,9 +51,9 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
 impl<'a> ProcessingInstruction<'a> {
     //[17] PITarget	::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
     fn parse_target(input: &'a str) -> IResult<&'a str, Name> {
-        println!("PARSING PROCESSING INSTRUCTION TARGET: {:?}", input);
+        dbg!(&input, "ProcessingInstruction::parse_target input");
         let (input, name) = Self::parse_name(input)?;
-        println!("PROCESSING INSTRUCTION TARGET NAME: {:?}", name);
+        dbg!(&name);
         if name.local_part.eq_ignore_ascii_case("xml") {
             Err(nom::Err::Failure(nom::error::Error::new(
                 input,

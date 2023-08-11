@@ -23,7 +23,7 @@ impl<'a> Parse<'a> for DeclarationContent<'a> {
     type Output = IResult<&'a str, Self>;
     // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        println!("PARSING DECLARATION CONTENT INPUT: {input}");
+        dbg!(&input, "DeclarationContent::parse input");
         alt((
             map(tag("EMPTY"), |_| Self::Empty),
             map(tag("ANY"), |_| Self::Any),

@@ -81,7 +81,6 @@ impl<'a> Document<'a> {
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
 
-        println!("Attempting to parse doctype");
         let (input, doc_type) = opt(|i| DocType::parse(i, entity_references.clone()))(input)?;
 
         let (input, misc_after) = match &doc_type {
@@ -107,7 +106,7 @@ impl<'a> Document<'a> {
             }),
         };
 
-        println!("PROLOG: {:?}", prolog);
+        dbg!(&prolog, "Parsed prolog");
         Ok((input, (prolog, updated_entity_references)))
     }
 
@@ -115,13 +114,13 @@ impl<'a> Document<'a> {
         doc_type: &DocType<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>> {
-        println!("COLLECTING ENTITY REFERENCES");
+        dbg!(&doc_type, "Collecting entity references");
 
         if let Some(int_subset) = &doc_type.int_subset {
             for internal_subset in int_subset {
                 if let InternalSubset::Entity(EntityDeclaration::General(decl)) = internal_subset {
                     if let EntityDefinition::EntityValue(value) = &decl.entity_def {
-                        println!("Adding entity {} to references", decl.name.local_part);
+                        dbg!(&decl.name.local_part);
                         entity_references
                             .borrow_mut()
                             .insert(decl.name.clone(), value.clone());
@@ -139,7 +138,7 @@ impl<'a> Document<'a> {
 
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        println!("\nPARSING CHAR DATA");
+        dbg!(&input, "Parsing char data");
         let (input, (data, _)) =
             tuple((take_till(|c: char| c == '<' || c == '&'), not(tag("]]>"))))(input)?;
         Ok((input, Cow::Borrowed(data)))
@@ -172,7 +171,7 @@ impl<'a> Document<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
-        println!("PARSING ELEMENT");
+        dbg!(&input, "parsing element");
         let (input, doc) = alt((
             preceded(
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
@@ -202,13 +201,13 @@ impl<'a> Document<'a> {
     pub fn process_references(
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> impl Fn(Vec<Reference<'a>>) -> Document<'a> + 'a {
-        println!("\nxxxxx\nPROCESSING REFERENCES");
+        dbg!(&entity_references, "Processing references");
         move |references| {
             let content: String = references
                 .into_iter()
                 .map(|reference| reference.normalize(entity_references.clone()))
                 .collect();
-            println!("References CONTENT: {}", content); //TODO: for test 053 this is "<e/>" here
+            dbg!(&content); //TODO: for test 053 this is "<e/>" here
             Document::Content(Some(Cow::Owned(content)))
         }
     }
@@ -248,11 +247,11 @@ impl<'a> Document<'a> {
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
-                println!("DOC: {:?}", doc);
+                dbg!(&doc);
                 vec.push(doc);
                 if let (_, Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
-                        println!("CHARDATA1: {:?}", chardata);
+                        dbg!(&chardata);
                         vec.push(Document::Content(Some(chardata)));
                     }
                 }
@@ -265,7 +264,7 @@ impl<'a> Document<'a> {
             match maybe_chardata {
                 Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
-                    println!("CHARDATA2: {:?}", chardata);
+                    dbg!(&chardata);
                     vec.push(Document::Content(Some(chardata)));
                     vec.append(&mut content);
                     match vec.as_slice() {
@@ -293,12 +292,12 @@ impl<'a> Document<'a> {
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        println!("PARSING COMMENT: {input}");
+        dbg!(&input, "parsing comment");
         let (input, _) = tag("<!--")(input)?;
 
         let (input, (comment_content, _)) = many_till(Self::parse_char, tag("-->"))(input)?;
         let comment_string: String = comment_content.into_iter().collect();
-        println!("COMMENT STRING: {comment_string}");
+        dbg!(&comment_string);
         if comment_string.contains("--") {
             return Err(nom::Err::Failure(nom::error::Error::new(
                 input,
@@ -306,12 +305,12 @@ impl<'a> Document<'a> {
             )));
         }
 
-        println!("COMMENT PARSED: {comment_string}");
+        dbg!(&comment_string);
         Ok((input, Document::Comment(Cow::Owned(comment_string))))
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        println!("PARSING XML STR");
+        dbg!(&input, "parsing xml str");
         let entity_references = Rc::new(RefCell::new(HashMap::new()));
         let (input, prolog_and_references) =
             opt(|i| Self::parse_prolog(i, entity_references.clone()))(input)?;
@@ -324,9 +323,8 @@ impl<'a> Document<'a> {
         let mut documents = Vec::new();
 
         let mut current_input = input;
-        println!("HERE");
         while !current_input.is_empty() {
-            println!("CURRENT INPUT: {current_input}");
+            dbg!(&current_input, "current_input within loop");
             let (input, start_tag) =
                 opt(|i| Tag::parse_start_tag(i, new_entity_references.clone()))(current_input)?;
             let (input, content) = Self::parse_content(input, new_entity_references.clone())?;
@@ -337,15 +335,15 @@ impl<'a> Document<'a> {
             } else {
                 None
             };
-            println!("1START TAG: {start_tag:?}");
-            println!("1CONTENT: {content:?}");
-            println!("1END TAG: {end_tag:?}");
+            dbg!(&start_tag);
+            dbg!(&content);
+            dbg!(&end_tag);
             let (input, doc) =
                 Self::construct_document_element(input, start_tag, content, end_tag, empty_tag)?;
             if let Document::Empty = &doc {
                 break;
             }
-            println!("DOC AFTER CONSTRUCT DOCUMENT ELEMENT: {doc:?}");
+            dbg!(&doc);
 
             documents.push(doc);
             current_input = input;
@@ -363,11 +361,11 @@ impl<'a> Document<'a> {
         end_tag: Option<Tag<'a>>,
         empty_tag: Option<Tag<'a>>,
     ) -> IResult<&'a str, Document<'a>> {
-        println!("\nCONSTRUCTING DOCUMENT. Input: {input}");
-        println!("START TAG: {start_tag:?}");
-        println!("CONTENT: {content:?}");
-        println!("END TAG: {end_tag:?}");
-        println!("EMPTY TAG: {empty_tag:?}");
+        dbg!(&input);
+        dbg!(&start_tag);
+        dbg!(&content);
+        dbg!(&end_tag);
+        dbg!(&empty_tag);
 
         match (start_tag, end_tag, content, empty_tag) {
             (Some(start), Some(end), content, None) => {
@@ -434,7 +432,7 @@ impl<'a> Document<'a> {
         prolog: Option<Document<'a>>,
         documents: Vec<Document<'a>>,
     ) -> IResult<&'a str, Document<'a>> {
-        println!("\nCONSTRUCTING DOCUMENT. Input: {}", input);
+        dbg!(&input, "constructing document");
 
         match documents.len() {
             0 => Err(nom::Err::Error(nom::error::Error::new(
@@ -546,7 +544,7 @@ impl<'a> Document<'a> {
                 for attribute in attributes {
                     if let Attribute::Instance { name, value } = attribute {
                         let attr_name = name.local_part.to_string();
-                        println!("\n\nVALUE IS HERE !!!!!!!!!!!!!!!!!!!!!!: {value}");
+                        dbg!(&value);
                         let attr_value = value.to_string();
                         results.insert(attr_name, attr_value);
                     }

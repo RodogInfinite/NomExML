@@ -26,11 +26,11 @@ impl<'a> Parse<'a> for DocType<'a> {
     // [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
     // Namespaces (Third Edition) [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        println!("PARSING DOCTYPE");
+        dbg!(&input, "DocType::parse input");
         let (input, _) = tag("<!DOCTYPE")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_name(input)?;
-        println!("PARSED NAME: {name:?}");
+        dbg!(&name);
         let (input, external_id) = opt(preceded(Self::parse_multispace1, |i| {
             ExternalID::parse(i, ())
         }))(input)?;
@@ -52,11 +52,10 @@ impl<'a> Parse<'a> for DocType<'a> {
             )
         })?;
 
-        println!("DOCTYPE INPUT AFTER PARSED INTERNAL SUBSET: {input}");
+        dbg!(&input);
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag(">")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
-        println!("PARSED DOCTYPE");
         Ok((
             input,
             Self {
