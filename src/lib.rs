@@ -31,7 +31,7 @@ use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till},
-    combinator::{map, not, opt, value},
+    combinator::{cut, map, map_res, not, opt, value},
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
     IResult,
@@ -143,31 +143,38 @@ impl<'a> Document<'a> {
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         dbg!(&input, "Parsing char data");
-        let (input, (data, _)) =
-            tuple((take_till(|c: char| c == '<' || c == '&'), not(tag("]]>"))))(input)?;
-        Ok((input, Cow::Borrowed(data)))
+
+        map(
+            tuple((take_till(|c: char| c == '<' || c == '&'), not(tag("]]>")))),
+            |(data, _)| Cow::Borrowed(data),
+        )(input)
     }
 
     // [18] CDSect ::= CDStart CData CDEnd
     // [19] CDStart ::= '<![CDATA['
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
     fn parse_cdata(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let original_input = input; // remember the starting position
-
-        let (input, _) = many_till(Self::parse_char, tag("]]>"))(input)?;
-
-        let parsed_length = original_input.len() - input.len() - 3; // subtract 3 for ']]>'
-        let cdata_slice = &original_input[..parsed_length];
-
-        Ok((input, Cow::Borrowed(cdata_slice)))
+        map(
+            cut(|i| {
+                let original_input = i;
+                let (input, _) = many_till(Self::parse_char, tag("]]>"))(i)?;
+                let parsed_length = original_input.len() - input.len() - 3; // subtract 3 for ']]>'
+                let cdata_slice = &original_input[..parsed_length];
+                Ok((input, Cow::Borrowed(cdata_slice)))
+            }),
+            |cow| cow,
+        )(input)
     }
 
     //[21] CDEnd ::= ']]>'
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
-        let (input, _) = tag("<![CDATA[")(input)?;
-        let (input, cdata_content) = Self::parse_cdata(input)?;
-        let cdata_string: String = cdata_content.to_string();
-        Ok((input, Document::CDATA(Cow::Owned(cdata_string))))
+        map(
+            preceded(tag("<![CDATA["), Self::parse_cdata),
+            |cdata_content| {
+                let cdata_string: String = cdata_content.to_string();
+                Document::CDATA(Cow::Owned(cdata_string))
+            },
+        )(input)
     }
 
     // [39] element	::= EmptyElemTag | STag content ETag
@@ -296,20 +303,21 @@ impl<'a> Document<'a> {
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
     pub fn parse_comment(input: &'a str) -> IResult<&'a str, Document<'a>> {
         dbg!(&input, "parsing comment");
-        let (input, _) = tag("<!--")(input)?;
-
-        let (input, (comment_content, _)) = many_till(Self::parse_char, tag("-->"))(input)?;
-        let comment_string: String = comment_content.into_iter().collect();
-        dbg!(&comment_string);
-        if comment_string.contains("--") {
-            return Err(nom::Err::Failure(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            )));
-        }
-
-        dbg!(&comment_string);
-        Ok((input, Document::Comment(Cow::Owned(comment_string))))
+        map_res(
+            pair(tag("<!--"), many_till(Self::parse_char, tag("-->"))),
+            |(_, (comment_content, _))| {
+                let comment_string: String = comment_content.into_iter().collect();
+                dbg!(&comment_string);
+                if comment_string.contains("--") {
+                    Err(nom::Err::Failure(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )))
+                } else {
+                    Ok(Document::Comment(Cow::Owned(comment_string)))
+                }
+            },
+        )(input)
     }
 
     pub fn parse_xml_str(input: &'a str) -> IResult<&'a str, Document<'a>> {

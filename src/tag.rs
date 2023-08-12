@@ -41,7 +41,7 @@ impl<'a> Tag<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Self> {
-        let (input, tag) = map(
+        map(
             tuple((
                 char('<'),
                 alt((Self::parse_name, Self::parse_qualified_name)),
@@ -68,8 +68,7 @@ impl<'a> Tag<'a> {
                     state: TagState::Start,
                 }
             },
-        )(input)?;
-        Ok((input, tag))
+        )(input)
     }
 
     // [42] ETag ::= '</' Name S? '>'

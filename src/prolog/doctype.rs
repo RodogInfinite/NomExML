@@ -1,8 +1,8 @@
 use crate::{namespaces::ParseNamespace, parse::Parse, Name};
 use nom::{
     bytes::complete::tag,
-    combinator::opt,
-    sequence::{delimited, pair, preceded},
+    combinator::{map, opt},
+    sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -28,43 +28,34 @@ impl<'a> Parse<'a> for DocType<'a> {
     // Namespaces (Third Edition) [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         dbg!(&input, "DocType::parse input");
-        let (input, _) = tag("<!DOCTYPE")(input)?;
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, name) = Self::parse_name(input)?;
-        dbg!(&name);
-        let (input, external_id) = opt(preceded(Self::parse_multispace1, |i| {
-            ExternalID::parse(i, ())
-        }))(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-
-        let (input, int_subset) = delimited(
-            pair(tag("["), Self::parse_multispace0),
-            |i| InternalSubset::parse(i, args.clone()), // Passing a None as there are no initial entity references
-            pair(Self::parse_multispace0, tag("]")),
-        )(input)
-        .map(|(next_input, subset)| {
-            (
-                next_input,
-                if subset.is_empty() {
-                    None
-                } else {
-                    Some(subset)
-                },
-            )
-        })?;
-
-        dbg!(&input);
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag(">")(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        Ok((
-            input,
-            Self {
+        map(
+            tuple((
+                tag("<!DOCTYPE"),
+                Self::parse_multispace1,
+                Self::parse_name,
+                opt(preceded(Self::parse_multispace1, |i| {
+                    ExternalID::parse(i, ())
+                })),
+                Self::parse_multispace0,
+                delimited(
+                    pair(tag("["), Self::parse_multispace0),
+                    |i| InternalSubset::parse(i, args.clone()),
+                    pair(Self::parse_multispace0, tag("]")),
+                ),
+                Self::parse_multispace0,
+                tag(">"),
+                Self::parse_multispace0,
+            )),
+            |(_, _, name, external_id, _, int_subset, _, _, _)| Self {
                 name,
                 external_id,
-                int_subset,
+                int_subset: if int_subset.is_empty() {
+                    None
+                } else {
+                    Some(int_subset)
+                },
             },
-        ))
+        )(input)
     }
 }
 

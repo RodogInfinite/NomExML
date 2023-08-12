@@ -53,34 +53,49 @@ impl<'a> Parse<'a> for Mixed<'a> {
     type Output = IResult<&'a str, Self>;
     // [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        let (input, _) = tuple((tag("("), Self::parse_multispace0))(input)?;
-        let (input, pcdata) = tag("#PCDATA")(input)?;
-        let (input, names) = many0(delimited(
-            tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
-            Self::parse_name,
-            Self::parse_multispace0,
-        ))(input)?;
-        let names = if !names.is_empty() {
-            Some(names.into_iter().collect())
-        } else {
-            None
-        };
-        let (input, _) = tuple((Self::parse_multispace0, tag(")")))(input)?;
-        let (input, zero_or_more) = opt(tag("*"))(input)?;
-        let mixed = if !pcdata.is_empty() {
-            Self::PCDATA {
+        dbg!(&input, "Mixed::parse input");
+        map(
+            tuple((
+                tag("("),
+                Self::parse_multispace0,
+                tag("#PCDATA"),
+                many0(delimited(
+                    tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                    Self::parse_name,
+                    Self::parse_multispace0,
+                )),
+                Self::parse_multispace0,
+                tag(")"),
+                opt(tag("*")),
+            )),
+            |(
+                _open_bracket,
+                _whitespace1,
+                pcdata,
                 names,
-                parsed: true,
-                zero_or_more: zero_or_more.is_some(),
-            }
-        } else {
-            Self::PCDATA {
-                names: None,
-                parsed: false,
-                zero_or_more: false,
-            }
-        };
-        Ok((input, mixed))
+                _whitespace2,
+                _close_bracket,
+                zero_or_more,
+            )| {
+                if !pcdata.is_empty() {
+                    Self::PCDATA {
+                        names: if !names.is_empty() {
+                            Some(names.into_iter().collect())
+                        } else {
+                            None
+                        },
+                        parsed: true,
+                        zero_or_more: zero_or_more.is_some(),
+                    }
+                } else {
+                    Self::PCDATA {
+                        names: None,
+                        parsed: false,
+                        zero_or_more: false,
+                    }
+                }
+            },
+        )(input)
     }
 }
 
@@ -89,28 +104,43 @@ impl<'a> ParseNamespace<'a> for Mixed<'a> {}
 impl<'a> Mixed<'a> {
     // Namespaces (Third Edition) [19] Mixed ::= '(' S? '#PCDATA' (S? '|' S? QName)* S? ')*' | '(' S? '#PCDATA' S? ')'
     pub fn parse_qualified(input: &'a str) -> IResult<&'a str, Mixed<'a>> {
-        let (input, _) = tuple((tag("("), Self::parse_multispace0))(input)?;
-        let (input, pcdata) = tag("#PCDATA")(input)?;
-        let (input, names) = many0(delimited(
-            tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
-            Self::parse_qualified_name,
-            Self::parse_multispace0,
-        ))(input)?;
-        let (input, _) = tuple((Self::parse_multispace0, tag(")")))(input)?;
-        let (input, zero_or_more) = opt(tag("*"))(input)?;
-        let mixed = if !pcdata.is_empty() {
-            Self::PCDATA {
-                names: if names.is_empty() { None } else { Some(names) },
-                parsed: true,
-                zero_or_more: zero_or_more.is_some(),
-            }
-        } else {
-            Self::PCDATA {
-                names: None,
-                parsed: false,
-                zero_or_more: false,
-            }
-        };
-        Ok((input, mixed))
+        map(
+            tuple((
+                tag("("),
+                Self::parse_multispace0,
+                tag("#PCDATA"),
+                many0(delimited(
+                    tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                    Self::parse_qualified_name,
+                    Self::parse_multispace0,
+                )),
+                Self::parse_multispace0,
+                tag(")"),
+                opt(tag("*")),
+            )),
+            |(
+                _open_bracket,
+                _whitespace1,
+                pcdata,
+                names,
+                _whitespace2,
+                _close_bracket,
+                zero_or_more,
+            )| {
+                if !pcdata.is_empty() {
+                    Mixed::PCDATA {
+                        names: if names.is_empty() { None } else { Some(names) },
+                        parsed: true,
+                        zero_or_more: zero_or_more.is_some(),
+                    }
+                } else {
+                    Mixed::PCDATA {
+                        names: None,
+                        parsed: false,
+                        zero_or_more: false,
+                    }
+                }
+            },
+        )(input)
     }
 }

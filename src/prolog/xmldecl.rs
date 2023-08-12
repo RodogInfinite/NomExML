@@ -3,10 +3,10 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, digit1},
-    combinator::opt,
+    combinator::{map, opt},
     error::ErrorKind,
     multi::many0,
-    sequence::delimited,
+    sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
 use std::{borrow::Cow, str::FromStr};
@@ -40,72 +40,89 @@ impl<'a> Parse<'a> for XmlDecl<'a> {
     type Output = IResult<&'a str, Self>;
     // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        let (input, _) = tag("<?xml")(input)?;
-        let (input, version) = Self::parse_version_info(input)?;
-        let (input, encoding) = opt(Self::parse_encoding_decl)(input)?;
-        let (input, standalone) = opt(Self::parse_sd_decl)(input)?;
-        let (input, _) = Self::parse_multispace0(input)?;
-        let (input, _) = tag("?>")(input)?;
-        Ok((
-            input,
-            Self {
+        map(
+            tuple((
+                tag("<?xml"),
+                Self::parse_version_info,
+                opt(Self::parse_encoding_decl),
+                opt(Self::parse_sd_decl),
+                Self::parse_multispace0,
+                tag("?>"),
+            )),
+            |(_start, version, encoding, standalone, _whitespace, _end)| Self {
                 version,
                 encoding,
                 standalone,
             },
-        ))
+        )(input)
     }
 }
 
 impl<'a> XmlDecl<'a> {
     // [24] VersionInfo	::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
     fn parse_version_info(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, _) = tag("version")(input)?;
-        let (input, _) = Self::parse_eq(input)?;
-        let (input, version) = alt((
-            delimited(tag("'"), Self::parse_version_num, tag("'")),
-            delimited(tag("\""), Self::parse_version_num, tag("\"")),
-        ))(input)?;
-        Ok((input, version))
+        map(
+            tuple((
+                Self::parse_multispace1,
+                tag("version"),
+                Self::parse_eq,
+                alt((
+                    delimited(tag("'"), Self::parse_version_num, tag("'")),
+                    delimited(tag("\""), Self::parse_version_num, tag("\"")),
+                )),
+            )),
+            |(_whitespace, _version_literal, _eq, version)| version,
+        )(input)
     }
 
     // [26] VersionNum	::= '1.' [0-9]+
     fn parse_version_num(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, _) = tag("1.")(input)?;
-        let (input, version) = digit1(input)?;
-        let version_with_prefix = format!("1.{}", version);
-        Ok((input, version_with_prefix.into()))
+        map(preceded(tag("1."), digit1), |version| {
+            format!("1.{}", version).into()
+        })(input)
     }
     // [80] EncodingDecl	::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
     fn parse_encoding_decl(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, _) = tag("encoding")(input)?;
-        let (input, _) = Self::parse_eq(input)?;
-        let (input, encoding) = alt((
-            delimited(tag("'"), Self::parse_enc_name, tag("'")),
-            delimited(tag("\""), Self::parse_enc_name, tag("\"")),
-        ))(input)?;
-        Ok((input, encoding))
+        map(
+            tuple((
+                Self::parse_multispace1,
+                tag("encoding"),
+                Self::parse_eq,
+                alt((
+                    delimited(tag("'"), Self::parse_enc_name, tag("'")),
+                    delimited(tag("\""), Self::parse_enc_name, tag("\"")),
+                )),
+            )),
+            |(_whitespace, _encoding_literal, _eq, encoding)| encoding,
+        )(input)
     }
 
     // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
     fn parse_enc_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, first) = alt((alpha1, tag("-")))(input)?;
-        let (input, rest) = many0(alt((alphanumeric1, tag("."), tag("_"), tag("-"))))(input)?;
-        Ok((input, format!("{}{}", first, rest.join("")).into()))
+        map(
+            pair(
+                alt((alpha1, tag("-"))),
+                many0(alt((alphanumeric1, tag("."), tag("_"), tag("-")))),
+            ),
+            |(first, rest)| format!("{}{}", first, rest.join("")).into(),
+        )(input)
     }
 
     // [32] SDDecl	::= S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
     fn parse_sd_decl(input: &'a str) -> IResult<&'a str, Standalone> {
-        let (input, _) = Self::parse_multispace1(input)?;
-        let (input, _) = tag("standalone")(input)?;
-        let (input, _) = Self::parse_eq(input)?;
-        let (input, standalone) = alt((
-            delimited(tag("'"), alt((tag("yes"), tag("no"))), tag("'")),
-            delimited(tag("\""), alt((tag("yes"), tag("no"))), tag("\"")),
-        ))(input)?;
-        let standalone = Standalone::from_str(standalone)?;
-        Ok((input, standalone))
+        map(
+            tuple((
+                Self::parse_multispace1,
+                tag("standalone"),
+                Self::parse_eq,
+                alt((
+                    delimited(tag("'"), alt((tag("yes"), tag("no"))), tag("'")),
+                    delimited(tag("\""), alt((tag("yes"), tag("no"))), tag("\"")),
+                )),
+            )),
+            |(_whtiespace, _standalone_literal, _eq, standalone)| {
+                Standalone::from_str(standalone).unwrap()
+            },
+        )(input)
     }
 }

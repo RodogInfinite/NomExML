@@ -100,6 +100,7 @@ impl<'a> Parse<'a> for InternalSubset<'a> {
         Ok((input, consolidated))
     }
 }
+
 impl<'a> InternalSubset<'a> {
     // [28a] DeclSep ::=  S | PEReference
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
@@ -197,6 +198,7 @@ impl<'a> InternalSubset<'a> {
             |i| Self::parse_parameter_entity_declaration(i, entity_references.clone()),
         ))(input)
     }
+
     // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
     fn parse_general_entity_declaration(
         input: &'a str,

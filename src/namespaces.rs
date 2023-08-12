@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{anychar, char},
     combinator::{map, verify},
-    sequence::tuple,
+    sequence::{pair, preceded, tuple},
     IResult,
 };
 use std::borrow::Cow;
@@ -25,25 +25,28 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
 
     // [2] PrefixedAttName ::=  'xmlns:' NCName
     fn parse_prefixed_attribute_name(input: &'a str) -> IResult<&'a str, QualifiedName> {
-        let (input, _) = tag("xmlns:")(input)?;
-        let (input, name) = map(Self::parse_non_colonized_name, |local_part| QualifiedName {
-            prefix: Some("xmlns".into()),
-            local_part,
-        })(input)?;
-        Ok((input, name))
+        map(
+            preceded(tag("xmlns:"), Self::parse_non_colonized_name),
+            |local_part| QualifiedName {
+                prefix: Some("xmlns".into()),
+                local_part,
+            },
+        )(input)
     }
 
     // [4] NCName ::= Name - (Char* ':' Char*)  /* An XML Name, minus the ":" */
     fn parse_non_colonized_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, start_char) = Self::parse_name_start_char(input)?;
-        let (input, rest_chars) = map(
-            nom::bytes::complete::take_while1(|c: char| Self::is_name_char(c) && c != ':'),
-            Cow::Borrowed,
-        )(input)?;
-
-        let mut name = start_char.to_string();
-        name.push_str(&rest_chars);
-        Ok((input, Cow::Owned(name)))
+        map(
+            pair(
+                Self::parse_name_start_char,
+                nom::bytes::complete::take_while1(|c: char| Self::is_name_char(c) && c != ':'),
+            ),
+            |(start_char, rest_chars)| {
+                let mut name = start_char.to_string();
+                name.push_str(rest_chars);
+                Cow::Owned(name)
+            },
+        )(input)
     }
 
     // [5] NCNameChar ::= NameChar - ':' /* An XML NameChar, minus the ":" */
@@ -72,7 +75,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
     fn parse_prefixed_name(input: &'a str) -> IResult<&'a str, QualifiedName> {
-        let (input, name) = map(
+        map(
             tuple((
                 Self::parse_non_colonized_name,
                 char(':'),
@@ -82,8 +85,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
                 prefix: Some(prefix),
                 local_part,
             },
-        )(input)?;
-        Ok((input, name))
+        )(input)
     }
 
     // [9] UnprefixedName ::= LocalPart

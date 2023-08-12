@@ -4,8 +4,9 @@ use crate::{transcode::Decode, Name};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, satisfy},
-    combinator::{opt, recognize},
+    combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
+    sequence::tuple,
     IResult,
 };
 use std::borrow::Cow;
@@ -91,28 +92,27 @@ pub trait Parse<'a>: Sized {
 
     // [5] Name ::= NameStartChar (NameChar)*
     fn parse_name(input: &'a str) -> IResult<&'a str, Name> {
-        let (input, start_char) = Self::parse_name_start_char(input)?;
-        let (input, rest_chars) = opt(Self::parse_nmtoken)(input)?;
+        map(
+            tuple((Self::parse_name_start_char, opt(Self::parse_nmtoken))),
+            |(start_char, rest_chars)| {
+                let mut name = start_char.to_string();
+                if let Some(rest) = rest_chars {
+                    name.push_str(&rest);
+                }
 
-        let mut name = start_char.to_string();
-        if let Some(rest) = rest_chars {
-            name.push_str(&rest);
-        }
+                let name_clone = name.clone();
+                // Attempt to decode the cloned name.
+                let local_part = match name_clone.decode() {
+                    Ok(decoded) => decoded.into_owned(), // TODO: investigate this decoding for refactor
+                    Err(_) => name,
+                };
 
-        let name_clone = name.clone();
-        // Attempt to decode the cloned name.
-        let local_part = match name_clone.decode() {
-            Ok(decoded) => decoded.into_owned(), // If decoding succeeds, use the decoded value.
-            Err(_) => name,                      // If it fails, use the original name.
-        };
-
-        Ok((
-            input,
-            Name {
-                prefix: None,
-                local_part: Cow::Owned(local_part),
+                Name {
+                    prefix: None,
+                    local_part: Cow::Owned(local_part),
+                }
             },
-        ))
+        )(input)
     }
 
     // [6] Names ::= Name (#x20 Name)*

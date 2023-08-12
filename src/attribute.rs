@@ -45,10 +45,12 @@ impl<'a> Parse<'a> for Attribute<'a> {
     type Output = IResult<&'a str, Self>;
     // [41] Attribute ::= Name Eq AttValue
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        let (input, name) = Self::parse_name(input)?;
-        let (input, _) = Self::parse_eq(input)?;
-        let (input, value) = Self::parse_attvalue(input, args.clone())?;
-        Ok((input, Attribute::Instance { name, value }))
+        map(
+            tuple((Self::parse_name, Self::parse_eq, |i| {
+                Self::parse_attvalue(i, args.clone())
+            })),
+            |(name, _eq, value)| Attribute::Instance { name, value },
+        )(input)
     }
 }
 
@@ -59,21 +61,23 @@ impl<'a> Attribute<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Attribute<'a>> {
-        let (input, (_, name, _, att_type, _, default_decl)) = tuple((
-            Self::parse_multispace1,
-            Self::parse_name,
-            Self::parse_multispace1,
-            |i| AttType::parse(i, ()),
-            Self::parse_multispace1,
-            |i| DefaultDecl::parse(i, entity_references.clone()),
-        ))(input)?;
-
-        let attribute = Attribute::Definition {
-            name,
-            att_type,
-            default_decl,
-        };
-        Ok((input, attribute))
+        map(
+            tuple((
+                Self::parse_multispace1,
+                Self::parse_name,
+                Self::parse_multispace1,
+                |i| AttType::parse(i, ()),
+                Self::parse_multispace1,
+                |i| DefaultDecl::parse(i, entity_references.clone()),
+            )),
+            |(_whitespace1, name, _whitespace2, att_type, _whitespace3, default_decl)| {
+                Attribute::Definition {
+                    name,
+                    att_type,
+                    default_decl,
+                }
+            },
+        )(input)
     }
 
     // Namespaces (Third Edition) [21] AttDef ::= S (QName | NSAttName) S AttType S DefaultDecl
@@ -81,24 +85,26 @@ impl<'a> Attribute<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Attribute<'a>> {
-        let (input, (_, name, _, att_type, _, default_decl)) = tuple((
-            Self::parse_multispace1,
-            alt((
-                Self::parse_qualified_name,
-                Self::parse_namespace_attribute_name,
+        map(
+            tuple((
+                Self::parse_multispace1,
+                alt((
+                    Self::parse_qualified_name,
+                    Self::parse_namespace_attribute_name,
+                )),
+                Self::parse_multispace1,
+                |i| AttType::parse(i, ()),
+                Self::parse_multispace1,
+                |i| DefaultDecl::parse(i, entity_references.clone()),
             )),
-            Self::parse_multispace1,
-            |i| AttType::parse(i, ()),
-            Self::parse_multispace1,
-            |i| DefaultDecl::parse(i, entity_references.clone()),
-        ))(input)?;
-
-        let attribute = Attribute::Definition {
-            name,
-            att_type,
-            default_decl,
-        };
-        Ok((input, attribute))
+            |(_whitespace1, name, _whtiespace2, att_type, _whtiespace3, default_decl)| {
+                Attribute::Definition {
+                    name,
+                    att_type,
+                    default_decl,
+                }
+            },
+        )(input)
     }
 
     // [10] AttValue ::= '"' ([^<&"] | Reference)* '"'|  "'" ([^<&'] | Reference)* "'"
@@ -159,41 +165,36 @@ impl<'a> Attribute<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Attribute<'a>> {
-        alt((
-            map_res(
+        map(
+            alt((
                 tuple((Self::parse_namespace_attribute_name, Self::parse_eq, |i| {
                     Attribute::parse_attvalue(i, entity_references.clone())
                 })),
-                |(name, _, value)| {
-                    // If name is "xmlns", it's a default namespace declaration
-                    if let Some(prefix) = name.prefix {
-                        if &prefix == "xmlns" {
-                            Ok(Attribute::Namespace {
-                                prefix: Prefix::Default,
-                                uri: value,
-                            })
-                        } else {
-                            // Otherwise, it's a prefixed namespace declaration
-                            Ok(Attribute::Namespace {
-                                prefix: Prefix::Prefix(prefix),
-                                uri: value,
-                            })
-                        }
-                    } else {
-                        Err(("Attribute without prefix", nom::error::ErrorKind::MapRes))
-                    }
-                },
-            ),
-            map(
                 tuple((Self::parse_qualified_name, Self::parse_eq, |i| {
                     Self::parse_attvalue(i, entity_references.clone())
                 })),
-                |(QualifiedName { prefix, local_part }, _, value)| Attribute::Instance {
+            )),
+            |result| match result {
+                (name, _, value) if name.prefix.is_some() => {
+                    let prefix = name.prefix.unwrap();
+                    if &prefix == "xmlns" {
+                        Attribute::Namespace {
+                            prefix: Prefix::Default,
+                            uri: value,
+                        }
+                    } else {
+                        Attribute::Namespace {
+                            prefix: Prefix::Prefix(prefix),
+                            uri: value,
+                        }
+                    }
+                }
+                (QualifiedName { prefix, local_part }, _eq, value) => Attribute::Instance {
                     name: QualifiedName { prefix, local_part },
                     value,
                 },
-            ),
-        ))(input)
+            },
+        )(input)
     }
 }
 
@@ -238,14 +239,20 @@ impl<'a> Parse<'a> for AttType<'a> {
     type Output = IResult<&'a str, Self>;
     //[54] AttType ::=  StringType | TokenizedType | EnumeratedType
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        let (input, att_type) = alt((
-            // [55] StringType ::= 'CDATA'
-            value(AttType::CDATA, tag("CDATA")),
-            // [56] TokenizedType ::= 'ID'| 'IDREF' | 'IDREFS' | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
-            map(TokenizedType::parse, AttType::Tokenized),
-            Self::parse_enumerated_type,
-        ))(input)?;
-        dbg!(&att_type);
+        let (input, att_type) = map(
+            alt((
+                // [55] StringType ::= 'CDATA'
+                value(AttType::CDATA, tag("CDATA")),
+                // [56] TokenizedType ::= 'ID'| 'IDREF' | 'IDREFS' | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
+                map(TokenizedType::parse, AttType::Tokenized),
+                Self::parse_enumerated_type,
+            )),
+            |parsed_att_type| {
+                dbg!(&parsed_att_type);
+                parsed_att_type
+            },
+        )(input)?;
+
         Ok((input, att_type))
     }
 }
@@ -257,52 +264,46 @@ impl<'a> AttType<'a> {
 
     // [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
     fn parse_notation_type(input: &'a str) -> IResult<&'a str, AttType<'a>> {
-        let (input, (_, _, names)) = tuple((
-            tag("NOTATION"),
-            Self::parse_multispace1,
-            delimited(
-                char('('),
+        map(
+            tuple((
+                tag("NOTATION"),
+                Self::parse_multispace1,
                 delimited(
-                    Self::parse_multispace0,
-                    separated_list1(
-                        delimited(Self::parse_multispace0, char('|'), Self::parse_multispace0),
-                        Self::parse_name,
+                    char('('),
+                    delimited(
+                        Self::parse_multispace0,
+                        separated_list1(
+                            delimited(Self::parse_multispace0, char('|'), Self::parse_multispace0),
+                            Self::parse_name,
+                        ),
+                        Self::parse_multispace0,
                     ),
-                    Self::parse_multispace0,
+                    char(')'),
                 ),
-                char(')'),
-            ),
-        ))(input)?;
-
-        //let names = names.into_iter().collect();
-
-        Ok((
-            input,
-            AttType::Enumerated {
+            )),
+            |(_notation_literal, _whitespace, names)| AttType::Enumerated {
                 notation: Some(names),
                 enumeration: None,
             },
-        ))
+        )(input)
     }
 
     // [59] Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
     fn parse_enumeration(input: &'a str) -> IResult<&'a str, AttType<'a>> {
-        let mut parser = delimited(
-            char('('),
-            separated_list1(
-                tuple((Self::parse_multispace0, char('|'), Self::parse_multispace0)),
-                Self::parse_nmtoken,
+        map(
+            delimited(
+                char('('),
+                separated_list1(
+                    tuple((Self::parse_multispace0, char('|'), Self::parse_multispace0)),
+                    Self::parse_nmtoken,
+                ),
+                char(')'),
             ),
-            char(')'),
-        );
-        let (input, enumeration) = parser(input)?;
-        Ok((
-            input,
-            AttType::Enumerated {
+            |enumeration| AttType::Enumerated {
                 notation: None,
                 enumeration: Some(enumeration),
             },
-        ))
+        )(input)
     }
 }
 

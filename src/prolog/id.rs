@@ -41,11 +41,13 @@ impl<'a> Parse<'a> for ID<'a> {
 impl<'a> ID<'a> {
     // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
     pub fn parse_public_id_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        let (input, pubid_literal) = alt((
-            delimited(tag("\""), many1(Self::parse_pubid_char), tag("\"")),
-            delimited(tag("'"), many1(Self::parse_pubid_char), tag("'")),
-        ))(input)?;
-        Ok((input, Cow::Owned(pubid_literal.join(""))))
+        map(
+            alt((
+                delimited(tag("\""), many1(Self::parse_pubid_char), tag("\"")),
+                delimited(tag("'"), many1(Self::parse_pubid_char), tag("'")),
+            )),
+            |pubid_literal: Vec<&'a str>| Cow::Owned(pubid_literal.join("")),
+        )(input)
     }
 
     // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]

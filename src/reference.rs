@@ -93,7 +93,7 @@ impl<'a> Decode for Reference<'a> {
     fn as_str(&self) -> &str {
         match self {
             Reference::EntityRef(name) => &name.local_part,
-            Reference::CharRef { value, .. } => &value,
+            Reference::CharRef { value, .. } => value,
         }
     }
 }
@@ -107,30 +107,29 @@ pub enum CharRefState {
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        //TODO: decode here?
-        dbg!(&input, "parse entity ref input");
-        let (input, _) = char('&')(input)?;
-        let (input, name) = Self::parse_name(input)?;
-        let (input, _) = char(';')(input)?;
-        Ok((input, Reference::EntityRef(name)))
+        // TODO: decode here?
+        map(
+            tuple((char('&'), Self::parse_name, char(';'))),
+            |(_, name, _)| Reference::EntityRef(name),
+        )(input)
     }
 
     //[69] PEReference ::= '%' Name ';'
     fn parse_parameter_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        let (input, _) = char('%')(input)?;
-        let (input, name) = Self::parse_name(input)?;
-        let (input, _) = char(';')(input)?;
-        Ok((input, Reference::EntityRef(name)))
+        map(
+            tuple((char('%'), Self::parse_name, char(';'))),
+            |(_, name, _)| Reference::EntityRef(name),
+        )(input)
     }
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        let (input, char_ref) = alt((
+        //TODO: remove reconstruction if possible
+        alt((
             map(
                 tuple((tag("&#"), digit1, tag(";"))),
                 |(start, digits, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, digits, end);
-                    dbg!(&reconstructed, "digit str");
                     let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
                         value: Cow::Owned(decoded),
@@ -142,7 +141,6 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 tuple((tag("&#x"), hex_digit1, tag(";"))),
                 |(start, hex, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, hex, end);
-                    dbg!(&reconstructed, "hex str");
                     let decoded = reconstructed.decode().unwrap().into_owned();
                     Reference::CharRef {
                         value: Cow::Owned(decoded),
@@ -150,8 +148,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                     }
                 },
             ),
-        ))(input)?;
-        Ok((input, char_ref))
+        ))(input)
     }
 }
 
