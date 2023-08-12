@@ -83,7 +83,7 @@ impl<'a> Tag<'a> {
                     alt((Self::parse_name, Self::parse_qualified_name)),
                     Self::parse_multispace0,
                 )),
-                |(_, name, _)| Self {
+                |(_open_tag, name, _close_tag)| Self {
                     name,
                     attributes: None, // Attributes are not parsed for end tags
                     state: TagState::End,
@@ -109,9 +109,10 @@ impl<'a> Tag<'a> {
                 Self::parse_multispace0,
                 tag("/>"),
             )),
-            |(_, name, attributes, _, _)| Self {
+            |(_open_tag, name, attributes, _whitespace, _close_tag)| Self {
                 name,
-                attributes: attributes.map(|attr| attr.into_iter().map(|(_, attr)| attr).collect()),
+                attributes: attributes
+                    .map(|attr| attr.into_iter().map(|(_whitespace, attr)| attr).collect()),
                 state: TagState::Empty,
             },
         )(input)

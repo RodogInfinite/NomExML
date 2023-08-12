@@ -46,7 +46,17 @@ impl<'a> Parse<'a> for DocType<'a> {
                 tag(">"),
                 Self::parse_multispace0,
             )),
-            |(_, _, name, external_id, _, int_subset, _, _, _)| Self {
+            |(
+                _open_tag,
+                _whitespace1,
+                name,
+                external_id,
+                _open_bracket_whitespace,
+                int_subset,
+                _whitespace2,
+                _close_tag,
+                _whitespace3,
+            )| Self {
                 name,
                 external_id,
                 int_subset: if int_subset.is_empty() {

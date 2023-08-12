@@ -175,7 +175,7 @@ impl<'a> Attribute<'a> {
                 })),
             )),
             |result| match result {
-                (name, _, value) if name.prefix.is_some() => {
+                (name, _eq, value) if name.prefix.is_some() => {
                     let prefix = name.prefix.unwrap();
                     if &prefix == "xmlns" {
                         Attribute::Namespace {

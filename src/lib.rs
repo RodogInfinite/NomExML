@@ -199,7 +199,7 @@ impl<'a> Document<'a> {
                     Tag::parse_end_tag,
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
-                |(_, start_tag, content, end_tag, _)| {
+                |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),
@@ -228,7 +228,7 @@ impl<'a> Document<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
-        let (input, ((_, maybe_chardata), elements)) = tuple((
+        let (input, ((_whitespace, maybe_chardata), elements)) = tuple((
             pair(
                 Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
                 opt(Self::parse_char_data),
@@ -305,7 +305,7 @@ impl<'a> Document<'a> {
         dbg!(&input, "parsing comment");
         map_res(
             pair(tag("<!--"), many_till(Self::parse_char, tag("-->"))),
-            |(_, (comment_content, _))| {
+            |(_open_comment, (comment_content, _close_comment))| {
                 let comment_string: String = comment_content.into_iter().collect();
                 dbg!(&comment_string);
                 if comment_string.contains("--") {

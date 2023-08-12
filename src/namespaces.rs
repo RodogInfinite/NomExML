@@ -81,7 +81,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
                 char(':'),
                 Self::parse_non_colonized_name,
             )),
-            |(prefix, _, local_part)| QualifiedName {
+            |(prefix, _colon_literal, local_part)| QualifiedName {
                 prefix: Some(prefix),
                 local_part,
             },

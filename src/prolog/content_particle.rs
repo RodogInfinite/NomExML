@@ -31,10 +31,13 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
                     opt(char(')')),
                     opt(|i| ConditionalState::parse(i, ())), //TODO: verify that this should be here
                 )),
-                |(_, name, conditional_state, _, conditional_state_outter)| match (
+                |(
+                    _open_bracket,
+                    name,
                     conditional_state,
+                    _close_bracket,
                     conditional_state_outter,
-                ) {
+                )| match (conditional_state, conditional_state_outter) {
                     (Some(conditional_state), None) => {
                         ContentParticle::Name(name, conditional_state)
                     }

@@ -31,7 +31,7 @@ impl<'a> Parse<'a> for ProcessingInstruction<'a> {
                 )),
                 tag("?>"),
             )),
-            |(_, target, data_chars, _)| {
+            |(_open_tag, target, data_chars, _close_tag)| {
                 let data: Option<String> = data_chars.map(|(chars, _)| chars.into_iter().collect());
                 ProcessingInstruction {
                     target,
