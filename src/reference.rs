@@ -12,8 +12,8 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1, hex_digit1},
-    combinator::{map, peek},
-    sequence::{delimited, tuple},
+    combinator::map,
+    sequence::tuple,
     IResult,
 };
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};

@@ -16,14 +16,14 @@ pub trait Decode {
             "gt" => Ok(Cow::Borrowed(">")),
             "quot" => Ok(Cow::Borrowed("\"")),
             "apos" => Ok(Cow::Borrowed("'")),
-            s if s.starts_with("&#x") && s.ends_with(";") => {
+            s if s.starts_with("&#x") && s.ends_with(';') => {
                 let code = &s[3..s.len() - 1]; // slice to get content inside &#x...;
                 match self.decode_hex(code) {
                     Ok((_, cow)) => Ok(cow),
                     Err(e) => Err(Box::new(e)),
                 }
             }
-            s if s.starts_with("&#") && s.ends_with(";") => {
+            s if s.starts_with("&#") && s.ends_with(';') => {
                 let code = &s[2..s.len() - 1]; // slice to get content inside &#...;
                 match self.decode_digit(code) {
                     Ok((_, cow)) => Ok(cow),
