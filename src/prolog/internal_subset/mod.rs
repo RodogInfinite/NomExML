@@ -8,7 +8,7 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     combinator::{map, opt},
-    multi::many0,
+    multi::{fold_many0, many0},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -319,25 +319,36 @@ impl<'a> InternalSubset<'a> {
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityValue<'a>> {
         dbg!(&input, "parse_entity_value input");
+        let parse_content = |i| Self::parse_entity_content(i, entity_references.clone());
+
         let (input, data) = alt((
             delimited(
                 tag("\""),
-                many0(alt((map(is_not("%&\""), ToString::to_string), |i| {
-                    Self::parse_entity_content(i, entity_references.clone())
-                }))),
+                fold_many0(
+                    alt((map(is_not("%&\""), ToString::to_string), &parse_content)),
+                    String::new,
+                    |mut acc: String, item: String| {
+                        acc.push_str(&item);
+                        acc
+                    },
+                ),
                 tag("\""),
             ),
             delimited(
                 tag("\'"),
-                many0(alt((map(is_not("%&'"), ToString::to_string), |i| {
-                    Self::parse_entity_content(i, entity_references.clone())
-                }))),
+                fold_many0(
+                    alt((map(is_not("%&'"), ToString::to_string), &parse_content)),
+                    String::new,
+                    |mut acc: String, item: String| {
+                        acc.push_str(&item);
+                        acc
+                    },
+                ),
                 tag("\'"),
             ),
         ))(input)?;
 
-        let value = data.into_iter().collect::<String>();
-        Ok((input, EntityValue::Value(Cow::Owned(value))))
+        Ok((input, EntityValue::Value(Cow::Owned(data))))
     }
 
     fn parse_entity_content(
@@ -350,24 +361,6 @@ impl<'a> InternalSubset<'a> {
             Reference::CharRef { value, .. } => value.into_owned(),
         };
         Ok((input, result))
-    }
-
-    //TODO: figure out how to integrate this
-    // [74] PEDef ::= EntityValue | ExternalID
-    fn _parse_perameter_definition(
-        input: &'a str,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, ParameterEntityDefinition<'a>> {
-        alt((
-            map(
-                |i| Self::parse_entity_value(i, entity_references.clone()),
-                ParameterEntityDefinition::EntityValue,
-            ),
-            map(
-                |i| ExternalID::parse(i, ()),
-                ParameterEntityDefinition::ExternalID,
-            ),
-        ))(input)
     }
 
     fn parse_comment(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
