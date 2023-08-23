@@ -17,20 +17,26 @@ use nom_xml::{
         },
         xmldecl::{Standalone, XmlDecl},
     },
+    reference::Reference,
     tag::{Tag, TagState},
     ConditionalState, Document, QualifiedName,
 };
 use std::{borrow::Cow, error::Error, fs::File};
 
-fn test_valid_sa_file<'a>(file_number: &str) -> Result<Document<'a>, Box<dyn Error>> {
+fn test_valid_sa_file<'a>(
+    file_number: &str,
+    buffer: &'a mut String,
+) -> Result<Document<'a>, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
-    let document = parse_file(&mut file)?;
+
+    let document = parse_file(&mut file, buffer)?;
     Ok(document)
 }
 
 #[test]
 fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("001")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("001", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -70,7 +76,8 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("002")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("002", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -110,7 +117,8 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("003")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("003", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -150,7 +158,8 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("004")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("004", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -203,7 +212,8 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("005")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("005", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -256,7 +266,8 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("006")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("006", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -309,7 +320,8 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("007")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("007", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -349,7 +361,8 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("008")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("008", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -389,7 +402,8 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("009")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("009", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -429,7 +443,8 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("010")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("010", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -482,7 +497,8 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("011")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("011", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -548,7 +564,8 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("012")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("012", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -601,7 +618,8 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("013")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("013", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -654,7 +672,8 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("014")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("014", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -707,7 +726,8 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("015")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("015", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -760,7 +780,8 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("016")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("016", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -803,7 +824,8 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("017")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("017", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -852,7 +874,8 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("017a")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("017a", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -895,7 +918,8 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("018")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("018", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -935,7 +959,8 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("019")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("019", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -975,7 +1000,8 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("020")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("020", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1015,7 +1041,8 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("021")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("021", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1055,7 +1082,8 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("022")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("022", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1095,7 +1123,8 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("023")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("023", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1143,7 +1172,8 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("024")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("024", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1224,7 +1254,8 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("025")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("025", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1294,7 +1325,8 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("026")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("026", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1360,7 +1392,8 @@ fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("027")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("027", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1426,7 +1459,8 @@ fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("028")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("028", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1470,7 +1504,8 @@ fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("029")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("029", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1514,7 +1549,8 @@ fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("030")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("030", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1558,7 +1594,8 @@ fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("031")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("031", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1602,7 +1639,8 @@ fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("032")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("032", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1646,7 +1684,8 @@ fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("033")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("033", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1690,7 +1729,8 @@ fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("034")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("034", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1722,7 +1762,8 @@ fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("035")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("035", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1754,7 +1795,8 @@ fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("036")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("036", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1798,7 +1840,8 @@ fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("037")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("037", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1839,7 +1882,8 @@ fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("038")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("038", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1884,7 +1928,8 @@ fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("039")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("039", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1932,7 +1977,8 @@ fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("040")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("040", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1985,7 +2031,8 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("041")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("041", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2038,7 +2085,8 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("042")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("042", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2078,7 +2126,8 @@ fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("043")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("043", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2131,7 +2180,8 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("044")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("044", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2229,7 +2279,8 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("045")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("045", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2286,7 +2337,8 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("046")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("046", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2343,7 +2395,8 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("047")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("047", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2383,7 +2436,8 @@ fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("048")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("048", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2423,7 +2477,8 @@ fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("049")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("049", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2463,7 +2518,8 @@ fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("050")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("050", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2503,7 +2559,8 @@ fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("051")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("051", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2543,7 +2600,8 @@ fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("052")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("052", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2582,76 +2640,76 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
 }
 
 // TODO: Make test 053 work
-// #[test]
-// fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("053")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDecl::General(
-//                             GeneralEntityDeclaration {
-//                                 name: QualifiedName::new(None, "e"),
-//                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-//                                     "<e/>".into()
-//                                 ))
-//                             }
-//                         )),
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Name(
-//                                     QualifiedName::new(None, "e"),
-//                                     ConditionalState::None,
-//                                 )
-//                             )),
-//                         },
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "e"),
-//                             content_spec: Some(DeclarationContent::Empty)
-//                         }
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Nested(vec![Document::Element(
-//                     Tag {
-//                         name: QualifiedName::new(None, "e"),
-//                         attributes: None,
-//                         state: TagState::Start,
-//                     },
-//                     Box::new(Document::Empty),
-//                     Tag {
-//                         name: QualifiedName::new(None, "e"),
-//                         attributes: None,
-//                         state: TagState::End,
-//                     }
-//                 ),])),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("053", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<e/>".into()
+                            ))
+                        })),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "e"),
+                                    ConditionalState::None,
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "e"),
+                            content_spec: Some(DeclarationContent::Empty)
+                        }
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![Document::Element(
+                    Tag {
+                        name: QualifiedName::new(None, "e"),
+                        attributes: None,
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Empty),
+                    Tag {
+                        name: QualifiedName::new(None, "e"),
+                        attributes: None,
+                        state: TagState::End,
+                    }
+                ),])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("054")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("054", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2692,7 +2750,8 @@ fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
 // TODO: analyze the misc to see if Some(Vec<Misc.content(Box<Document::Nested>)>) is correct
 #[test]
 fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("055")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("055", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2740,7 +2799,8 @@ fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("056")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("056", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2780,7 +2840,8 @@ fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("057")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("057", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2819,7 +2880,8 @@ fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("058")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("058", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2872,7 +2934,8 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("059")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("059", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2990,7 +3053,8 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("060")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("060", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3035,7 +3099,8 @@ fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("061")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("061", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3075,7 +3140,8 @@ fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("062")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("062", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3119,7 +3185,8 @@ fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("063")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("063", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3159,7 +3226,8 @@ fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("064")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("064", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3201,7 +3269,8 @@ fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("065")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("065", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3249,7 +3318,8 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("066")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("066", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3309,7 +3379,8 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("067")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("067", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3349,7 +3420,8 @@ fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("068")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("068", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3397,7 +3469,8 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("069")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("069", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3442,51 +3515,54 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
 }
 
 //TODO: Test 070
-// #[test]
-// fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("070")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDecl::Parameter(
-//                             ParameterEntityDefinition::EntityValue(EntityValue::Value(
-//                                 "<!ELEMENT doc (#PCDATA)>".into()
-//                             )),
-//                         )),
-//                         InternalSubset::DeclSep(Reference::EntityRef(QualifiedName::new(
-//                             None, "e"
-//                         ))),
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Empty),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("070", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<!ELEMENT doc (#PCDATA)>".into()
+                            )),
+                        })),
+                        InternalSubset::DeclSep(Reference::EntityRef(QualifiedName::new(
+                            None, "e"
+                        ))),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("071")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("071", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3536,7 +3612,8 @@ fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("072")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("072", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3586,7 +3663,8 @@ fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("073")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("073", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3636,7 +3714,8 @@ fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("074")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("074", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3686,7 +3765,8 @@ fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("075")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("075", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3734,11 +3814,79 @@ fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-//TODO: test 076
+#[test]
+fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("076", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::Enumerated {
+                                    notation: Some(vec![
+                                        QualifiedName::new(None, "n1"),
+                                        QualifiedName::new(None, "n2"),
+                                    ]),
+                                    enumeration: None,
+                                },
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                        InternalSubset::Notation {
+                            name: QualifiedName::new(None, "n1"),
+                            id: ID::ExternalID(ExternalID::System(Cow::Borrowed(
+                                "http://www.w3.org/"
+                            ))),
+                        },
+                        InternalSubset::Notation {
+                            name: QualifiedName::new(None, "n2"),
+                            id: ID::ExternalID(ExternalID::System(Cow::Borrowed(
+                                "http://www.w3.org/"
+                            ))),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("077")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("077", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3791,7 +3939,8 @@ fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("078")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("078", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3844,7 +3993,8 @@ fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("079")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("079", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3897,7 +4047,8 @@ fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("080")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("080", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3946,130 +4097,132 @@ fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
 }
 
 // TODO: test 081
-// #[test]
-// fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("081")?;
+#[test]
+fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("081", &mut buffer)?;
 
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Sequence(
-//                                     vec![
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "a"),
-//                                             ConditionalState::None
-//                                         ),
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "b"),
-//                                             ConditionalState::None
-//                                         ),
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "c"),
-//                                             ConditionalState::None
-//                                         ),
-//                                     ],
-//                                     ConditionalState::None
-//                                 )
-//                             )),
-//                         },
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "a"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Name(
-//                                     QualifiedName::new(None, "a"),
-//                                     ConditionalState::Optional
-//                                 )
-//                             )),
-//                         },
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "b"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Name(
-//                                     QualifiedName::new(None, "b"),
-//                                     ConditionalState::ZeroOrMore
-//                                 )
-//                             )),
-//                         },
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "c"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Choice(
-//                                     vec![
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "a"),
-//                                             ConditionalState::None
-//                                         ),
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "b"),
-//                                             ConditionalState::None
-//                                         ),
-//                                     ],
-//                                     ConditionalState::OneOrMore
-//                                 )
-//                             )),
-//                         },
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Nested(vec![
-//                     Document::EmptyTag(Tag {
-//                         name: QualifiedName::new(None, "a"),
-//                         attributes: None,
-//                         state: TagState::Empty,
-//                     }),
-//                     Document::EmptyTag(Tag {
-//                         name: QualifiedName::new(None, "b"),
-//                         attributes: None,
-//                         state: TagState::Empty,
-//                     }),
-//                     Document::Element(
-//                         Tag {
-//                             name: QualifiedName::new(None, "c"),
-//                             attributes: None,
-//                             state: TagState::Start,
-//                         },
-//                         Box::new(Document::EmptyTag(Tag {
-//                             name: QualifiedName::new(None, "a"),
-//                             attributes: None,
-//                             state: TagState::Empty,
-//                         })),
-//                         Tag {
-//                             name: QualifiedName::new(None, "c"),
-//                             attributes: None,
-//                             state: TagState::End,
-//                         },
-//                     ),
-//                 ])),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Sequence(
+                                    vec![
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "a"),
+                                            ConditionalState::None
+                                        ),
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "b"),
+                                            ConditionalState::None
+                                        ),
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "c"),
+                                            ConditionalState::None
+                                        ),
+                                    ],
+                                    ConditionalState::None
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "a"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "a"),
+                                    ConditionalState::Optional
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "b"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Name(
+                                    QualifiedName::new(None, "b"),
+                                    ConditionalState::ZeroOrMore
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "c"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Choice(
+                                    vec![
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "a"),
+                                            ConditionalState::None
+                                        ),
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "b"),
+                                            ConditionalState::None
+                                        ),
+                                    ],
+                                    ConditionalState::OneOrMore
+                                )
+                            )),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![
+                    Document::EmptyTag(Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::Empty,
+                    }),
+                    Document::EmptyTag(Tag {
+                        name: QualifiedName::new(None, "b"),
+                        attributes: None,
+                        state: TagState::Empty,
+                    }),
+                    Document::Element(
+                        Tag {
+                            name: QualifiedName::new(None, "c"),
+                            attributes: None,
+                            state: TagState::Start,
+                        },
+                        Box::new(Document::EmptyTag(Tag {
+                            name: QualifiedName::new(None, "a"),
+                            attributes: None,
+                            state: TagState::Empty,
+                        })),
+                        Tag {
+                            name: QualifiedName::new(None, "c"),
+                            attributes: None,
+                            state: TagState::End,
+                        },
+                    ),
+                ])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("082")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("082", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4117,59 +4270,65 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
 }
 
 //TODO: test 083
-// #[test]
-// fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("083")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDecl::Parameter(
-//                             ParameterEntityDefinition::ExternalID(ExternalID::Public {
-//                                 pubid: Cow::Borrowed("whatever"),
-//                                 system_identifier: Box::new(ExternalID::System(Cow::Borrowed(
-//                                     "e.dtd"
-//                                 )))
-//                             })
-//                         )),
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-//                                 names: None,
-//                                 parsed: true,
-//                                 zero_or_more: false,
-//                             })),
-//                         },
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Empty),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("083", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::External {
+                                id: ExternalID::Public {
+                                    pubid: Cow::Borrowed("whatever"),
+                                    system_identifier: Box::new(ExternalID::System(Cow::Borrowed(
+                                        "e.dtd"
+                                    ))),
+                                },
+                                n_data: None,
+                            },
+                        })),
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("084")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("084", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4209,7 +4368,8 @@ fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("085")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("085", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4263,7 +4423,8 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("086")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("086", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4317,7 +4478,8 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("087")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("087", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4370,7 +4532,8 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("088")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("088", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4418,7 +4581,8 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("089")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("089", &mut buffer)?;
 
     assert_eq!(
         document,
@@ -4469,7 +4633,8 @@ fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("090")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("090", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4535,7 +4700,8 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("091")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("091", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4598,7 +4764,8 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("092")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("092", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4661,7 +4828,8 @@ fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("093")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("093", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4701,7 +4869,8 @@ fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("094")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("094", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4757,7 +4926,8 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("095")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("095", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4817,7 +4987,8 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("096")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("096", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4869,7 +5040,8 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("098")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("098", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4912,7 +5084,8 @@ fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("099")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("099", &mut buffer)?;
 
     assert_eq!(
         document,
@@ -4958,7 +5131,8 @@ fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("100")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("100", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5012,7 +5186,8 @@ fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("101")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("101", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5060,7 +5235,8 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("102")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("102", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5113,7 +5289,8 @@ fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("103")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("103", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5156,7 +5333,8 @@ fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("104")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("104", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5209,7 +5387,8 @@ fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("105")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("105", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5262,7 +5441,8 @@ fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("106")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("106", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5315,7 +5495,8 @@ fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("107")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("107", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5368,7 +5549,8 @@ fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("108")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("108", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5427,7 +5609,8 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("109")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("109", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5481,7 +5664,8 @@ fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
 //TODO: Test 110. Need to verify normalization behavior for `\r\n` current parsing replaces all instances of that with `\n`
 #[test]
 fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("110")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("110", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5540,7 +5724,8 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("111")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("111", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5592,80 +5777,82 @@ fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
 }
 
 //TODO: test 112
-//#[test]
-// fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("112")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Children(
-//                                 ContentParticle::Choice(
-//                                     vec![
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "a"),
-//                                             ConditionalState::None
-//                                         ),
-//                                         ContentParticle::Name(
-//                                             QualifiedName::new(None, "b"),
-//                                             ConditionalState::None
-//                                         ),
-//                                     ],
-//                                     ConditionalState::None,
-//                                 )
-//                             )),
-//                         },
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "a"),
-//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-//                                 names: None,
-//                                 parsed: true,
-//                                 zero_or_more: false,
-//                             })),
-//                         },
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Nested(vec![Document::Element(
-//                     Tag {
-//                         name: QualifiedName::new(None, "a"),
-//                         attributes: None,
-//                         state: TagState::Start,
-//                     },
-//                     Box::new(Document::Empty),
-//                     Tag {
-//                         name: QualifiedName::new(None, "a"),
-//                         attributes: None,
-//                         state: TagState::End,
-//                     },
-//                 ),])),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("112", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Choice(
+                                    vec![
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "a"),
+                                            ConditionalState::None
+                                        ),
+                                        ContentParticle::Name(
+                                            QualifiedName::new(None, "b"),
+                                            ConditionalState::None
+                                        ),
+                                    ],
+                                    ConditionalState::None,
+                                )
+                            )),
+                        },
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "a"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Nested(vec![Document::Element(
+                    Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Empty),
+                    Tag {
+                        name: QualifiedName::new(None, "a"),
+                        attributes: None,
+                        state: TagState::End,
+                    },
+                ),])),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 #[test]
 fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("113")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("113", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5714,118 +5901,117 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
 }
 
 //TODO: Test 114. may need to decode within the Document::Element section instead of directly in the attribute because CDATA is not supposed to decode and if it's in the content, then it should avoid decoding
-// #[test]
-// fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("114")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-//                                 names: None,
-//                                 parsed: true,
-//                                 zero_or_more: false,
-//                             })),
-//                         },
-//                         InternalSubset::AttList {
-//                             name: QualifiedName::new(None, "e"),
-//                             att_defs: Some(vec![Attribute::Definition {
-//                                 name: QualifiedName::new(None, "a"),
-//                                 att_type: AttType::CDATA,
-//                                 default_decl: DefaultDecl::Implied,
-//                             }]),
-//                         },
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Empty),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("114", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "e"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            }]),
+                        },
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 //TODO: Test 115
-// #[test]
-// fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
-//     let document = test_valid_sa_file("115")?;
-//     assert_eq!(
-//         document,
-//         Document::Nested(vec![
-//             Document::Prolog {
-//                 xml_decl: None,
-//                 misc: None,
-//                 doc_type: Some(DocType {
-//                     name: QualifiedName::new(None, "doc"),
-//                     external_id: None,
-//                     int_subset: Some(vec![
-//                         InternalSubset::Element {
-//                             name: QualifiedName::new(None, "doc"),
-//                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-//                                 names: None,
-//                                 parsed: true,
-//                                 zero_or_more: false,
-//                             })),
-//                         },
-//                         InternalSubset::Entity(EntityDecl::General(
-//                             GeneralEntityDeclaration {
-//                                 name: QualifiedName::new(None, "e1"),
-//                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-//                                     Reference::EntityRef(QualifiedName::new(None, "e2"))
-//                                 )),
-//                             }
-//                         )),
-//                         InternalSubset::Entity(EntityDecl::General(
-//                             GeneralEntityDeclaration {
-//                                 name: QualifiedName::new(None, "e2"),
-//                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-//                                     "v".into()
-//                                 )),
-//                             }
-//                         )),
-//                     ]),
-//                 }),
-//             },
-//             Document::Element(
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::Start,
-//                 },
-//                 Box::new(Document::Content(Some(Cow::Borrowed("v")))),
-//                 Tag {
-//                     name: QualifiedName::new(None, "doc"),
-//                     attributes: None,
-//                     state: TagState::End,
-//                 },
-//             ),
-//         ]),
-//     );
-//     Ok(())
-// }
+#[test]
+fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("115", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e1"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                Reference::EntityRef(QualifiedName::new(None, "e2"))
+                            )),
+                        })),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e2"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "v".into()
+                            )),
+                        })),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Content(Some(Cow::Borrowed("v")))),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("116")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("116", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5865,7 +6051,8 @@ fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("117")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("117", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5913,7 +6100,8 @@ fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("118")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("118", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5961,7 +6149,8 @@ fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_119() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("119")?;
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("119", &mut buffer)?;
     assert_eq!(
         document,
         Document::Nested(vec![
