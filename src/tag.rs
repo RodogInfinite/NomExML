@@ -34,6 +34,8 @@ impl<'a> Parse<'a> for Tag<'a> {
 }
 impl<'a> ParseNamespace<'a> for Tag<'a> {}
 
+// TODO: Investigate. The hardcoded bracket codes is kind of a hack to get reference element parsing to work. Unsure of how this is going to impact invalid XML.
+// Tried to use decode, but having some lifetime issues
 impl<'a> Tag<'a> {
     // [40] STag ::= '<' Name (S Attribute)* S? '>'
     // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
@@ -41,19 +43,20 @@ impl<'a> Tag<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Self> {
+        dbg!("parse_start_tag");
+        dbg!(&input);
         map(
             tuple((
-                char('<'),
+                alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 many0(pair(
                     Self::parse_multispace1,
                     |i| Attribute::parse_qualified_attribute(i, entity_references.clone()), //TODO merge behavior with parse_attribute
                 )),
                 Self::parse_multispace0,
-                char('>'),
+                alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
             )),
             |(_open_char, name, attributes, _whitespace, _close_char)| {
-                dbg!(&attributes);
                 let attributes: Vec<_> = attributes
                     .into_iter()
                     .map(|(_whitespace, attr)| attr)
@@ -74,9 +77,8 @@ impl<'a> Tag<'a> {
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
     pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
-        dbg!(&input, "PARSING END TAG");
         delimited(
-            tag("</"),
+            alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
             map(
                 tuple((
                     Self::parse_multispace0,
@@ -89,25 +91,25 @@ impl<'a> Tag<'a> {
                     state: TagState::End,
                 },
             ),
-            char('>'),
+            alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
         )(input)
     }
+
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
     pub fn parse_empty_element_tag(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Tag<'a>> {
-        dbg!(&input, "PARSING EMPTY TAG");
         map(
             tuple((
-                char('<'),
+                alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 opt(many1(pair(Self::parse_multispace1, |i| {
                     Attribute::parse(i, entity_references.clone())
                 }))),
                 Self::parse_multispace0,
-                tag("/>"),
+                alt((tag("&#62;/"), tag("&#x3E;/"), tag("/>"))),
             )),
             |(_open_tag, name, attributes, _whitespace, _close_tag)| Self {
                 name,

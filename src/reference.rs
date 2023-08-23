@@ -12,7 +12,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1, hex_digit1},
-    combinator::map,
+    combinator::{map, recognize},
     sequence::tuple,
     IResult,
 };
@@ -32,6 +32,8 @@ impl<'a> Parse<'a> for Reference<'a> {
     type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+        dbg!("Reference::parse");
+        dbg!(&input);
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
 }
@@ -40,53 +42,37 @@ impl<'a> Reference<'a> {
     pub fn normalize(
         &self,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> Cow<'a, str> {
+    ) -> EntityValue<'a> {
         match self {
             Reference::EntityRef(name) => {
                 let refs_map = entity_references.borrow();
                 dbg!(&name);
 
-                if let Some(EntityValue::Value(value)) = refs_map.get(name) {
-                    //TODO: for test 053 value is "<e/>" here need to figure out how to parse it
-                    return value.clone();
+                if let Some(entity_value) = refs_map.get(name) {
+                    match entity_value {
+                        EntityValue::Document(doc) => {
+                            return EntityValue::Document(doc.clone());
+                        }
+                        EntityValue::Value(val) => {
+                            return EntityValue::Value(val.clone());
+                        }
+                        EntityValue::Reference(ref_val) => {
+                            return EntityValue::Reference(ref_val.clone());
+                        }
+                        EntityValue::ParameterReference(param_ref_val) => {
+                            return EntityValue::ParameterReference(param_ref_val.clone());
+                        }
+                    }
                 }
-                Cow::Owned(name.local_part.to_string())
+
+                // If we can't find a matching entity value in the map, you can default to some behavior.
+                // Here, I'm returning the name as a Value.
+                EntityValue::Value(Cow::Owned(name.local_part.to_string()))
             }
-            Reference::CharRef { value, .. } => Cow::Owned(value.to_string()),
+            Reference::CharRef { value, .. } => EntityValue::Value(Cow::Owned(value.to_string())),
         }
     }
 }
-
-//TODO: Implement this version of normalize:
-// impl<'a> Reference<'a> {
-//     pub fn normalize(
-//         &self,
-//         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-//     ) -> Result<(Option<Cow<'a, str>>, Option<Document<'a>>), Box<dyn Error>> {
-//         match self {
-//             Reference::EntityRef(name) => {
-//                 let refs_map = entity_references.borrow();
-
-//                 if let Some(EntityValue::Value(value)) = refs_map.get(name) {
-//                     match Document::parse_element(value, entity_references.clone()) {
-//                         Ok((_, element)) => {
-//                             return Ok((None, Some(element)));
-//                         }
-//                         Err(_) => {
-//                             return Err(Box::new(std::io::Error::new(
-//                                 std::io::ErrorKind::Other,
-//                                 "Failed to parse element",
-//                             )));
-//                         }
-//                     }
-//                 } else {
-//                     Ok((Some(Cow::Owned(name.local_part.to_string())), None))
-//                 }
-//             }
-//             Reference::CharRef { value, .. } => Ok((Some(Cow::Owned(value.to_string())), None)),
-//         }
-//     }
-// }
 
 impl<'a> ParseReference<'a> for Reference<'a> {}
 impl<'a> Decode for Reference<'a> {
@@ -107,7 +93,6 @@ pub enum CharRefState {
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
-        // TODO: decode here?
         map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
@@ -125,6 +110,8 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
     fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
         //TODO: remove reconstruction if possible
+        dbg!("parse_char_reference");
+        dbg!(&input);
         alt((
             map(
                 tuple((tag("&#"), digit1, tag(";"))),

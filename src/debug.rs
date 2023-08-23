@@ -10,7 +10,7 @@ use crate::{
         external_id::ExternalID,
         id::ID,
         internal_subset::{
-            entity_declaration::{EntityDeclaration, GeneralEntityDeclaration},
+            entity_declaration::{EntityDecl, EntityDeclaration, GeneralEntityDeclaration},
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
             InternalSubset,
@@ -496,21 +496,27 @@ impl<'a> InternalSubset<'a> {
 
             InternalSubset::Entity(entity_declaration) => {
                 match entity_declaration {
-                    EntityDeclaration::General(general_declaration) => {
+                    EntityDecl::General(general_declaration) => {
                         fmt_indented(f, indent, "Entity::General {\n");
                         let mut s = String::new();
-                        general_declaration
-                            .fmt_indented_general_entity_declaration(&mut s, indent + 4);
+                        general_declaration.fmt_indented_entity_declaration(&mut s, indent + 4);
                         f.push_str(&format!("{}\n", s));
                         fmt_indented(f, indent, "},\n");
                     }
-                    EntityDeclaration::Parameter(parameter_declaration) => {
+                    EntityDecl::Parameter(parameter_declaration) => {
                         fmt_indented(f, indent, "Entity::Parameter {\n");
                         // This part depends on how you want to format ParameterEntityDefinition
                         fmt_indented(f, indent + 4, &format!("{:?},\n", parameter_declaration));
                         fmt_indented(f, indent, "},\n");
                     }
                 }
+            }
+            InternalSubset::Entities(entity_declarations) => {
+                fmt_indented(f, indent, "Entities {\n");
+                for entity_declaration in entity_declarations.iter() {
+                    entity_declaration.fmt_internal_subset(f, indent + 4);
+                }
+                fmt_indented(f, indent, "},\n");
             }
             InternalSubset::DeclSep(name) => {
                 fmt_indented(f, indent, &format!("\nDeclSep({}", format!("{:?}", name)));
@@ -645,20 +651,22 @@ impl fmt::Debug for CharRefState {
     }
 }
 
-impl<'a> std::fmt::Debug for GeneralEntityDeclaration<'a> {
+impl<'a> std::fmt::Debug for EntityDeclaration<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("GeneralEntityDeclaration")
+        f.debug_struct("EntityDeclaration")
             .field("name", &self.name)
             .field("entity_def", &self.entity_def)
             .finish()
     }
 }
-impl<'a> GeneralEntityDeclaration<'a> {
-    fn fmt_indented_general_entity_declaration(&self, f: &mut String, indent: usize) {
-        fmt_indented(f, indent, "GeneralEntityDeclaration {\n");
+
+impl<'a> EntityDeclaration<'a> {
+    fn fmt_indented_entity_declaration(&self, f: &mut String, indent: usize) {
+        fmt_indented(f, indent, "EntityDeclaration {\n");
         fmt_indented(f, indent + 4, &format!("name: {:?},\n", self.name));
         fmt_indented(f, indent + 4, "entity_def: ");
         let mut s = String::new();
+        // Assuming there's a fmt_indented_entity_definition method for entity_def
         self.entity_def
             .fmt_indented_entity_definition(&mut s, indent + 8);
         f.push_str(&format!("{}\n", s));
@@ -682,7 +690,7 @@ impl<'a> EntityDefinition<'a> {
                 let mut s = String::new();
                 value.fmt_indented_entity_value(&mut s, indent + 4);
                 f.push_str(&format!("{}", s));
-                fmt_indented(f, indent - 4, "},");
+                fmt_indented(f, indent, "},");
             }
             EntityDefinition::External { id, n_data } => {
                 fmt_indented(f, indent, "External {\n");
@@ -704,9 +712,13 @@ impl<'a> std::fmt::Debug for EntityValue<'a> {
                 .debug_struct("EntityValue")
                 .field("Reference", reference)
                 .finish(),
-            EntityValue::PerameterReference(reference) => f
+            EntityValue::ParameterReference(reference) => f
                 .debug_struct("EntityValue")
                 .field("PerameterReference", reference)
+                .finish(),
+            EntityValue::Document(document) => f
+                .debug_struct("EntityValue")
+                .field("Document", document)
                 .finish(),
         }
     }
@@ -725,9 +737,14 @@ impl<'a> EntityValue<'a> {
                 fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
                 fmt_indented(f, indent, "),\n");
             }
-            EntityValue::PerameterReference(reference) => {
+            EntityValue::ParameterReference(reference) => {
                 fmt_indented(f, indent, "PerameterReference(\n");
                 fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
+                fmt_indented(f, indent, "),\n");
+            }
+            EntityValue::Document(document) => {
+                fmt_indented(f, indent, "Document(\n");
+                fmt_indented(f, indent + 4, &format!("{:?},\n", document));
                 fmt_indented(f, indent, "),\n");
             }
         }

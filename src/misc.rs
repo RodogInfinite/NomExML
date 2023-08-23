@@ -22,7 +22,6 @@ impl<'a> Parse<'a> for Misc<'a> {
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document<'a>> = vec![];
-        dbg!(&input, "MISC::parse input");
         loop {
             let parse_result = alt((
                 Document::parse_comment,
@@ -32,7 +31,7 @@ impl<'a> Parse<'a> for Misc<'a> {
                 ),
                 map(Self::parse_multispace1, |_| Document::Empty),
             ))(input_remaining);
-            dbg!(&parse_result);
+
             match parse_result {
                 Ok((remaining, document)) => {
                     match document {

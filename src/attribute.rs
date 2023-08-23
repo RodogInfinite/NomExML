@@ -119,7 +119,18 @@ impl<'a> Attribute<'a> {
                     map(is_not("<&\""), Cow::Borrowed),
                     map(
                         |i| Reference::parse(i, entity_references.clone()),
-                        |reference| reference.normalize(entity_references.clone()),
+                        |reference| match reference.normalize(entity_references.clone()) {
+                            EntityValue::Value(val) => val,
+                            EntityValue::Document(doc) => {
+                                // Decide how to convert Document into Cow<str>
+                                // For simplicity, let's convert it into a string representation
+                                Cow::Owned(format!("{:?}", doc))
+                            }
+                            _ => {
+                                //TODO: Investigate this, an empty string is not a valid value
+                                Cow::Borrowed("")
+                            }
+                        },
                     ),
                 ))),
                 tag("\""),
@@ -130,20 +141,30 @@ impl<'a> Attribute<'a> {
                     map(is_not("<&'"), Cow::Borrowed),
                     map(
                         |i| Reference::parse(i, entity_references.clone()),
-                        |reference| reference.normalize(entity_references.clone()),
+                        |reference| match reference.normalize(entity_references.clone()) {
+                            EntityValue::Value(val) => val,
+                            EntityValue::Document(doc) => {
+                                // Convert Document into a string representation
+                                Cow::Owned(format!("{:?}", doc))
+                            }
+                            _ => {
+                                //TODO: Investigate this, an empty string is not a valid value
+                                Cow::Borrowed("")
+                            }
+                        },
                     ),
                 ))),
                 char('\''),
             ),
         ))(input)
         .map(|(remaining, contents)| {
-            dbg!(&contents); //TODO: decoding is not working here
+            dbg!(&contents);
             let mut buffer = contents
                 .into_iter()
                 .flat_map(|cow| cow.chars().collect::<Vec<_>>())
                 .collect::<Vec<_>>();
 
-            // End-of-Line Handling: https://www.w3.org/TR/2008/REC-xml-20081126/#sec-line-ends
+            // End-of-Line Handling
             let mut i = 0;
             while i < buffer.len() {
                 if buffer[i] == '\r' {

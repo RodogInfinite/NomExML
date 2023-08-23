@@ -2,13 +2,14 @@
 
 use std::borrow::Cow;
 
-use crate::reference::Reference;
+use crate::{reference::Reference, Document};
 
 #[derive(Clone, PartialEq)]
 pub enum EntityValue<'a> {
+    Document(Document<'a>),
     Value(Cow<'a, str>),
     Reference(Reference<'a>),
-    PerameterReference(Reference<'a>),
+    ParameterReference(Reference<'a>),
 }
 
 impl<'a> EntityValue<'a> {
@@ -28,7 +29,7 @@ impl<'a> EntityValue<'a> {
     }
 
     pub fn get_perameter_reference(&self) -> Option<&Reference<'a>> {
-        if let EntityValue::PerameterReference(reference) = self {
+        if let EntityValue::ParameterReference(reference) = self {
             Some(reference)
         } else {
             None

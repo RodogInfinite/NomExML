@@ -10,9 +10,7 @@ use nom_xml::{
         external_id::ExternalID,
         id::ID,
         internal_subset::{
-            entity_declaration::{
-                EntityDeclaration, GeneralEntityDeclaration, ParameterEntityDefinition,
-            },
+            entity_declaration::{EntityDecl, EntityDeclaration, GeneralEntityDeclaration},
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
             InternalSubset,
@@ -1116,14 +1114,12 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -1175,14 +1171,24 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "<foo></foo>".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
+                                Document::Element(
+                                    Tag {
+                                        name: QualifiedName::new(None, "foo"),
+                                        attributes: None,
+                                        state: TagState::Start,
+                                    },
+                                    Box::new(Document::Empty),
+                                    Tag {
+                                        name: QualifiedName::new(None, "foo"),
+                                        attributes: None,
+                                        state: TagState::End,
+                                    },
+                                )
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -1192,7 +1198,19 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Content(Some("<foo></foo>".into()))),
+                Box::new(Document::Nested(vec![Document::Element(
+                    Tag {
+                        name: QualifiedName::new(None, "foo"),
+                        attributes: None,
+                        state: TagState::Start,
+                    },
+                    Box::new(Document::Empty),
+                    Tag {
+                        name: QualifiedName::new(None, "foo"),
+                        attributes: None,
+                        state: TagState::End,
+                    },
+                )])),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -2577,7 +2595,7 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
 //                     name: QualifiedName::new(None, "doc"),
 //                     external_id: None,
 //                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDeclaration::General(
+//                         InternalSubset::Entity(EntityDecl::General(
 //                             GeneralEntityDeclaration {
 //                                 name: QualifiedName::new(None, "e"),
 //                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
@@ -3194,14 +3212,12 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "<".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<".into()
+                            )),
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -3261,14 +3277,12 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                             }]),
                         },
                         InternalSubset::Comment(Document::Comment(" 34 is double quote ".into())),
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e1"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\"".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e1"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\"".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -3354,14 +3368,12 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\r".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\r".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -3443,7 +3455,7 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
 //                     name: QualifiedName::new(None, "doc"),
 //                     external_id: None,
 //                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDeclaration::Parameter(
+//                         InternalSubset::Entity(EntityDecl::Parameter(
 //                             ParameterEntityDefinition::EntityValue(EntityValue::Value(
 //                                 "<!ELEMENT doc (#PCDATA)>".into()
 //                             )),
@@ -4068,11 +4080,13 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::Parameter(
-                            ParameterEntityDefinition::ExternalID(ExternalID::System(
-                                Cow::Borrowed("e.dtd")
-                            ))
-                        )),
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                            name: QualifiedName::new(None, "e".into()),
+                            entity_def: EntityDefinition::External {
+                                id: ExternalID::System(Cow::Borrowed("e.dtd")),
+                                n_data: None,
+                            },
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -4116,7 +4130,7 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
 //                     name: QualifiedName::new(None, "doc"),
 //                     external_id: None,
 //                     int_subset: Some(vec![
-//                         InternalSubset::Entity(EntityDeclaration::Parameter(
+//                         InternalSubset::Entity(EntityDecl::Parameter(
 //                             ParameterEntityDefinition::ExternalID(ExternalID::Public {
 //                                 pubid: Cow::Borrowed("whatever"),
 //                                 system_identifier: Box::new(ExternalID::System(Cow::Borrowed(
@@ -4214,19 +4228,18 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::Parameter(
-                            ParameterEntityDefinition::EntityValue(EntityValue::Value(
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
                                 "<foo>".into()
-                            ))
-                        )),
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "".into()
-                                )),
-                            }
-                        )),
+                            )),
+                        })),
+                        InternalSubset::Entity(EntityDecl::General(EntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -4236,7 +4249,7 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Content(Some(Cow::Borrowed("")))),
+                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -4269,22 +4282,18 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "".into()
-                                )),
-                            }
-                        )),
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "<foo>".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "".into()
+                            )),
+                        })),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<foo>".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -4294,7 +4303,7 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))), //TODO: should this be parsed as a tag?
+                Box::new(Document::Content(Some(Cow::Borrowed("")))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -4319,14 +4328,12 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "<foo/>".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<foo/>".into()
+                            )),
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
@@ -4382,14 +4389,12 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "<foo>".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<foo>".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -4399,7 +4404,7 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))),
+                Box::new(Document::Content(Some(Cow::Borrowed("<foo>")))), // Assumed to be a string because it's only an open tag
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -4425,14 +4430,12 @@ fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\u{10000}\u{10FFFD}\u{10FFFF}".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\u{10000}\u{10FFFD}\u{10FFFF}".into()
+                            )),
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -4549,15 +4552,13 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
                                 "http://www.w3.org/"
                             )))
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::External {
-                                    id: ExternalID::System(Cow::Borrowed("http://www.w3.org/")),
-                                    n_data: Some(QualifiedName::new(None, "n")),
-                                }
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::External {
+                                id: ExternalID::System(Cow::Borrowed("http://www.w3.org/")),
+                                n_data: Some(QualifiedName::new(None, "n")),
                             }
-                        )),
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -4711,11 +4712,12 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::Parameter(
-                            ParameterEntityDefinition::EntityValue(EntityValue::Value(
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
                                 "foo".into()
                             )),
-                        )),
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -4967,20 +4969,18 @@ fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::External {
-                                    id: ExternalID::Public {
-                                        pubid: ";!*#@$_%".into(),
-                                        system_identifier: Box::new(ExternalID::System(
-                                            "100.xml".into()
-                                        ))
-                                    },
-                                    n_data: None,
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::External {
+                                id: ExternalID::Public {
+                                    pubid: ";!*#@$_%".into(),
+                                    system_identifier: Box::new(ExternalID::System(
+                                        "100.xml".into()
+                                    ))
                                 },
-                            }
-                        )),
+                                n_data: None,
+                            },
+                        })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
@@ -5031,14 +5031,12 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\"".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\"".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -5389,14 +5387,12 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\n".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\n".into()
+                            )),
+                        })),
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
@@ -5504,14 +5500,12 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "\r\n".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "\r\n".into()
+                            )),
+                        })),
                         InternalSubset::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
@@ -5792,7 +5786,7 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
 //                                 zero_or_more: false,
 //                             })),
 //                         },
-//                         InternalSubset::Entity(EntityDeclaration::General(
+//                         InternalSubset::Entity(EntityDecl::General(
 //                             GeneralEntityDeclaration {
 //                                 name: QualifiedName::new(None, "e1"),
 //                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
@@ -5800,7 +5794,7 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
 //                                 )),
 //                             }
 //                         )),
-//                         InternalSubset::Entity(EntityDeclaration::General(
+//                         InternalSubset::Entity(EntityDecl::General(
 //                             GeneralEntityDeclaration {
 //                                 name: QualifiedName::new(None, "e2"),
 //                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
@@ -5890,14 +5884,12 @@ fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "rsqb"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "]".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "rsqb"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "]".into()
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -5940,14 +5932,12 @@ fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::Entity(EntityDeclaration::General(
-                            GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "rsqb"),
-                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                    "]]".into()
-                                )),
-                            }
-                        )),
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
+                            name: QualifiedName::new(None, "rsqb"),
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "]]".into()
+                            )),
+                        })),
                     ]),
                 }),
             },

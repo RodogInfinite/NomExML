@@ -27,7 +27,6 @@ impl<'a> Parse<'a> for DocType<'a> {
     // [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
     // Namespaces (Third Edition) [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        dbg!(&input, "DocType::parse input");
         map(
             tuple((
                 tag("<!DOCTYPE"),
@@ -71,6 +70,22 @@ impl<'a> Parse<'a> for DocType<'a> {
 
 //TODO integrate this
 impl<'a> DocType<'a> {
+    pub fn get_entities(&self) -> InternalSubset<'a> {
+        let entities: Vec<_> = self.int_subset.as_ref().map_or(Vec::new(), |subset| {
+            subset
+                .iter()
+                .filter_map(|item| {
+                    if let InternalSubset::Entity(_) = item {
+                        Some(Box::new(item.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        });
+
+        InternalSubset::Entities(entities)
+    }
     //TODO: figure out how to integrate this or remove
     fn _parse_qualified_doctype(
         input: &'a str,

@@ -103,10 +103,10 @@ pub trait Parse<'a>: Sized {
                 let name_clone = name.clone();
                 // Attempt to decode the cloned name.
                 let local_part = match name_clone.decode() {
-                    Ok(decoded) => decoded.into_owned(), // TODO: investigate this decoding for refactor
+                    Ok(decoded) => decoded.into_owned(),
                     Err(_) => name,
                 };
-
+                dbg!(&local_part);
                 Name {
                     prefix: None,
                     local_part: Cow::Owned(local_part),
