@@ -126,8 +126,12 @@ impl<'a> Document<'a> {
                 if let InternalSubset::Entity(entity_decl) = &**boxed_entity {
                     match entity_decl {
                         EntityDecl::General(decl) | EntityDecl::Parameter(decl) => {
+                            dbg!("DECL HERE");
+                            dbg!(&decl);
                             if let EntityDefinition::EntityValue(value) = &decl.entity_def {
                                 // Check if the name already exists in the map
+                                dbg!("ENTITY VALUE HERE");
+                                dbg!(&value);
                                 let mut references = entity_references.borrow_mut();
                                 if !references.contains_key(&decl.name) {
                                     dbg!(&decl.name.local_part);
@@ -157,8 +161,6 @@ impl<'a> Document<'a> {
         )(input)
     }
 
-    // [18] CDSect ::= CDStart CData CDEnd
-    // [19] CDStart ::= '<![CDATA['
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
     fn parse_cdata(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
         map(
@@ -172,15 +174,13 @@ impl<'a> Document<'a> {
             |cow| cow,
         )(input)
     }
-
+    // [18] CDSect ::= CDStart CData CDEnd
+    // [19] CDStart ::= '<![CDATA['
     //[21] CDEnd ::= ']]>'
     fn parse_cdata_section(input: &'a str) -> IResult<&'a str, Document<'a>> {
         map(
             preceded(tag("<![CDATA["), Self::parse_cdata),
-            |cdata_content| {
-                let cdata_string: String = cdata_content.to_string();
-                Document::CDATA(Cow::Owned(cdata_string))
-            },
+            Document::CDATA,
         )(input)
     }
 
@@ -212,7 +212,7 @@ impl<'a> Document<'a> {
                 },
             ),
         ))(input)?;
-
+        dbg!(&doc);
         Ok((input, doc))
     }
 
@@ -230,7 +230,7 @@ impl<'a> Document<'a> {
                     _ => {}
                 }
             }
-
+            dbg!(&contents);
             // Join the contents into a single string
             let content = contents
                 .into_iter()
@@ -249,30 +249,55 @@ impl<'a> Document<'a> {
     ) -> IResult<&'a str, Document<'a>> {
         dbg!("parse_content");
         dbg!(&input);
+
         let (input, ((_whitespace, maybe_chardata), elements)) = tuple((
             pair(
                 Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
                 opt(Self::parse_char_data),
             ),
-            many0(pair(
-                alt((
+            many0(alt((
+                pair(
                     map(
-                        many1(|i| Reference::parse(i, entity_references.clone())),
+                        many1(|i| Reference::parse(i, entity_references.clone())), // TODO this is returning the bracket for &#60;doc>
                         Self::process_references(entity_references.clone()),
                     ),
+                    pair(
+                        Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                        opt(Self::parse_char_data),
+                    ),
+                ),
+                pair(
                     |i| Self::parse_element(i, entity_references.clone()),
+                    pair(
+                        Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                        opt(Self::parse_char_data),
+                    ),
+                ),
+                pair(
                     Self::parse_cdata_section,
+                    pair(
+                        Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                        opt(Self::parse_char_data),
+                    ),
+                ),
+                pair(
                     map(
                         |i| ProcessingInstruction::parse(i, ()),
                         Document::ProcessingInstruction,
                     ),
-                    Self::parse_comment,
-                )),
-                pair(
-                    Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
-                    opt(Self::parse_char_data),
+                    pair(
+                        Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                        opt(Self::parse_char_data),
+                    ),
                 ),
-            )),
+                pair(
+                    Self::parse_comment,
+                    pair(
+                        Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
+                        opt(Self::parse_char_data),
+                    ),
+                ),
+            ))),
         ))(input)?;
         dbg!(&maybe_chardata);
         dbg!(&elements);
@@ -364,13 +389,15 @@ impl<'a> Document<'a> {
             } else {
                 None
             };
-
+            dbg!("WITHIN WHILE");
+            dbg!(&content);
             let (input, doc) =
                 Self::construct_document_element(input, start_tag, content, end_tag, empty_tag)?;
             if let Document::Empty = &doc {
                 break;
             }
 
+            dbg!(&doc);
             documents.push(doc);
             current_input = input;
         }
@@ -403,6 +430,19 @@ impl<'a> Document<'a> {
                 }
 
                 let document = Document::Element(start, Box::new(content), end);
+
+                Ok((input, document))
+            }
+            (Some(start), Some(end), _, Some(empty_tag)) => {
+                if start.name != end.name {
+                    return Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Verify,
+                    )));
+                }
+
+                let document =
+                    Document::Element(start, Box::new(Document::EmptyTag(empty_tag)), end);
 
                 Ok((input, document))
             }

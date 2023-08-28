@@ -29,14 +29,24 @@ pub struct DocType<'a> {
     pub int_subset: Option<Vec<InternalSubset<'a>>>,
 }
 pub enum EntityValue<'a> {
+    Document(Document<'a>),
     Value(Cow<'a, str>),
     Reference(Reference<'a>),
-    PerameterReference(Reference<'a>),
+    ParameterReference(Reference<'a>),
 }
-pub struct GeneralEntityDeclaration<'a> {
+
+pub enum EntityDecl<'a> {
+    General(GeneralEntityDeclaration<'a>),
+    Parameter(ParameterEntityDeclaration<'a>),
+}
+
+pub struct EntityDeclaration<'a> {
     pub name: Name<'a>,
     pub entity_def: EntityDefinition<'a>,
 }
+pub type GeneralEntityDeclaration<'a> = EntityDeclaration<'a>;
+pub type ParameterEntityDeclaration<'a> = EntityDeclaration<'a>;
+
 pub enum EntityDefinition<'a> {
     EntityValue(EntityValue<'a>),
     External {
@@ -44,10 +54,7 @@ pub enum EntityDefinition<'a> {
         n_data: Option<Name<'a>>,
     },
 }
-pub enum ParameterEntityDefinition<'a> {
-    EntityValue(EntityValue<'a>),
-    ExternalID(ExternalID<'a>),
-}
+
 pub enum EntityDeclaration<'a> {
     General(GeneralEntityDeclaration<'a>),
     Parameter(ParameterEntityDefinition<'a>),

@@ -334,8 +334,8 @@ impl<'a> InternalSubset<'a> {
             map(
                 tuple((
                     alt((char('\"'), char('\''))),
-                    |i| Document::parse_element(i, entity_references.clone()),
-                    char('\"'),
+                    alt((|i| Document::parse_element(i, entity_references.clone()),Document::parse_cdata_section)), // |i| Document::parse_content(i,entity_references.clone())
+                    alt((char('\"'), char('\''))),
                 )),
                 |(_, val, _)| {
                     dbg!("VAL HERE");

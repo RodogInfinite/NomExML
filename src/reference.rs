@@ -49,6 +49,7 @@ impl<'a> Reference<'a> {
                 dbg!(&name);
 
                 if let Some(entity_value) = refs_map.get(name) {
+                    dbg!(&entity_value);
                     match entity_value {
                         EntityValue::Document(doc) => {
                             return EntityValue::Document(doc.clone());
@@ -65,8 +66,6 @@ impl<'a> Reference<'a> {
                     }
                 }
 
-                // If we can't find a matching entity value in the map, you can default to some behavior.
-                // Here, I'm returning the name as a Value.
                 EntityValue::Value(Cow::Owned(name.local_part.to_string()))
             }
             Reference::CharRef { value, .. } => EntityValue::Value(Cow::Owned(value.to_string())),

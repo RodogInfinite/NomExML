@@ -10,7 +10,9 @@ use nom_xml::{
         external_id::ExternalID,
         id::ID,
         internal_subset::{
-            entity_declaration::{EntityDecl, EntityDeclaration, GeneralEntityDeclaration},
+            entity_declaration::{
+                EntityDecl, EntityDeclaration, GeneralEntityDeclaration, ParameterEntityDeclaration,
+            },
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
             InternalSubset,
@@ -2656,8 +2658,12 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<e/>".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
+                                Document::EmptyTag(Tag {
+                                    name: QualifiedName::new(None, "e"),
+                                    attributes: None,
+                                    state: TagState::Empty,
+                                })
                             ))
                         })),
                         InternalSubset::Element {
@@ -2682,19 +2688,12 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Nested(vec![Document::Element(
-                    Tag {
-                        name: QualifiedName::new(None, "e"),
-                        attributes: None,
-                        state: TagState::Start,
-                    },
-                    Box::new(Document::Empty),
-                    Tag {
-                        name: QualifiedName::new(None, "e"),
-                        attributes: None,
-                        state: TagState::End,
-                    }
-                ),])),
+                Box::new(Document::EmptyTag(Tag {
+                    // TODO: consider that this is a variant of a tag; therefore, should it be nested?
+                    name: QualifiedName::new(None, "e"),
+                    attributes: None,
+                    state: TagState::Empty,
+                })),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -5037,6 +5036,81 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
 }
 
 //TODO: Test 097 with lookup in test 097.ent
+#[test]
+fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    let document = test_valid_sa_file("097", &mut buffer)?;
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: QualifiedName::new(None, "doc"),
+                    external_id: None,
+                    int_subset: Some(vec![
+                        InternalSubset::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                names: None,
+                                parsed: true,
+                                zero_or_more: false,
+                            })),
+                        },
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: QualifiedName::new(None, "a1"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Value(Cow::Borrowed("v1")),
+                            }]),
+                        },
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
+                            name: QualifiedName::new(None, "e"),
+                            entity_def: EntityDefinition::External {
+                                id: ExternalID::System(Cow::Borrowed("097.ent")),
+                                n_data: None,
+                            },
+                        })),
+                        InternalSubset::Entities(vec![
+                            Box::new(InternalSubset::AttList {
+                                name: QualifiedName::new(None, "doc"),
+                                att_defs: Some(vec![Attribute::Definition {
+                                    name: QualifiedName::new(None, "a2"),
+                                    att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Implied,
+                                }]),
+                            }),
+                            Box::new(InternalSubset::AttList {
+                                name: QualifiedName::new(None, "doc"),
+                                att_defs: Some(vec![Attribute::Definition {
+                                    name: QualifiedName::new(None, "a2"),
+                                    att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Value(Cow::Borrowed("v2")),
+                                }]),
+                            }),
+                        ]),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: QualifiedName::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+    Ok(())
+}
 
 #[test]
 fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
@@ -5923,14 +5997,12 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
                                 zero_or_more: false,
                             })),
                         },
-                        InternalSubset::AttList {
+                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            att_defs: Some(vec![Attribute::Definition {
-                                name: QualifiedName::new(None, "a"),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
-                            }]),
-                        },
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
+                                Document::CDATA(Cow::Borrowed("&foo;"))
+                            )),
+                        })),
                     ]),
                 }),
             },
@@ -5940,7 +6012,7 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Empty),
+                Box::new(Document::CDATA(Cow::Borrowed("&foo;"))),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
