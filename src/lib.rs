@@ -110,8 +110,8 @@ impl<'a> Document<'a> {
                 doc_type,
             }),
         };
-
-        dbg!(&prolog, "Parsed prolog");
+        dbg!("Parsed prolog");
+        dbg!(&prolog);
         Ok((input, (prolog, updated_entity_references)))
     }
 

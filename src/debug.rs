@@ -271,19 +271,11 @@ impl<'a> fmt::Debug for DeclarationContent<'a> {
 impl<'a> Mixed<'a> {
     fn fmt_indented_mixed(&self, f: &mut String, indent: usize) {
         match self {
-            Mixed::PCDATA {
-                names,
-                parsed,
-                zero_or_more,
-            } => {
+            Mixed::PCDATA { names, parsed } => {
                 fmt_indented(f, indent, "PCDATA {\n");
                 fmt_indented(f, indent + 4, &format!("names: {:?},\n", names));
                 fmt_indented(f, indent + 4, &format!("parsed: {:?},\n", parsed));
-                fmt_indented(
-                    f,
-                    indent + 4,
-                    &format!("zero_or_more: {:?},\n", zero_or_more),
-                );
+
                 fmt_indented(f, indent, "},\n");
             }
         }
@@ -630,9 +622,13 @@ impl<'a> fmt::Debug for Prefix<'a> {
 impl<'a> fmt::Debug for Reference<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Reference::EntityRef(entity) => {
-                f.debug_struct("EntityRef").field("entity", entity).finish()
-            }
+            Reference::EntityRef(entity) => f
+                .debug_struct("EntityRef")
+                .field(
+                    "entity",
+                    &format_args!("\n{}", entity.fmt_qualified_name(12)),
+                )
+                .finish(),
             Reference::CharRef { value, state } => f
                 .debug_struct("CharRef")
                 .field("value", value)
@@ -651,7 +647,7 @@ impl fmt::Debug for CharRefState {
     }
 }
 
-impl<'a> std::fmt::Debug for EntityDeclaration<'a> {
+impl<'a> fmt::Debug for EntityDeclaration<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("EntityDeclaration")
             .field("name", &self.name)
@@ -663,7 +659,11 @@ impl<'a> std::fmt::Debug for EntityDeclaration<'a> {
 impl<'a> EntityDeclaration<'a> {
     fn fmt_indented_entity_declaration(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "EntityDeclaration {\n");
-        fmt_indented(f, indent + 4, &format!("name: {:?},\n", self.name));
+        fmt_indented(
+            f,
+            indent + 4,
+            &format!("name: \n{}\n", self.name.fmt_qualified_name(indent + 8)),
+        );
         fmt_indented(f, indent + 4, "entity_def: ");
         let mut s = String::new();
         // Assuming there's a fmt_indented_entity_definition method for entity_def

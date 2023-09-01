@@ -78,7 +78,8 @@ impl<'a> Parse<'a> for InternalSubset<'a> {
             |i| Self::parse_markup_decl(i, args.clone()),
             opt(Self::parse_decl_sep),
         )))(input)?;
-
+        dbg!("after parse_markup_decl");
+        dbg!(&parsed);
         let mut consolidated: Vec<InternalSubset<'a>> = vec![];
         for (markup, opt_decl_sep) in parsed {
             if let InternalSubset::AttList {

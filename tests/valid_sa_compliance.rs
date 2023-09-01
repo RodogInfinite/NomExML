@@ -53,7 +53,6 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -94,7 +93,6 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -135,7 +133,6 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -177,7 +174,6 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -231,7 +227,6 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -285,7 +280,6 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -338,7 +332,6 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -379,7 +372,6 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -420,7 +412,6 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -462,7 +453,6 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -516,7 +506,6 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -583,7 +572,6 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -637,7 +625,6 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -691,7 +678,6 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -745,7 +731,6 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -798,7 +783,6 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -842,7 +826,6 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -892,7 +875,6 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -936,7 +918,6 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -977,7 +958,6 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1018,7 +998,6 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1059,7 +1038,6 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1100,7 +1078,6 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1142,7 +1119,6 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -1189,8 +1165,11 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "foo"),
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "foo"),
+                                        ConditionalState::None
+                                    )],
                                     ConditionalState::None
                                 )
                             )),
@@ -1200,7 +1179,6 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -1271,9 +1249,12 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "foo"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "foo"),
+                                        ConditionalState::ZeroOrMore
+                                    ),],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -1282,7 +1263,6 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -1342,9 +1322,12 @@ fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "foo"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "foo"),
+                                        ConditionalState::ZeroOrMore
+                                    )],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -1409,9 +1392,12 @@ fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "foo"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "foo"),
+                                        ConditionalState::ZeroOrMore
+                                    )],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -1481,7 +1467,6 @@ fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1526,7 +1511,6 @@ fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1571,7 +1555,6 @@ fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1616,7 +1599,6 @@ fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1661,7 +1643,6 @@ fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1706,7 +1687,6 @@ fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1747,7 +1727,6 @@ fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1780,7 +1759,6 @@ fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1813,7 +1791,6 @@ fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1858,7 +1835,6 @@ fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -1905,7 +1881,6 @@ fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -1954,7 +1929,6 @@ fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -1996,7 +1970,6 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -2050,7 +2023,6 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -2103,7 +2075,6 @@ fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -2153,7 +2124,6 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -2197,9 +2167,12 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "e"),
-                                    ConditionalState::ZeroOrMore,
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "e"),
+                                        ConditionalState::ZeroOrMore,
+                                    )],
+                                    ConditionalState::None,
                                 )
                             )),
                         },
@@ -2298,7 +2271,6 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false
                             })),
                         },
                         InternalSubset::AttList {
@@ -2356,7 +2328,6 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false
                             })),
                         },
                         InternalSubset::AttList {
@@ -2413,7 +2384,6 @@ fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2454,7 +2424,6 @@ fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2495,7 +2464,6 @@ fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2536,7 +2504,6 @@ fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2577,7 +2544,6 @@ fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2618,7 +2584,6 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false
                         })),
                     },]),
                 }),
@@ -2641,7 +2606,6 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// TODO: Make test 053 work
 #[test]
 fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
@@ -2669,9 +2633,12 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "e"),
-                                    ConditionalState::None,
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "e"),
+                                        ConditionalState::None,
+                                    ),],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -2723,7 +2690,6 @@ fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -2773,7 +2739,6 @@ fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -2814,7 +2779,6 @@ fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -2852,10 +2816,15 @@ fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
                     external_id: None,
                     int_subset: Some(vec![InternalSubset::Element {
                         name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Children(ContentParticle::Name(
-                            QualifiedName::new(None, "a"),
-                            ConditionalState::ZeroOrMore
-                        ))),
+                        content_spec: Some(DeclarationContent::Children(
+                            ContentParticle::Sequence(
+                                vec![ContentParticle::Name(
+                                    QualifiedName::new(None, "a"),
+                                    ConditionalState::ZeroOrMore,
+                                ),],
+                                ConditionalState::None
+                            )
+                        )),
                     },]),
                 }),
             },
@@ -2904,7 +2873,6 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -2948,9 +2916,12 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "e"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "e"),
+                                        ConditionalState::ZeroOrMore,
+                                    ),],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -3068,7 +3039,6 @@ fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -3114,7 +3084,6 @@ fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -3155,7 +3124,6 @@ fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -3200,7 +3168,6 @@ fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -3241,7 +3208,6 @@ fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -3291,7 +3257,6 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -3334,7 +3299,6 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3394,7 +3358,6 @@ fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -3436,7 +3399,6 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -3485,7 +3447,6 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Notation {
@@ -3577,7 +3538,6 @@ fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3628,7 +3588,6 @@ fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3679,7 +3638,6 @@ fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3730,7 +3688,6 @@ fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3781,7 +3738,6 @@ fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3832,7 +3788,6 @@ fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3901,7 +3856,6 @@ fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -3955,7 +3909,6 @@ fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -4009,7 +3962,6 @@ fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -4063,7 +4015,6 @@ fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -4136,18 +4087,24 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "a"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "a"),
-                                    ConditionalState::Optional
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "a"),
+                                        ConditionalState::Optional
+                                    ),],
+                                    ConditionalState::None
                                 )
                             )),
                         },
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "b"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "b"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "b"),
+                                        ConditionalState::ZeroOrMore
+                                    ),],
+                                    ConditionalState::None
                                 )
                             )),
                         },
@@ -4244,7 +4201,6 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -4300,7 +4256,6 @@ fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -4342,7 +4297,6 @@ fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -4384,7 +4338,6 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
@@ -4439,7 +4392,6 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -4491,15 +4443,22 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<foo/>".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
+                                Document::EmptyTag(Tag {
+                                    name: QualifiedName::new(None, "foo"),
+                                    attributes: None,
+                                    state: TagState::Empty,
+                                })
                             )),
                         })),
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "foo"),
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "foo"),
+                                        ConditionalState::None,
+                                    ),],
                                     ConditionalState::None
                                 )
                             )),
@@ -4517,7 +4476,11 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                     attributes: None,
                     state: TagState::Start,
                 },
-                Box::new(Document::Content(Some(Cow::Borrowed("<foo/>")))), //TODO: should this be parsed as an empty element?
+                Box::new(Document::EmptyTag(Tag {
+                    name: QualifiedName::new(None, "foo"),
+                    attributes: None,
+                    state: TagState::Empty,
+                })),
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: None,
@@ -4548,7 +4511,6 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -4604,7 +4566,6 @@ fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         }
                     ]),
@@ -4669,7 +4630,6 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Notation {
@@ -4729,7 +4689,6 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -4843,7 +4802,6 @@ fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -4891,7 +4849,6 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -4957,7 +4914,6 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -5011,7 +4967,6 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -5055,7 +5010,6 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5130,7 +5084,6 @@ fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -5179,7 +5132,6 @@ fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -5234,7 +5186,6 @@ fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -5277,7 +5228,6 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -5326,7 +5276,6 @@ fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5379,7 +5328,6 @@ fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     }]),
                 }),
@@ -5424,7 +5372,6 @@ fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5478,7 +5425,6 @@ fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5532,7 +5478,6 @@ fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5586,7 +5531,6 @@ fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5640,7 +5584,6 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -5700,7 +5643,6 @@ fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5755,7 +5697,6 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -5815,7 +5756,6 @@ fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5888,7 +5828,6 @@ fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                     ]),
@@ -5942,7 +5881,6 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::AttList {
@@ -5994,7 +5932,6 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -6044,7 +5981,6 @@ fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -6098,7 +6034,6 @@ fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
                         content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                             names: None,
                             parsed: true,
-                            zero_or_more: false,
                         })),
                     },]),
                 }),
@@ -6140,7 +6075,6 @@ fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -6189,7 +6123,6 @@ fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
                                 names: None,
                                 parsed: true,
-                                zero_or_more: false,
                             })),
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
