@@ -4619,9 +4619,12 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "e"),
-                                    ConditionalState::ZeroOrMore
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "e"),
+                                        ConditionalState::None
+                                    ),],
+                                    ConditionalState::ZeroOrMore,
                                 )
                             )),
                         },
@@ -4737,10 +4740,13 @@ fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
-                                ContentParticle::Name(
-                                    QualifiedName::new(None, "a"),
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "a"),
+                                        ConditionalState::None
+                                    ),],
                                     ConditionalState::ZeroOrMore
-                                ),
+                                )
                             )),
                         },
                         InternalSubset::Element {
