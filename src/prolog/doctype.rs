@@ -55,14 +55,18 @@ impl<'a> Parse<'a> for DocType<'a> {
                 _whitespace2,
                 _close_tag,
                 _whitespace3,
-            )| Self {
-                name,
-                external_id,
-                int_subset: if int_subset.is_empty() {
-                    None
-                } else {
-                    Some(int_subset)
-                },
+            )| {
+                dbg!("INSIDE DOCTYPE PARSE");
+                dbg!(&int_subset);
+                Self {
+                    name,
+                    external_id,
+                    int_subset: if int_subset.is_empty() {
+                        None
+                    } else {
+                        Some(int_subset)
+                    },
+                }
             },
         )(input)
     }

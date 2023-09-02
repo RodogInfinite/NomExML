@@ -71,24 +71,28 @@ impl<'a> ParseNamespace<'a> for InternalSubset<'a> {}
 impl<'a> Parse<'a> for InternalSubset<'a> {
     type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
     type Output = IResult<&'a str, Vec<InternalSubset<'a>>>;
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        dbg!(&input, "InternalSubset::parse input");
 
-        let (input, parsed) = many0(tuple((
+    //[28b]	intSubset ::= (markupdecl | DeclSep)*
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+        dbg!("InternalSubset::parse input");
+        dbg!(&input);
+
+        let (input, parsed) = many0(alt((
             |i| Self::parse_markup_decl(i, args.clone()),
-            opt(Self::parse_decl_sep),
+            Self::parse_decl_sep,
         )))(input)?;
+
         dbg!("after parse_markup_decl");
         dbg!(&parsed);
+        dbg!(&input);
+        dbg!(&args);
+
         let mut consolidated: Vec<InternalSubset<'a>> = vec![];
-        for (markup, opt_decl_sep) in parsed {
-            if let InternalSubset::AttList {
-                name,
-                att_defs: Some(new_defs),
-            } = &markup
-            {
+
+        for opt_internal_subset in parsed {
+            if let Some(InternalSubset::AttList { name, att_defs: Some(new_defs) }) = &opt_internal_subset {
                 if let Some(existing) = consolidated.iter_mut().find(|i| {
-                    matches!(i, InternalSubset::AttList { name: existing_name, .. } if *existing_name == *name)
+                    matches!(i, InternalSubset::AttList { name: existing_name, .. } if existing_name == name)
                 }) {
                     if let InternalSubset::AttList { att_defs: Some(existing_defs), .. } = existing {
                         existing_defs.extend(new_defs.clone()); 
@@ -96,32 +100,37 @@ impl<'a> Parse<'a> for InternalSubset<'a> {
                     continue;
                 }
             }
-            consolidated.push(markup);
-            if let Some(Some(decl_sep)) = opt_decl_sep {
-                consolidated.push(decl_sep);
+            if let Some(internal_subset) = opt_internal_subset.clone() {
+                consolidated.push(internal_subset);
             }
         }
 
         dbg!(&consolidated);
+        dbg!(&input);
         Ok((input, consolidated))
     }
 }
 
+
 impl<'a> InternalSubset<'a> {
-    // [28a] DeclSep ::=  S | PEReference
+    // [28a] DeclSep ::=  PEReference | S 
     fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
+        dbg!("parse_decl_sep");
+        dbg!(&input);
         alt((
-            map(Self::parse_multispace0, |_| None),
+            
             map(Reference::parse_parameter_reference, |reference| {
                 Some(InternalSubset::DeclSep(reference))
             }),
+            map(Self::parse_multispace1, |_| None),
         ))(input)
     }
 
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
     fn parse_element_declaration(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {
-        dbg!(&input, "parse_element_declaration input");
+        dbg!("parse_element_declaration input");
+        dbg!(&input);
         let (
             input,
             (_element, _whitespace1, name, _whitespace2, content_spec, _whitespace, _close),
@@ -134,6 +143,8 @@ impl<'a> InternalSubset<'a> {
             Self::parse_multispace0,
             tag(">"),
         ))(input)?;
+
+        dbg!(&content_spec);
         Ok((
             input,
             InternalSubset::Element {
@@ -243,7 +254,7 @@ impl<'a> InternalSubset<'a> {
                 _whitespace1,
                 _percent,
                 _whitespace2,
-                name, // Note: We can reintroduce the handling of this value if needed in the future.
+                name, 
                 _whitespace3,
                 entity_def,
                 _whitespace4,
@@ -409,14 +420,20 @@ impl<'a> InternalSubset<'a> {
     fn parse_markup_decl(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, InternalSubset<'a>> {
-        alt((
-            Self::parse_element_declaration,
-            |i| Self::parse_attlist_declaration(i, entity_references.clone()),
-            |i| Self::parse_entity(i, entity_references.clone()),
-            Self::parse_notation,
-            Self::parse_processing_instruction,
-            Self::parse_comment,
-        ))(input)
+    ) -> IResult<&'a str, Option<InternalSubset<'a>>> {
+        dbg!("parse_markup_decl");
+        dbg!(&input);
+        map(
+            alt((
+                Self::parse_element_declaration,
+                |i| Self::parse_attlist_declaration(i, entity_references.clone()),
+                |i| Self::parse_entity(i, entity_references.clone()),
+                Self::parse_notation,
+                Self::parse_processing_instruction,
+                Self::parse_comment,
+            )),
+            Some,
+        )(input)
     }
+    
 }
