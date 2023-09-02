@@ -5,7 +5,7 @@ use nom::{
     bytes::complete::{is_a, tag},
     character::complete::alphanumeric1,
     combinator::map,
-    multi::many1,
+    multi::{many0, many1},
     sequence::{delimited, pair, preceded},
     IResult,
 };
@@ -41,17 +41,39 @@ impl<'a> Parse<'a> for ID<'a> {
 impl<'a> ID<'a> {
     // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
     pub fn parse_public_id_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+        dbg!("parse_public_id_literal");
+        dbg!(&input);
         map(
             alt((
-                delimited(tag("\""), many1(Self::parse_pubid_char), tag("\"")),
-                delimited(tag("'"), many1(Self::parse_pubid_char), tag("'")),
+                delimited(
+                    tag("\""),
+                    many0(|i| Self::parse_pubid_char(i, false)),
+                    tag("\""),
+                ),
+                delimited(
+                    tag("'"),
+                    many0(|i| Self::parse_pubid_char(i, true)),
+                    tag("'"),
+                ),
             )),
-            |pubid_literal: Vec<&'a str>| Cow::Owned(pubid_literal.join("")),
+            |pubid_literal: Vec<&'a str>| {
+                dbg!(&pubid_literal);
+                Cow::Owned(pubid_literal.concat())
+            },
         )(input)
     }
 
     // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
-    pub fn parse_pubid_char(input: &'a str) -> IResult<&'a str, &'a str> {
-        alt((alphanumeric1, is_a(" \r\n-'()+,./:=?;!*#@$_%")))(input)
+    pub fn parse_pubid_char(
+        input: &'a str,
+        exclude_single_quote: bool,
+    ) -> IResult<&'a str, &'a str> {
+        let chars = if exclude_single_quote {
+            " \r\n-()+,./:=?;!*#@$_%"
+        } else {
+            " \r\n-'()+,./:=?;!*#@$_%"
+        };
+
+        alt((tag(" "), tag("\r"), tag("\n"), alphanumeric1, is_a(chars)))(input)
     }
 }

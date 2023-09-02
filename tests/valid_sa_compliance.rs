@@ -3474,7 +3474,7 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-//TODO: Test 070
+//TODO: Make replacement behavior work correctly
 #[test]
 fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();

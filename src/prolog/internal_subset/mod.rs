@@ -271,7 +271,9 @@ impl<'a> InternalSubset<'a> {
             Self::parse_multispace0,
             tag(">"),
         ))(input)?;
-
+        dbg!("HERE");
+dbg!(&name);
+dbg!(&entity_def);
         Ok((
             input,
             InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
@@ -286,7 +288,8 @@ impl<'a> InternalSubset<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityDefinition<'a>> {
-        dbg!(&input, "parse_entity_def input");
+        dbg!("parse_entity_def input");
+        dbg!(&input);
         alt((
             map(
                 |i| Self::parse_entity_value(i, entity_references.clone()),
@@ -342,7 +345,6 @@ impl<'a> InternalSubset<'a> {
         let parse_content = |i| Self::parse_entity_content(i, entity_references.clone());
 
         alt((
-            // Directly try parsing the Document and wrap it in EntityValue::Document.
             map(
                 tuple((
                     alt((char('\"'), char('\''))),
@@ -350,12 +352,9 @@ impl<'a> InternalSubset<'a> {
                     alt((char('\"'), char('\''))),
                 )),
                 |(_, val, _)| {
-                    dbg!("VAL HERE");
-                    dbg!(&val);
                     EntityValue::Document(val)
                 },
             ),
-            // Parser for double-quoted values.
             map(
                 delimited(
                     tag("\""),
@@ -369,9 +368,11 @@ impl<'a> InternalSubset<'a> {
                     ),
                     tag("\""),
                 ),
-                |data| EntityValue::Value(Cow::Owned(data)),
-            ),
-            // Parser for single-quoted values.
+                |data| { dbg!("VAL HERE");
+                dbg!(&data);
+
+                EntityValue::Value(Cow::Owned(data))
+            }),
             map(
                 delimited(
                     tag("\'"),
