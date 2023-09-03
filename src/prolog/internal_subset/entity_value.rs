@@ -4,12 +4,15 @@ use std::borrow::Cow;
 
 use crate::{reference::Reference, Document};
 
+use super::InternalSubset;
+
 #[derive(Clone, PartialEq)]
 pub enum EntityValue<'a> {
     Document(Document<'a>),
     Value(Cow<'a, str>),
     Reference(Reference<'a>),
     ParameterReference(Reference<'a>),
+    InternalSubset(Box<InternalSubset<'a>>),
 }
 
 impl<'a> EntityValue<'a> {

@@ -33,6 +33,7 @@ pub enum EntityValue<'a> {
     Value(Cow<'a, str>),
     Reference(Reference<'a>),
     ParameterReference(Reference<'a>),
+    InternalSubset(Box<InternalSubset<'a>>),
 }
 
 pub enum EntityDecl<'a> {
@@ -95,7 +96,6 @@ pub enum Mixed<'a> {
     PCDATA {
         names: Option<Vec<QualifiedName<'a>>>,
         parsed: bool,
-        zero_or_more: bool,
     },
 }
 pub struct XmlDecl<'a> {

@@ -720,6 +720,12 @@ impl<'a> std::fmt::Debug for EntityValue<'a> {
                 .debug_struct("EntityValue")
                 .field("Document", document)
                 .finish(),
+            EntityValue::InternalSubset(internal_subset) => {
+                f // Handle the new variant here
+                    .debug_struct("EntityValue")
+                    .field("InternalSubset", internal_subset)
+                    .finish()
+            }
         }
     }
 }
@@ -745,6 +751,12 @@ impl<'a> EntityValue<'a> {
             EntityValue::Document(document) => {
                 fmt_indented(f, indent, "Document(\n");
                 fmt_indented(f, indent + 4, &format!("{:?},\n", document));
+                fmt_indented(f, indent, "),\n");
+            }
+            EntityValue::InternalSubset(internal_subset) => {
+                // Handle the new variant here
+                fmt_indented(f, indent, "InternalSubset(\n");
+                fmt_indented(f, indent + 4, &format!("{:?},\n", internal_subset));
                 fmt_indented(f, indent, "),\n");
             }
         }

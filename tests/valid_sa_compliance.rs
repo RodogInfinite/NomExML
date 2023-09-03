@@ -3474,8 +3474,8 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-//TODO: Make replacement behavior work correctly
 #[test]
+// #[test]
 fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
     let document = test_valid_sa_file("070", &mut buffer)?;
@@ -3486,30 +3486,52 @@ fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: QualifiedName {
+                        prefix: None,
+                        local_part: "doc".into(),
+                    },
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<!ELEMENT doc (#PCDATA)>".into()
+                            name: QualifiedName {
+                                prefix: None,
+                                local_part: "e".into(),
+                            },
+                            entity_def: EntityDefinition::EntityValue(EntityValue::InternalSubset(
+                                Box::new(InternalSubset::Element {
+                                    name: QualifiedName {
+                                        prefix: None,
+                                        local_part: "doc".into(),
+                                    },
+                                    content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                        names: None,
+                                        parsed: true,
+                                    })),
+                                })
                             )),
                         })),
-                        InternalSubset::DeclSep(Reference::EntityRef(QualifiedName::new(
-                            None, "e"
-                        ))),
+                        InternalSubset::DeclSep(Reference::EntityRef(QualifiedName {
+                            prefix: None,
+                            local_part: "e".into(),
+                        })),
                     ]),
                 }),
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: QualifiedName {
+                        prefix: None,
+                        local_part: "doc".into(),
+                    },
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: QualifiedName {
+                        prefix: None,
+                        local_part: "doc".into(),
+                    },
                     attributes: None,
                     state: TagState::End,
                 },

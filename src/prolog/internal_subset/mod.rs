@@ -8,10 +8,10 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::char,
-    combinator::{map, opt},
+    combinator::{map, opt, map_res},
     multi::{fold_many0, many0},
     sequence::{delimited, tuple},
-    IResult,
+    IResult, Parser,
 };
 
 use crate::{
@@ -354,6 +354,17 @@ dbg!(&entity_def);
                 |(_, val, _)| {
                     EntityValue::Document(val)
                 },
+            ),
+            map_res(
+                tuple((
+                    alt((char('\"'), char('\''))),|i| Self::parse_markup_decl(i, entity_references.clone()),alt((char('\"'), char('\''))),
+                )),
+                |(_,data,_)| {
+                    match data {
+                        Some(data) => Ok(EntityValue::InternalSubset(Box::new(data))),
+                        None => Err(nom::Err::Failure(("No Internal Subset", nom::error::ErrorKind::Tag))),
+                    }
+                }
             ),
             map(
                 delimited(

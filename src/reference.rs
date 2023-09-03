@@ -63,6 +63,9 @@ impl<'a> Reference<'a> {
                         EntityValue::ParameterReference(param_ref_val) => {
                             return EntityValue::ParameterReference(param_ref_val.clone());
                         }
+                        EntityValue::InternalSubset(internal_subset) => {
+                            return EntityValue::InternalSubset(internal_subset.clone());
+                        }
                     }
                 }
 
