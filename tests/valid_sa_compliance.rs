@@ -3475,7 +3475,6 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
-// #[test]
 fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
     let document = test_valid_sa_file("070", &mut buffer)?;
