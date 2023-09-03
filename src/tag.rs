@@ -109,7 +109,7 @@ impl<'a> Tag<'a> {
                     Attribute::parse(i, entity_references.clone())
                 }))),
                 Self::parse_multispace0,
-                alt((tag("&#62;/"), tag("&#x3E;/"), tag("/>"))),
+                alt((tag("/&#62;"), tag("/&#x3E;"), tag("/>"))),
             )),
             |(_open_tag, name, attributes, _whitespace, _close_tag)| Self {
                 name,
