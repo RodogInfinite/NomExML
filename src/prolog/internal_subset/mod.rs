@@ -49,7 +49,10 @@ pub enum InternalSubset<'a> {
     },
     Entity(EntityDecl<'a>),
     Entities(Vec<Box<InternalSubset<'a>>>),
-    DeclSep(Reference<'a>),
+    DeclSep {
+        reference: Reference<'a>,
+        expansion: Option<Box<InternalSubset<'a>>>,
+    },
     ProcessingInstruction(ProcessingInstruction<'a>),
     Comment(Document<'a>),
 }
@@ -79,7 +82,7 @@ impl<'a> Parse<'a> for InternalSubset<'a> {
 
         let (input, parsed) = many0(alt((
             |i| Self::parse_markup_decl(i, args.clone()),
-            Self::parse_decl_sep,
+            |i| Self::parse_decl_sep(i,args.clone()),
         )))(input)?;
 
         dbg!("after parse_markup_decl");
@@ -113,18 +116,42 @@ impl<'a> Parse<'a> for InternalSubset<'a> {
 
 
 impl<'a> InternalSubset<'a> {
+    fn expand_entity(reference: &Reference<'a>, entity_references: &Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>) -> Option<EntityValue<'a>> {
+        match reference {
+            Reference::EntityRef(name) => {
+                let entities = entity_references.borrow();
+                entities.get(name).cloned()
+            },
+            Reference::CharRef(_) => {
+                // Handle character references here if needed
+                None
+            }
+        }
+    }
+    
     // [28a] DeclSep ::=  PEReference | S 
-    fn parse_decl_sep(input: &'a str) -> IResult<&'a str, Option<InternalSubset<'a>>> {
+    fn parse_decl_sep(input: &'a str, entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>) -> IResult<&'a str, Option<InternalSubset<'a>>> {
         dbg!("parse_decl_sep");
         dbg!(&input);
+        dbg!("ENTITY REFERENCEE IN DECL SEP");
+        dbg!(&entity_references);
         alt((
-            
             map(Reference::parse_parameter_reference, |reference| {
-                Some(InternalSubset::DeclSep(reference))
+                let expansion = Self::expand_entity(&reference, &entity_references);
+                let expanded_internal_subset = match &expansion {
+                    Some(EntityValue::InternalSubset(elem)) => Some(elem.clone()),
+                    _ => None,
+                };
+                Some(InternalSubset::DeclSep {
+                    reference,
+                    expansion: expanded_internal_subset
+                })
             }),
             map(Self::parse_multispace1, |_| None),
         ))(input)
     }
+    
+    
 
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
@@ -213,24 +240,25 @@ impl<'a> InternalSubset<'a> {
         ))(input)
     }
 
-    // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
     fn parse_general_entity_declaration(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, InternalSubset<'a>> {
-        dbg!( "parse_general_entity_declaration input");
-        dbg!(&input);
-        let (input, (_start, _whitespace1, name, _whitespace2, entity_def, _whitespace3, _close)) =
+        let (input, (_start, _whitespace1, name, _whitespace2)) =
             tuple((
                 tag("<!ENTITY"),
                 Self::parse_multispace1,
                 Self::parse_name,
-                Self::parse_multispace1,
-                move |i| Self::parse_entity_definition(i, entity_references.clone()),
-                Self::parse_multispace0,
-                tag(">"),
+                Self::parse_multispace1
             ))(input)?;
-
+    
+        let (input, (entity_def, _whitespace3, _close)) =
+            tuple((
+                |i| Self::parse_entity_definition(i, name.clone(), entity_references.clone()),
+                Self::parse_multispace0,
+                tag(">")
+            ))(input)?;
+    
         Ok((
             input,
             InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -239,41 +267,38 @@ impl<'a> InternalSubset<'a> {
             })),
         ))
     }
+    
+    
 
     // [72]    PEDecl ::=    '<!ENTITY' S '%' S Name S PEDef S? '>'
     fn parse_parameter_entity_declaration(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, InternalSubset<'a>> {
-        dbg!( "parse_parameter_entity_declaration input");
+        dbg!("parse_parameter_entity_declaration input");
         dbg!(&input);
-        let (
-            input,
-            (
-                _start,
-                _whitespace1,
-                _percent,
-                _whitespace2,
-                name, 
-                _whitespace3,
-                entity_def,
-                _whitespace4,
-                _close,
-            ),
-        ) = tuple((
-            tag("<!ENTITY"),
-            Self::parse_multispace1,
-            tag("%"),
-            Self::parse_multispace1,
-            Self::parse_name,
-            Self::parse_multispace1,
-            move |i| Self::parse_parameter_definition(i, entity_references.clone()),
-            Self::parse_multispace0,
-            tag(">"),
-        ))(input)?;
+        
+        let (input, (_start, _whitespace1, _percent, _whitespace2, name, _whitespace3)) = 
+            tuple((
+                tag("<!ENTITY"),
+                Self::parse_multispace1,
+                tag("%"),
+                Self::parse_multispace1,
+                Self::parse_name,
+                Self::parse_multispace1
+            ))(input)?;
+    
+        let (input, (entity_def, _whitespace4, _close)) = 
+            tuple((
+                |i| Self::parse_parameter_definition(i, name.clone(), entity_references.clone()),
+                Self::parse_multispace0,
+                tag(">")
+            ))(input)?;
+    
         dbg!("HERE");
-dbg!(&name);
-dbg!(&entity_def);
+        dbg!(&name);
+        dbg!(&entity_def);
+    
         Ok((
             input,
             InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
@@ -282,17 +307,19 @@ dbg!(&entity_def);
             })),
         ))
     }
+    
 
     // [74] PEDef ::= EntityValue | ExternalID
     fn parse_parameter_definition(
         input: &'a str,
+        name: Name<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityDefinition<'a>> {
         dbg!("parse_entity_def input");
         dbg!(&input);
         alt((
             map(
-                |i| Self::parse_entity_value(i, entity_references.clone()),
+                |i| Self::parse_entity_value(i, name.clone(),entity_references.clone()),
                 EntityDefinition::EntityValue,
             ),
             map(
@@ -306,12 +333,13 @@ dbg!(&entity_def);
     // [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
     fn parse_entity_definition(
         input: &'a str,
+        name: Name<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityDefinition<'a>> {
         dbg!(&input, "parse_entity_def input");
         alt((
             map(
-                |i| Self::parse_entity_value(i, entity_references.clone()),
+                |i| Self::parse_entity_value(i, name.clone(), entity_references.clone()),
                 EntityDefinition::EntityValue,
             ),
             map(
@@ -337,32 +365,47 @@ dbg!(&entity_def);
     // [9] EntityValue	::= '"' ([^%&"] | PEReference | Reference)* '"'|  "'" ([^%&'] | PEReference | Reference)* "'"
     fn parse_entity_value(
         input: &'a str,
+        name: Name<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityValue<'a>> {
         dbg!("parse_entity_value input");
         dbg!(&input);
 
-        let parse_content = |i| Self::parse_entity_content(i, entity_references.clone());
-
+        let cloned_references = entity_references.clone();
+        let cloned_references2 = entity_references.clone();
         alt((
             map(
                 tuple((
                     alt((char('\"'), char('\''))),
-                    alt((|i| Document::parse_element(i, entity_references.clone()),Document::parse_cdata_section)), // |i| Document::parse_content(i,entity_references.clone())
+                    Self::capture_span(alt((
+                        move |i| Document::parse_element(i, cloned_references.clone()),
+                        Document::parse_cdata_section
+                    ))),
                     alt((char('\"'), char('\''))),
                 )),
-                |(_, val, _)| {
-                    EntityValue::Document(val)
+                |(_, (raw_entity_value, doc), _)| {
+                    dbg!("DOC HERE");
+                    dbg!(&doc);
+                    entity_references.borrow_mut().insert(name.clone(), EntityValue::Document(doc));
+            
+                    // Return the original string
+                    EntityValue::Value(Cow::Owned(raw_entity_value.to_string()))
                 },
             ),
             map_res(
                 tuple((
-                    alt((char('\"'), char('\''))),|i| Self::parse_markup_decl(i, entity_references.clone()),alt((char('\"'), char('\''))),
+                    alt((char('\"'), char('\''))),
+                    Self::capture_span( move |i| Self::parse_markup_decl(i, cloned_references2.clone())),
+                    alt((char('\"'), char('\''))),
                 )),
-                |(_,data,_)| {
+                |(_, (raw_internal_subset, data), _)| {
+                    
+
                     match data {
-                        Some(data) => Ok(EntityValue::InternalSubset(Box::new(data))),
-                        None => Err(nom::Err::Failure(("No Internal Subset", nom::error::ErrorKind::Tag))),
+                        Some(data) => {
+                            entity_references.borrow_mut().insert(name.clone(), EntityValue::InternalSubset(Box::new(data)));
+                            Ok(EntityValue::Value(Cow::Owned(raw_internal_subset.to_string())))},
+                        None => Err(nom::Err::Failure(("No Internal Subset", nom::error::ErrorKind::Fail))),
                     }
                 }
             ),
@@ -370,7 +413,7 @@ dbg!(&entity_def);
                 delimited(
                     tag("\""),
                     fold_many0(
-                        alt((map(is_not("%&\""), ToString::to_string), parse_content)),
+                        alt((map(is_not("%&\""), ToString::to_string), |i| Self::parse_entity_content(i, entity_references.clone()))),
                         String::new,
                         |mut acc: String, item: String| {
                             acc.push_str(&item);
@@ -379,7 +422,7 @@ dbg!(&entity_def);
                     ),
                     tag("\""),
                 ),
-                |data| { dbg!("VAL HERE");
+                |data| { dbg!("VAL HEREe");
                 dbg!(&data);
 
                 EntityValue::Value(Cow::Owned(data))
@@ -388,7 +431,7 @@ dbg!(&entity_def);
                 delimited(
                     tag("\'"),
                     fold_many0(
-                        alt((map(is_not("%&'"), ToString::to_string), parse_content)),
+                        alt((map(is_not("%&'"), ToString::to_string), |i| Self::parse_entity_content(i, entity_references.clone()))),
                         String::new,
                         |mut acc: String, item: String| {
                             acc.push_str(&item);
@@ -409,7 +452,7 @@ dbg!(&entity_def);
         let (input, reference) = Reference::parse(input, entity_references.clone())?;
         let result = match reference {
             Reference::EntityRef(value) => value.local_part.into_owned(),
-            Reference::CharRef { value, .. } => value.into_owned(),
+            Reference::CharRef(value) => value.into_owned(),
         };
         Ok((input, result))
     }

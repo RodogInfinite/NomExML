@@ -1183,20 +1183,8 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
-                                Document::Element(
-                                    Tag {
-                                        name: QualifiedName::new(None, "foo"),
-                                        attributes: None,
-                                        state: TagState::Start,
-                                    },
-                                    Box::new(Document::Empty),
-                                    Tag {
-                                        name: QualifiedName::new(None, "foo"),
-                                        attributes: None,
-                                        state: TagState::End,
-                                    },
-                                )
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "&#60;foo></foo>".into()
                             )),
                         })),
                     ]),
@@ -2622,12 +2610,8 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
-                                Document::EmptyTag(Tag {
-                                    name: QualifiedName::new(None, "e"),
-                                    attributes: None,
-                                    state: TagState::Empty,
-                                })
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<e/>".into()
                             ))
                         })),
                         InternalSubset::Element {
@@ -3496,23 +3480,26 @@ fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
                                 prefix: None,
                                 local_part: "e".into(),
                             },
-                            entity_def: EntityDefinition::EntityValue(EntityValue::InternalSubset(
-                                Box::new(InternalSubset::Element {
-                                    name: QualifiedName {
-                                        prefix: None,
-                                        local_part: "doc".into(),
-                                    },
-                                    content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                        names: None,
-                                        parsed: true,
-                                    })),
-                                })
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<!ELEMENT doc (#PCDATA)>".into()
                             )),
                         })),
-                        InternalSubset::DeclSep(Reference::EntityRef(QualifiedName {
-                            prefix: None,
-                            local_part: "e".into(),
-                        })),
+                        InternalSubset::DeclSep {
+                            reference: Reference::EntityRef(QualifiedName {
+                                prefix: None,
+                                local_part: "e".into(),
+                            }),
+                            expansion: Some(Box::new(InternalSubset::Element {
+                                name: QualifiedName {
+                                    prefix: None,
+                                    local_part: "doc".into(),
+                                },
+                                content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
+                                    names: None,
+                                    parsed: true,
+                                })),
+                            })),
+                        },
                     ]),
                 }),
             },
@@ -4464,12 +4451,8 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
-                                Document::EmptyTag(Tag {
-                                    name: QualifiedName::new(None, "foo"),
-                                    attributes: None,
-                                    state: TagState::Empty,
-                                })
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<foo/&#62;".into()
                             )),
                         })),
                         InternalSubset::Element {
@@ -5963,8 +5946,8 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Document(
-                                Document::CDATA(Cow::Borrowed("&foo;"))
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                "<![CDATA[&foo;]]>".into()
                             )),
                         })),
                     ]),

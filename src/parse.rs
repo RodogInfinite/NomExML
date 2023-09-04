@@ -7,7 +7,7 @@ use nom::{
     combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
     sequence::tuple,
-    IResult,
+    IResult, Offset,
 };
 use std::borrow::Cow;
 
@@ -126,5 +126,18 @@ pub trait Parse<'a>: Sized {
         let (input, _) = tag("=")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         Ok((input, ()))
+    }
+
+    fn capture_span<O, F>(
+        mut f: F,
+    ) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, (&'a str, O)> + 'a>
+    where
+        F: FnMut(&'a str) -> IResult<&'a str, O> + 'a,
+    {
+        Box::new(move |input: &'a str| {
+            let (remaining, result) = f(input)?;
+            let offset = input.offset(remaining);
+            Ok((remaining, (&input[..offset], result)))
+        })
     }
 }
