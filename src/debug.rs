@@ -17,7 +17,7 @@ use crate::{
         },
         xmldecl::{Standalone, XmlDecl},
     },
-    reference::{CharRefState, Reference},
+    reference::Reference,
     Document, QualifiedName, Tag,
 };
 use std::fmt::{self, Formatter};
@@ -510,8 +510,18 @@ impl<'a> InternalSubset<'a> {
                 }
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::DeclSep(name) => {
-                fmt_indented(f, indent, &format!("\nDeclSep({}", format!("{:?}", name)));
+            InternalSubset::DeclSep {
+                reference,
+                expansion,
+            } => {
+                fmt_indented(
+                    f,
+                    indent,
+                    &format!(
+                        "\nDeclSep({}",
+                        format!("reference: {reference:?},\nexpansion:{expansion:?}")
+                    ),
+                );
                 f.push_str("),\n");
             }
             InternalSubset::ProcessingInstruction(ProcessingInstruction { target, data }) => {
@@ -629,20 +639,7 @@ impl<'a> fmt::Debug for Reference<'a> {
                     &format_args!("\n{}", entity.fmt_qualified_name(12)),
                 )
                 .finish(),
-            Reference::CharRef { value, state } => f
-                .debug_struct("CharRef")
-                .field("value", value)
-                .field("state", state)
-                .finish(),
-        }
-    }
-}
-
-impl fmt::Debug for CharRefState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CharRefState::Decimal => f.write_str("Decimal"),
-            CharRefState::Hexadecimal => f.write_str("Hex"),
+            Reference::CharRef(value) => f.debug_struct("CharRef").field("value", value).finish(),
         }
     }
 }

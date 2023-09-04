@@ -177,8 +177,5 @@ pub struct ProcessingInstruction<'a> {
 }
 pub enum Reference<'a> {
     EntityRef(Name<'a>),
-    CharRef {
-        value: Cow<'a, str>,
-        state: CharRefState, // TODO: I don't think this is necessary
-    },
+    CharRef { value: Cow<'a, str> },
 }

@@ -21,10 +21,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 #[derive(Clone, PartialEq)]
 pub enum Reference<'a> {
     EntityRef(Name<'a>),
-    CharRef {
-        value: Cow<'a, str>,
-        state: CharRefState,
-    },
+    CharRef(Cow<'a, str>),
 }
 
 impl<'a> Parse<'a> for Reference<'a> {
@@ -71,7 +68,7 @@ impl<'a> Reference<'a> {
 
                 EntityValue::Value(Cow::Owned(name.local_part.to_string()))
             }
-            Reference::CharRef { value, .. } => EntityValue::Value(Cow::Owned(value.to_string())),
+            Reference::CharRef(value) => EntityValue::Value(Cow::Owned(value.to_string())),
         }
     }
 }
@@ -81,15 +78,9 @@ impl<'a> Decode for Reference<'a> {
     fn as_str(&self) -> &str {
         match self {
             Reference::EntityRef(name) => &name.local_part,
-            Reference::CharRef { value, .. } => value,
+            Reference::CharRef(value) => value,
         }
     }
-}
-
-#[derive(Clone, PartialEq)]
-pub enum CharRefState {
-    Decimal,
-    Hexadecimal,
 }
 
 pub trait ParseReference<'a>: Parse<'a> + Decode {
@@ -120,10 +111,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 |(start, digits, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, digits, end);
                     let decoded = reconstructed.decode().unwrap().into_owned();
-                    Reference::CharRef {
-                        value: Cow::Owned(decoded),
-                        state: CharRefState::Decimal,
-                    }
+                    Reference::CharRef(Cow::Owned(decoded))
                 },
             ),
             map(
@@ -131,10 +119,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 |(start, hex, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, hex, end);
                     let decoded = reconstructed.decode().unwrap().into_owned();
-                    Reference::CharRef {
-                        value: Cow::Owned(decoded),
-                        state: CharRefState::Hexadecimal,
-                    }
+                    Reference::CharRef(Cow::Owned(decoded))
                 },
             ),
         ))(input)
