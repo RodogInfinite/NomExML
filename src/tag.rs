@@ -43,8 +43,6 @@ impl<'a> Tag<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Self> {
-        dbg!("parse_start_tag");
-        dbg!(&input);
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),

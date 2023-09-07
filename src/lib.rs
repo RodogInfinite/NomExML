@@ -111,7 +111,6 @@ impl<'a> Document<'a> {
             }),
         };
 
-        dbg!(&prolog, "Parsed prolog");
         Ok((input, (prolog, updated_entity_references)))
     }
 
@@ -119,22 +118,15 @@ impl<'a> Document<'a> {
         doc_type: &DocType<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>> {
-        dbg!("Collecting entity references");
-        dbg!(&doc_type);
         if let InternalSubset::Entities(entities) = &doc_type.get_entities() {
             for boxed_entity in entities {
                 if let InternalSubset::Entity(entity_decl) = &**boxed_entity {
                     match entity_decl {
                         EntityDecl::General(decl) | EntityDecl::Parameter(decl) => {
-                            dbg!("DECL HERE");
-                            dbg!(&decl);
                             if let EntityDefinition::EntityValue(value) = &decl.entity_def {
                                 // Check if the name already exists in the map
-                                dbg!("ENTITY VALUE HERE");
-                                dbg!(&value);
                                 let mut references = entity_references.borrow_mut();
                                 if !references.contains_key(&decl.name) {
-                                    dbg!(&decl.name.local_part);
                                     references.insert(decl.name.clone(), value.clone());
                                 }
                             }
@@ -153,8 +145,6 @@ impl<'a> Document<'a> {
 
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        dbg!("Parsing char data");
-        dbg!(&input);
         map(
             tuple((take_till(|c: char| c == '<' || c == '&'), not(tag("]]>")))),
             |(data, _)| Cow::Borrowed(data),
@@ -189,8 +179,6 @@ impl<'a> Document<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
-        dbg!("parse_element");
-        dbg!(&input);
         let (input, doc) = alt((
             preceded(
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
@@ -212,32 +200,26 @@ impl<'a> Document<'a> {
                 },
             ),
         ))(input)?;
-        dbg!(&doc);
         Ok((input, doc))
     }
 
     pub fn process_references(
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> impl Fn(Vec<Reference<'a>>) -> Document<'a> + 'a {
-        dbg!("Processing references");
-        dbg!(&entity_references);
         move |references| {
             let mut contents: Vec<Cow<'a, str>> = Vec::new();
             for reference in references.into_iter() {
-                dbg!(&reference);
                 match reference.normalize_entity(entity_references.clone()) {
                     EntityValue::Document(doc) => return doc, // If we encounter a Document, return it immediately.
                     EntityValue::Value(val) => contents.push(val),
                     _ => {}
                 }
             }
-            dbg!(&contents);
             // Join the contents into a single string
             let content = contents
                 .into_iter()
                 .map(Cow::into_owned)
                 .collect::<String>();
-            dbg!(&content);
             Document::Content(Some(Cow::Owned(content)))
         }
     }
@@ -248,9 +230,6 @@ impl<'a> Document<'a> {
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, Document<'a>> {
-        dbg!("parse_content");
-        dbg!(&input);
-
         let (input, ((_whitespace, maybe_chardata), elements)) = tuple((
             pair(
                 Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
@@ -300,26 +279,19 @@ impl<'a> Document<'a> {
                 ),
             ))),
         ))(input)?;
-        dbg!(&maybe_chardata);
-        dbg!(&elements);
         let mut content = elements
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
-                dbg!(&maybe_chardata);
-                dbg!("WHAT");
-                dbg!(&doc);
                 let mut vec = Vec::new();
                 vec.push(doc);
                 if let (_, Some(chardata)) = maybe_chardata {
                     if !chardata.is_empty() {
-                        dbg!(&chardata);
                         vec.push(Document::Content(Some(chardata)));
                     }
                 }
                 vec
             })
             .collect::<Vec<_>>();
-        dbg!(&content);
         Ok((
             input,
             match maybe_chardata {
@@ -392,15 +364,12 @@ impl<'a> Document<'a> {
             } else {
                 None
             };
-            dbg!("WITHIN WHILE");
-            dbg!(&content);
             let (input, doc) =
                 Self::construct_document_element(input, start_tag, content, end_tag, empty_tag)?;
             if let Document::Empty = &doc {
                 break;
             }
 
-            dbg!(&doc);
             documents.push(doc);
             current_input = input;
         }
@@ -417,12 +386,6 @@ impl<'a> Document<'a> {
         end_tag: Option<Tag<'a>>,
         empty_tag: Option<Tag<'a>>,
     ) -> IResult<&'a str, Document<'a>> {
-        dbg!("Construct Document Element");
-        dbg!(&input);
-        dbg!(&start_tag);
-        dbg!(&content);
-        dbg!(&end_tag);
-        dbg!(&empty_tag);
         match (start_tag, end_tag, content, empty_tag) {
             (Some(start), Some(end), content, None) => {
                 if start.name != end.name {
@@ -501,8 +464,6 @@ impl<'a> Document<'a> {
         prolog: Option<Document<'a>>,
         documents: Vec<Document<'a>>,
     ) -> IResult<&'a str, Document<'a>> {
-        dbg!(&input, "constructing document");
-
         match documents.len() {
             0 => Err(nom::Err::Error(nom::error::Error::new(
                 input,

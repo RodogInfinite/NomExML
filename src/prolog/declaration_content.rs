@@ -23,7 +23,6 @@ impl<'a> Parse<'a> for DeclarationContent<'a> {
     type Output = IResult<&'a str, Self>;
     // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        dbg!(&input, "DeclarationContent::parse input");
         alt((
             map(tag("EMPTY"), |_| Self::Empty),
             map(tag("ANY"), |_| Self::Any),
@@ -35,9 +34,6 @@ impl<'a> Parse<'a> for DeclarationContent<'a> {
 impl<'a> DeclarationContent<'a> {
     // [47] children ::= (choice | seq) ('?' | '*' | '+')?
     fn parse_children(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
-        dbg!("parse_children");
-        dbg!(&input);
-
         let (input, particle) = alt((
             map(
                 tuple((
@@ -58,7 +54,6 @@ impl<'a> DeclarationContent<'a> {
                 },
             ),
         ))(input)?;
-        dbg!(&particle);
         Ok((input, particle))
     }
 }
@@ -78,7 +73,6 @@ impl<'a> Parse<'a> for Mixed<'a> {
     // Namespaces (Third Edition) [19] Mixed ::= '(' S? '#PCDATA' (S? '|' S? QName)* S? ')*' | '(' S? '#PCDATA' S? ')'
 
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        dbg!(&input, "Mixed::parse input");
         map(
             tuple((
                 tag("("),

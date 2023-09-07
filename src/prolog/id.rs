@@ -41,8 +41,6 @@ impl<'a> Parse<'a> for ID<'a> {
 impl<'a> ID<'a> {
     // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
     pub fn parse_public_id_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
-        dbg!("parse_public_id_literal");
-        dbg!(&input);
         map(
             alt((
                 delimited(
@@ -56,10 +54,7 @@ impl<'a> ID<'a> {
                     tag("'"),
                 ),
             )),
-            |pubid_literal: Vec<&'a str>| {
-                dbg!(&pubid_literal);
-                Cow::Owned(pubid_literal.concat())
-            },
+            |pubid_literal: Vec<&'a str>| Cow::Owned(pubid_literal.concat()),
         )(input)
     }
 

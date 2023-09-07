@@ -41,8 +41,6 @@ impl<'a> ExternalID<'a> {
     }
 
     fn parse_public(input: &'a str) -> IResult<&'a str, ExternalID<'a>> {
-        dbg!("parse_public");
-        dbg!(&input);
         map(
             tuple((
                 tag("PUBLIC"),
@@ -52,8 +50,6 @@ impl<'a> ExternalID<'a> {
                 Self::parse_system_literal,
             )),
             |(_public, _whitespace1, pubid_literal, _whitespace2, system_literal)| {
-                dbg!(&pubid_literal);
-                dbg!(&system_literal);
                 ExternalID::Public {
                     pubid: pubid_literal,
                     system_identifier: Box::new(ExternalID::System(system_literal)),

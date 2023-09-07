@@ -64,9 +64,6 @@ impl<'a> Parse<'a> for DocType<'a> {
                 _close_tag,
                 _whitespace3,
             )| {
-                dbg!("INSIDE DOCTYPE PARSE");
-                dbg!(&int_subset);
-                dbg!(&args);
                 // Iterate over the internal subset and normalize any references
                 if !int_subset.is_empty() {
                     for item in &mut int_subset {
@@ -81,10 +78,7 @@ impl<'a> Parse<'a> for DocType<'a> {
                             })) => {
                                 if let EntityDefinition::EntityValue(ev) = entity_def {
                                     if let EntityValue::Reference(ref ref_val) = *ev {
-                                        dbg!("WHY");
-                                        dbg!(&ref_val);
                                         let x = ref_val.normalize_entity(args.clone());
-                                        dbg!(&x);
                                     }
                                 }
                             }

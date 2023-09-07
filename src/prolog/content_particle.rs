@@ -29,8 +29,6 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
                     opt(|i| ConditionalState::parse(i, ())),
                 )),
                 |(name, conditional_state)| {
-                    dbg!("HERE");
-                    dbg!(&conditional_state);
                     ContentParticle::Name(name, conditional_state.unwrap_or(ConditionalState::None))
                 },
             ),
@@ -56,9 +54,6 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
                 },
             ),
         ))(input)?;
-        dbg!("Content Particle Parsed");
-        dbg!(&input);
-        dbg!(&res);
         Ok((input, res))
     }
 }

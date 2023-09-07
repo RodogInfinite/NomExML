@@ -265,10 +265,7 @@ impl<'a> Parse<'a> for AttType<'a> {
                 map(TokenizedType::parse, AttType::Tokenized),
                 Self::parse_enumerated_type,
             )),
-            |parsed_att_type| {
-                dbg!(&parsed_att_type);
-                parsed_att_type
-            },
+            |parsed_att_type| parsed_att_type,
         )(input)?;
 
         Ok((input, att_type))
