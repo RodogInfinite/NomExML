@@ -1,6 +1,7 @@
 // reference.rs
 
 use crate::{
+    attribute::AttributeValue,
     parse::Parse,
 
     prolog::internal_subset::entity_value::EntityValue,
@@ -34,41 +35,110 @@ impl<'a> Parse<'a> for Reference<'a> {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
 }
-
 impl<'a> Reference<'a> {
-    pub fn normalize(
+    pub fn normalize_entity(
         &self,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> EntityValue<'a> {
+        dbg!("NORMALIZE");
+        dbg!(&self);
+
         match self {
             Reference::EntityRef(name) => {
-                let refs_map = entity_references.borrow();
+                dbg!("ENTITYREF NAME");
                 dbg!(&name);
+                dbg!(&*entity_references.borrow());
 
-                if let Some(entity_value) = refs_map.get(name) {
-                    dbg!(&entity_value);
-                    match entity_value {
-                        EntityValue::Document(doc) => {
-                            return EntityValue::Document(doc.clone());
-                        }
-                        EntityValue::Value(val) => {
-                            return EntityValue::Value(val.clone());
-                        }
-                        EntityValue::Reference(ref_val) => {
-                            return EntityValue::Reference(ref_val.clone());
-                        }
-                        EntityValue::ParameterReference(param_ref_val) => {
-                            return EntityValue::ParameterReference(param_ref_val.clone());
-                        }
-                        EntityValue::InternalSubset(internal_subset) => {
-                            return EntityValue::InternalSubset(internal_subset.clone());
+                let refs_map = entity_references.borrow();
+                match refs_map.get(name).cloned() {
+                    Some(EntityValue::Value(val))
+                        if refs_map.contains_key(&Name {
+                            prefix: None,
+                            local_part: Cow::Borrowed(val.as_ref()),
+                        }) =>
+                    {
+                        // This value is another reference
+                        let reference_name = Name {
+                            prefix: None,
+                            local_part: Cow::Owned(val.into_owned()),
+                        };
+                        Reference::EntityRef(reference_name)
+                            .normalize_entity(entity_references.clone())
+                    }
+                    Some(EntityValue::Reference(Reference::EntityRef(entity))) => {
+                        dbg!("DOING WORK");
+                        dbg!(&entity);
+                        if let Some(EntityValue::Value(val)) = refs_map.get(&entity).cloned() {
+                            EntityValue::Value(val)
+                        } else {
+                            Reference::EntityRef(entity).normalize_entity(entity_references.clone())
                         }
                     }
+                    Some(EntityValue::Reference(Reference::CharRef(value))) => {
+                        EntityValue::Value(value)
+                    }
+                    Some(entity_value) => entity_value,
+                    None => EntityValue::Value(Cow::Owned(name.local_part.to_string())),
                 }
-
-                EntityValue::Value(Cow::Owned(name.local_part.to_string()))
             }
             Reference::CharRef(value) => EntityValue::Value(Cow::Owned(value.to_string())),
+        }
+    }
+    pub fn normalize_attribute(
+        &self,
+        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
+    ) -> AttributeValue<'a> {
+        dbg!("NORMALIZE ATTRIBUTE");
+        dbg!(&self);
+        match self {
+            Reference::EntityRef(name) => {
+                dbg!("ATT REF NAME");
+                dbg!(&name);
+                dbg!(&*entity_references.borrow());
+
+                let refs_map = entity_references.borrow();
+                match refs_map.get(name).cloned() {
+                    Some(EntityValue::Value(val))
+                        if refs_map.contains_key(&Name {
+                            prefix: None,
+                            local_part: Cow::Borrowed(val.as_ref()),
+                        }) =>
+                    {
+                        let reference_name = Name {
+                            prefix: None,
+                            local_part: Cow::Owned(val.into_owned()),
+                        };
+                        Reference::EntityRef(reference_name)
+                            .normalize_attribute(entity_references.clone())
+                    }
+                    Some(EntityValue::Reference(Reference::EntityRef(entity))) => {
+                        dbg!("DOING WORK2");
+                        dbg!(&entity);
+                        if let Some(EntityValue::Value(val)) = refs_map.get(&entity).cloned() {
+                            AttributeValue::Value(val)
+                        } else {
+                            Reference::EntityRef(entity.clone())
+                                .normalize_attribute(entity_references.clone())
+                        }
+                    }
+                    Some(entity_value) => {
+                        // Convert EntityValue to AttributeValue
+                        match entity_value {
+                            EntityValue::Value(val) => AttributeValue::Value(val),
+                            EntityValue::Reference(reference) => {
+                                reference.normalize_attribute(entity_references.clone())
+                            }
+                            _ => panic!("Unexpected EntityValue variant"),
+                        }
+                    }
+                    None => AttributeValue::Value(Cow::Owned(name.local_part.to_string())),
+                }
+            }
+            Reference::CharRef(value) => {
+                dbg!("CHARREF HERE");
+                dbg!(&value);
+                AttributeValue::Value(Cow::Owned(value.to_string()))
+            }
         }
     }
 }
@@ -86,9 +156,14 @@ impl<'a> Decode for Reference<'a> {
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+        dbg!("PARSE ENTITY REF");
+        dbg!(&input);
         map(
             tuple((char('&'), Self::parse_name, char(';'))),
-            |(_, name, _)| Reference::EntityRef(name),
+            |(_, name, _)| {
+                dbg!(&name);
+                Reference::EntityRef(name)
+            },
         )(input)
     }
 
@@ -111,6 +186,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 |(start, digits, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, digits, end);
                     let decoded = reconstructed.decode().unwrap().into_owned();
+                    dbg!(&decoded);
                     Reference::CharRef(Cow::Owned(decoded))
                 },
             ),

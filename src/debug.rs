@@ -1,6 +1,6 @@
 // debug.rs
 use crate::{
-    attribute::{Attribute, Prefix},
+    attribute::{Attribute, AttributeValue, Prefix},
     misc::{Misc, MiscState},
     processing_instruction::ProcessingInstruction,
     prolog::{
@@ -565,6 +565,38 @@ impl<'a> std::fmt::Debug for XmlDecl<'a> {
     }
 }
 
+impl<'a> std::fmt::Debug for AttributeValue<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut debug_string = String::new();
+        self.fmt_indented_attribute_value(&mut debug_string, 4);
+        write!(f, "{}", debug_string)
+    }
+}
+
+impl<'a> AttributeValue<'a> {
+    fn fmt_indented_attribute_value(&self, f: &mut String, indent: usize) {
+        match self {
+            AttributeValue::Value(value) => {
+                fmt_indented(f, indent - 4, "Value(\n");
+                fmt_indented(f, indent, &format!("{:?}\n", value));
+                fmt_indented(f, indent - 4, "),\n");
+            }
+            AttributeValue::Values(values) => {
+                fmt_indented(f, indent - 4, "Values(\n");
+                for value in values {
+                    value.fmt_indented_attribute_value(f, indent);
+                }
+                fmt_indented(f, indent - 4, "),\n");
+            }
+            AttributeValue::Reference(reference) => {
+                fmt_indented(f, indent, "Reference(\n");
+                fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
+                fmt_indented(f, indent, "),\n");
+            }
+        }
+    }
+}
+
 impl<'a> Attribute<'a> {
     fn fmt_indented_attribute(&self, f: &mut String, indent: usize) {
         match self {
@@ -599,13 +631,13 @@ impl<'a> Attribute<'a> {
             Attribute::Instance { name, value } => {
                 fmt_indented(f, indent, "Instance {\n");
                 fmt_indented(f, indent + 4, &format!("name: {:?}\n", name));
-                fmt_indented(f, indent + 4, &format!("value: {:?},\n", value));
+                value.fmt_indented_attribute_value(f, indent + 4);
                 fmt_indented(f, indent, "},\n");
             }
             Attribute::Namespace { prefix, uri } => {
                 fmt_indented(f, indent, "Namespace {\n");
                 fmt_indented(f, indent + 4, &format!("prefix: {:?},\n", prefix));
-                fmt_indented(f, indent + 4, &format!("uri: {:?},\n", uri));
+                uri.fmt_indented_attribute_value(f, indent + 4);
                 fmt_indented(f, indent, "},\n");
             }
         }

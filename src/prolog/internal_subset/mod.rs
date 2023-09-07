@@ -9,7 +9,7 @@ use nom::{
     bytes::complete::{is_not, tag},
     character::complete::char,
     combinator::{map, opt, map_res},
-    multi::{fold_many0, many0},
+    multi::{fold_many0, many0, many1, fold_many1},
     sequence::{delimited, tuple},
     IResult, Parser,
 };
@@ -240,6 +240,7 @@ impl<'a> InternalSubset<'a> {
         ))(input)
     }
 
+    // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
     fn parse_general_entity_declaration(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
@@ -258,7 +259,8 @@ impl<'a> InternalSubset<'a> {
                 Self::parse_multispace0,
                 tag(">")
             ))(input)?;
-    
+        dbg!("WITHIN PARSE GENERAL ENTITY DECL");
+        dbg!(&entity_def);
         Ok((
             input,
             InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
@@ -320,7 +322,10 @@ impl<'a> InternalSubset<'a> {
         alt((
             map(
                 |i| Self::parse_entity_value(i, name.clone(),entity_references.clone()),
-                EntityDefinition::EntityValue,
+                |val|{
+                    dbg!("WHAT2");
+                    dbg!(&val);
+                EntityDefinition::EntityValue(val)}
             ),
             map(
                 |i| ExternalID::parse(i, ()),
@@ -336,11 +341,17 @@ impl<'a> InternalSubset<'a> {
         name: Name<'a>,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
     ) -> IResult<&'a str, EntityDefinition<'a>> {
-        dbg!(&input, "parse_entity_def input");
+        dbg!("parse_entity_def input");
+        dbg!(&input);
         alt((
             map(
-                |i| Self::parse_entity_value(i, name.clone(), entity_references.clone()),
-                EntityDefinition::EntityValue,
+                |i| Self::parse_entity_value(i, name.clone(), entity_references.clone()), |val|{
+                    dbg!("WHAT");
+                    dbg!(&val);
+                    //
+                        EntityDefinition::EntityValue(val)
+                    //}
+                }
             ),
             map(
                 tuple((
@@ -362,6 +373,7 @@ impl<'a> InternalSubset<'a> {
         Ok((input, name))
     }
 
+
     // [9] EntityValue	::= '"' ([^%&"] | PEReference | Reference)* '"'|  "'" ([^%&'] | PEReference | Reference)* "'"
     fn parse_entity_value(
         input: &'a str,
@@ -374,87 +386,158 @@ impl<'a> InternalSubset<'a> {
         let cloned_references = entity_references.clone();
         let cloned_references2 = entity_references.clone();
         alt((
-            map(
-                tuple((
-                    alt((char('\"'), char('\''))),
-                    Self::capture_span(alt((
-                        move |i| Document::parse_element(i, cloned_references.clone()),
-                        Document::parse_cdata_section
-                    ))),
-                    alt((char('\"'), char('\''))),
-                )),
-                |(_, (raw_entity_value, doc), _)| {
-                    dbg!("DOC HERE");
-                    dbg!(&doc);
-                    entity_references.borrow_mut().insert(name.clone(), EntityValue::Document(doc));
-            
-                    // Return the original string
-                    EntityValue::Value(Cow::Owned(raw_entity_value.to_string()))
-                },
-            ),
-            map_res(
-                tuple((
-                    alt((char('\"'), char('\''))),
-                    Self::capture_span( move |i| Self::parse_markup_decl(i, cloned_references2.clone())),
-                    alt((char('\"'), char('\''))),
-                )),
-                |(_, (raw_internal_subset, data), _)| {
-                    
-
-                    match data {
-                        Some(data) => {
-                            entity_references.borrow_mut().insert(name.clone(), EntityValue::InternalSubset(Box::new(data)));
-                            Ok(EntityValue::Value(Cow::Owned(raw_internal_subset.to_string())))},
-                        None => Err(nom::Err::Failure(("No Internal Subset", nom::error::ErrorKind::Fail))),
+            alt((
+                map(
+                    tuple((
+                        alt((char('\"'), char('\''))),
+                        Self::capture_span(alt((
+                            move |i| Document::parse_element(i, cloned_references.clone()),
+                            Document::parse_cdata_section
+                        ))),
+                        alt((char('\"'), char('\''))),
+                    )),
+                    |(_, (raw_entity_value, doc), _)| {
+                        dbg!("DOC HERE");
+                        dbg!(&doc);
+                        entity_references.borrow_mut().insert(name.clone(), EntityValue::Document(doc));
+                
+                        // Return the original string
+                        EntityValue::Value(Cow::Owned(raw_entity_value.to_string()))
+                    },
+                ),
+                map_res(
+                    tuple((
+                        alt((char('\"'), char('\''))),
+                        Self::capture_span( move |i| Self::parse_markup_decl(i, cloned_references2.clone())),
+                        alt((char('\"'), char('\''))),
+                    )),
+                    |(_, (raw_internal_subset, data), _)| {
+                        
+                        dbg!(&raw_internal_subset);
+                        dbg!(&data);
+                        match data {
+                            Some(data) => {
+                                entity_references.borrow_mut().insert(name.clone(), EntityValue::InternalSubset(Box::new(data)));
+                                Ok(EntityValue::Value(Cow::Owned(raw_internal_subset.to_string())))},
+                            None => Err(nom::Err::Failure(("No Internal Subset", nom::error::ErrorKind::Fail))),
+                        }
                     }
-                }
-            ),
-            map(
-                delimited(
-                    tag("\""),
-                    fold_many0(
-                        alt((map(is_not("%&\""), ToString::to_string), |i| Self::parse_entity_content(i, entity_references.clone()))),
-                        String::new,
-                        |mut acc: String, item: String| {
-                            acc.push_str(&item);
-                            acc
-                        },
-                    ),
-                    tag("\""),
                 ),
-                |data| { dbg!("VAL HEREe");
-                dbg!(&data);
+                map(
+                    tuple((
+                        tag("\""),
+                        opt(many1(alt((
+                            map(|i| Reference::parse(i, entity_references.clone()), EntityValue::Reference),
+                            map(
+                                fold_many1(
+                                    map(is_not("%&\""), |s: &str| s.to_string()),
+                                    String::new,
+                                    |mut acc: String, item: String| {
+                                        acc.push_str(&item);
+                                        acc
+                                    },
+                                ),
+                                |data| {
+                                    dbg!("STRING DATA Here");
+                                    dbg!(&data);
+                                    EntityValue::Value(Cow::Owned(data))
+                                }
+                            ),
+                        )))),
+                        tag("\""),
+                    )),
+                    |(_, maybe_entities, _)| {
+                        let mut buffer = String::new();
+                        dbg!(&maybe_entities);
+                
+                        if let Some(entities) = maybe_entities {
+                            match entities.as_slice() {
+                                [EntityValue::Reference(_)] => return entities[0].clone(),
+                                _ => {
+                                    for entity in entities {
+                                        match entity {
+                                            EntityValue::Reference(reference) => {
+                                                let ref_string = Self::get_reference_value(reference);
+                                                buffer.push_str(&ref_string);
+                                            },
+                                            EntityValue::Value(val) => {
+                                                buffer.push_str(&val);
+                                            },
+                                            _ => {} // Handle other possible variants if needed.
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        EntityValue::Value(Cow::Owned(buffer))
+                    }
+                ),
+                
+                map(
+                    tuple((
+                        tag("\'"),
+                        opt(many1(alt((
+                            map(|i| Reference::parse(i, entity_references.clone()), EntityValue::Reference),
+                            map(
+                                fold_many1(
+                                    map(is_not("%&'"), |s: &str| s.to_string()),
+                                    String::new,
+                                    |mut acc: String, item: String| {
+                                        acc.push_str(&item);
+                                        acc
+                                    },
+                                ),
+                                |data| {
+                                    dbg!("STRING DATA2");
+                                    dbg!(&data);
+                                    EntityValue::Value(Cow::Owned(data))
+                                }
+                            ),
+                        )))),
+                        tag("\'"),
+                    )),
+                    |(_, maybe_entities, _)| {
+                        let mut buffer = String::new();
+                        dbg!(&maybe_entities);
+                
+                        if let Some(entities) = maybe_entities {
+                            match entities.as_slice() {
+                                [EntityValue::Reference(_)] => return entities[0].clone(),
+                                _ => {
+                                    for entity in entities {
+                                        match entity {
+                                            EntityValue::Reference(reference) => {
+                                                let ref_string = Self::get_reference_value(reference);
+                                                buffer.push_str(&ref_string);
+                                            },
+                                            EntityValue::Value(val) => {
+                                                buffer.push_str(&val);
+                                            },
+                                            _ => {} // Handle other possible variants if needed.
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        EntityValue::Value(Cow::Owned(buffer))
+                    }
+                ),
+                
+                
+            )),
+            
+           
 
-                EntityValue::Value(Cow::Owned(data))
-            }),
-            map(
-                delimited(
-                    tag("\'"),
-                    fold_many0(
-                        alt((map(is_not("%&'"), ToString::to_string), |i| Self::parse_entity_content(i, entity_references.clone()))),
-                        String::new,
-                        |mut acc: String, item: String| {
-                            acc.push_str(&item);
-                            acc
-                        },
-                    ),
-                    tag("\'"),
-                ),
-                |data| EntityValue::Value(Cow::Owned(data)),
-            ),
-        ))(input)
+            ))(input)
     }
 
-    fn parse_entity_content(
-        input: &'a str,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, String> {
-        let (input, reference) = Reference::parse(input, entity_references.clone())?;
-        let result = match reference {
+    fn get_reference_value(reference: Reference<'a>) -> String {
+        dbg!("PARSE ENTITY CONTENT");
+        dbg!(&reference);
+        match reference {
             Reference::EntityRef(value) => value.local_part.into_owned(),
             Reference::CharRef(value) => value.into_owned(),
-        };
-        Ok((input, result))
+        }
     }
 
     fn parse_comment(input: &'a str) -> IResult<&'a str, InternalSubset<'a>> {

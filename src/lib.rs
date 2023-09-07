@@ -110,8 +110,8 @@ impl<'a> Document<'a> {
                 doc_type,
             }),
         };
-        dbg!("Parsed prolog");
-        dbg!(&prolog);
+
+        dbg!(&prolog, "Parsed prolog");
         Ok((input, (prolog, updated_entity_references)))
     }
 
@@ -224,7 +224,8 @@ impl<'a> Document<'a> {
         move |references| {
             let mut contents: Vec<Cow<'a, str>> = Vec::new();
             for reference in references.into_iter() {
-                match reference.normalize(entity_references.clone()) {
+                dbg!(&reference);
+                match reference.normalize_entity(entity_references.clone()) {
                     EntityValue::Document(doc) => return doc, // If we encounter a Document, return it immediately.
                     EntityValue::Value(val) => contents.push(val),
                     _ => {}
@@ -305,6 +306,8 @@ impl<'a> Document<'a> {
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 dbg!(&maybe_chardata);
+                dbg!("WHAT");
+                dbg!(&doc);
                 let mut vec = Vec::new();
                 vec.push(doc);
                 if let (_, Some(chardata)) = maybe_chardata {
@@ -602,36 +605,37 @@ impl<'a> Document<'a> {
         results
     }
 
-    pub fn get_attributes(&self) -> HashMap<String, String> {
-        let mut results = HashMap::new();
+    //TODO FIX THIS
+    // pub fn get_attributes(&self) -> HashMap<String, String> {
+    //     let mut results = HashMap::new();
 
-        if let Document::Element(tag, inner_doc, _) = self {
-            if let Some(attributes) = &tag.attributes {
-                for attribute in attributes {
-                    if let Attribute::Instance { name, value } = attribute {
-                        let attr_name = name.local_part.to_string();
+    //     if let Document::Element(tag, inner_doc, _) = self {
+    //         if let Some(attributes) = &tag.attributes {
+    //             for attribute in attributes {
+    //                 if let Attribute::Instance { name, value } = attribute {
+    //                     let attr_name = name.local_part.to_string();
 
-                        let attr_value = value.to_string();
-                        results.insert(attr_name, attr_value);
-                    }
-                }
-            }
+    //                     let attr_value = value.to_string();
+    //                     results.insert(attr_name, attr_value);
+    //                 }
+    //             }
+    //         }
 
-            if let Document::Nested(docs) = &**inner_doc {
-                for doc in docs {
-                    let mut inner_results = doc.get_attributes();
-                    results.extend(inner_results.drain());
-                }
-            }
-        } else if let Document::Nested(docs) = self {
-            for doc in docs {
-                let mut inner_results = doc.get_attributes();
-                results.extend(inner_results.drain());
-            }
-        }
+    //         if let Document::Nested(docs) = &**inner_doc {
+    //             for doc in docs {
+    //                 let mut inner_results = doc.get_attributes();
+    //                 results.extend(inner_results.drain());
+    //             }
+    //         }
+    //     } else if let Document::Nested(docs) = self {
+    //         for doc in docs {
+    //             let mut inner_results = doc.get_attributes();
+    //             results.extend(inner_results.drain());
+    //         }
+    //     }
 
-        results
-    }
+    //     results
+    // }
 
     pub fn get_duplicate_subtags(
         &self,

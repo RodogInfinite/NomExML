@@ -1,5 +1,5 @@
 use nom_xml::{
-    attribute::{AttType, Attribute, DefaultDecl, TokenizedType},
+    attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
     io::parse_file,
     misc::{Misc, MiscState},
     processing_instruction::ProcessingInstruction,
@@ -192,7 +192,7 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -245,7 +245,7 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -298,7 +298,7 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -471,7 +471,7 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -486,7 +486,6 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
-
 #[test]
 fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
@@ -532,11 +531,11 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![
                         Attribute::Instance {
                             name: QualifiedName::new(None, "a1"),
-                            value: "v1".into(),
+                            value: AttributeValue::Value("v1".into()),
                         },
                         Attribute::Instance {
                             name: QualifiedName::new(None, "a2"),
-                            value: "v2".into(),
+                            value: AttributeValue::Value("v2".into()),
                         },
                     ]),
                     state: TagState::Start,
@@ -589,8 +588,8 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                 Tag {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
-                        name: QualifiedName::new(None, ":"),
-                        value: "v1".into(),
+                        name: QualifiedName::new(None, ":"), // TODO: confirm this is correct
+                        value: AttributeValue::Value("v1".into()),
                     },]),
                     state: TagState::Start,
                 },
@@ -643,7 +642,7 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "_.-0123456789"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     },]),
                     state: TagState::Start,
                 },
@@ -696,7 +695,7 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "abcdefghijklmnopqrstuvwxyz"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     },]),
                     state: TagState::Start,
                 },
@@ -749,7 +748,7 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
-                        value: "v1".into(),
+                        value: AttributeValue::Value("v1".into()),
                     },]),
                     state: TagState::Start,
                 },
@@ -1976,7 +1975,7 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed("\"<&>'"), // decoding is applied to the attribute values
+                        value: AttributeValue::Value("\"<&>'".into()), // using .into() instead of Cow::Borrowed
                     },]),
                     state: TagState::Start,
                 },
@@ -2029,7 +2028,7 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed("A"), // '&#65;' decodes to 'A'
+                        value: AttributeValue::Value("A".into()), // '&#65;' decodes to 'A'
                     },]),
                     state: TagState::Start,
                 },
@@ -2122,7 +2121,7 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed("foo\nbar"), // attribute value spans multiple lines
+                        value: AttributeValue::Value("foo\nbar".into()), // attribute value spans multiple lines
                     },]),
                     state: TagState::Start,
                 },
@@ -2202,7 +2201,7 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                         name: QualifiedName::new(None, "e"),
                         attributes: Some(vec![Attribute::Instance {
                             name: QualifiedName::new(None, "a3"),
-                            value: Cow::Borrowed("v3"),
+                            value: AttributeValue::Value("v3".into()),
                         }]),
                         state: TagState::Empty,
                     }),
@@ -2210,7 +2209,7 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                         name: QualifiedName::new(None, "e"),
                         attributes: Some(vec![Attribute::Instance {
                             name: QualifiedName::new(None, "a1"),
-                            value: Cow::Borrowed("w1"),
+                            value: AttributeValue::Value("w1".into()),
                         }]),
                         state: TagState::Empty,
                     }),
@@ -2219,11 +2218,11 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                         attributes: Some(vec![
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a2"),
-                                value: Cow::Borrowed("w2"),
+                                value: AttributeValue::Value("w2".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a3"),
-                                value: Cow::Borrowed("v3"),
+                                value: AttributeValue::Value("v3".into()),
                             },
                         ]),
                         state: TagState::Empty,
@@ -2867,7 +2866,7 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed(" 1  	2 	"),
+                        value: AttributeValue::Value(" 1  	2 	".into()), // The attribute value from the input
                     },]),
                     state: TagState::Start,
                 },
@@ -2948,15 +2947,15 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                         attributes: Some(vec![
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a1"),
-                                value: Cow::Borrowed("v1"),
+                                value: AttributeValue::Value("v1".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a2"),
-                                value: Cow::Borrowed("v2"),
+                                value: AttributeValue::Value("v2".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a3"),
-                                value: Cow::Borrowed("v3"),
+                                value: AttributeValue::Value("v3".into()),
                             },
                         ]),
                         state: TagState::Empty,
@@ -2966,11 +2965,11 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                         attributes: Some(vec![
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a1"),
-                                value: Cow::Borrowed("w1"),
+                                value: AttributeValue::Value("w1".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a2"),
-                                value: Cow::Borrowed("v2"),
+                                value: AttributeValue::Value("v2".into()),
                             },
                         ]),
                         state: TagState::Empty,
@@ -2980,15 +2979,15 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                         attributes: Some(vec![
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a1"),
-                                value: Cow::Borrowed("v1"),
+                                value: AttributeValue::Value("v1".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a2"),
-                                value: Cow::Borrowed("w2"),
+                                value: AttributeValue::Value("w2".into()),
                             },
                             Attribute::Instance {
                                 name: QualifiedName::new(None, "a3"),
-                                value: Cow::Borrowed("v3"),
+                                value: AttributeValue::Value("v3".into()),
                             },
                         ]),
                         state: TagState::Empty,
@@ -3232,8 +3231,8 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
                     int_subset: Some(vec![
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                Reference::CharRef("<".into())
                             )),
                         })),
                         InternalSubset::Element {
@@ -3296,8 +3295,8 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                         InternalSubset::Comment(Document::Comment(" 34 is double quote ".into())),
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e1"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\"".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                Reference::CharRef("\"".into())
                             )),
                         })),
                     ]),
@@ -3308,7 +3307,7 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed("\""),
+                        value: AttributeValue::Value("\"".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -3387,8 +3386,8 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\r".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                Reference::CharRef("\r".into())
                             )),
                         })),
                     ]),
@@ -3935,7 +3934,7 @@ fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("v"),
+                        value: AttributeValue::Value("v".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -3988,7 +3987,7 @@ fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("v"),
+                        value: AttributeValue::Value("v".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -4934,7 +4933,7 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
-                        value: Cow::Borrowed("1  2"),
+                        value: AttributeValue::Value("1  2".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5242,8 +5241,8 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
                         },
                         InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\"".into()
+                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                Reference::CharRef("\"".into())
                             )),
                         })),
                     ]),
@@ -5304,7 +5303,7 @@ fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("\""),
+                        value: AttributeValue::Value("\"".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5400,7 +5399,7 @@ fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ty"), // decoded tab character
+                        value: AttributeValue::Value("x\ty".into()), // decoded tab character
                     }]),
                     state: TagState::Start,
                 },
@@ -5453,7 +5452,7 @@ fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ty"),
+                        value: AttributeValue::Value("x\ty".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5506,7 +5505,7 @@ fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ny"),
+                        value: AttributeValue::Value("x\ny".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5559,7 +5558,7 @@ fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ny"),
+                        value: AttributeValue::Value("x\ny".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5618,7 +5617,7 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ny"),
+                        value: AttributeValue::Value("x\ny".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5671,7 +5670,7 @@ fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed(""),
+                        value: AttributeValue::Value("".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5731,7 +5730,7 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed("x\ny"),
+                        value: AttributeValue::Value("x\ny".into()),
                     }]),
                     state: TagState::Start,
                 },
@@ -5784,7 +5783,7 @@ fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a"),
-                        value: Cow::Borrowed(" x  y "), // &#32; decodes to space
+                        value: AttributeValue::Value(" x  y ".into()), // &#32; decodes to space
                     }]),
                     state: TagState::Start,
                 },

@@ -4,9 +4,9 @@ use crate::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag},
+    bytes::complete::{is_not, tag, take_till1},
     character::complete::char,
-    combinator::{map, opt, value},
+    combinator::{map, map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{delimited, pair, tuple},
     IResult,
@@ -17,6 +17,12 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 pub enum Prefix<'a> {
     Default,
     Prefix(Cow<'a, str>),
+}
+#[derive(Clone, PartialEq)]
+pub enum AttributeValue<'a> {
+    Value(Cow<'a, str>),
+    Values(Vec<AttributeValue<'a>>),
+    Reference(Reference<'a>),
 }
 
 #[derive(Clone, PartialEq)]
@@ -29,20 +35,20 @@ pub enum Attribute<'a> {
     Reference(Reference<'a>),
     Instance {
         name: QualifiedName<'a>,
-        value: Cow<'a, str>,
+        value: AttributeValue<'a>,
     },
     Required,
     Implied,
     Namespace {
         prefix: Prefix<'a>,
-        uri: Cow<'a, str>,
+        uri: AttributeValue<'a>,
     },
 }
 
 impl<'a> Parse<'a> for Attribute<'a> {
     type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
-
     type Output = IResult<&'a str, Self>;
+
     // [41] Attribute ::= Name Eq AttValue
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         map(
@@ -111,74 +117,64 @@ impl<'a> Attribute<'a> {
     pub fn parse_attvalue(
         input: &'a str,
         entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, Cow<'a, str>> {
-        alt((
-            delimited(
-                tag("\""),
-                many0(alt((
-                    map(is_not("<&\""), Cow::Borrowed),
-                    map(
-                        |i| Reference::parse(i, entity_references.clone()),
-                        |reference| match reference.normalize(entity_references.clone()) {
-                            EntityValue::Value(val) => val,
-                            EntityValue::Document(doc) => {
-                                // Decide how to convert Document into Cow<str>
-                                // For simplicity, let's convert it into a string representation
-                                Cow::Owned(format!("{:?}", doc))
-                            }
-                            _ => {
-                                //TODO: Investigate this, an empty string is not a valid value
-                                Cow::Borrowed("")
-                            }
-                        },
-                    ),
-                ))),
-                tag("\""),
-            ),
-            delimited(
-                tag("'"),
-                many0(alt((
-                    map(is_not("<&'"), Cow::Borrowed),
-                    map(
-                        |i| Reference::parse(i, entity_references.clone()),
-                        |reference| match reference.normalize(entity_references.clone()) {
-                            EntityValue::Value(val) => val,
-                            EntityValue::Document(doc) => {
-                                // Convert Document into a string representation
-                                Cow::Owned(format!("{:?}", doc))
-                            }
-                            _ => {
-                                //TODO: Investigate this, an empty string is not a valid value
-                                Cow::Borrowed("")
-                            }
-                        },
-                    ),
-                ))),
-                char('\''),
-            ),
-        ))(input)
-        .map(|(remaining, contents)| {
-            dbg!(&contents);
-            let mut buffer = contents
-                .into_iter()
-                .flat_map(|cow| cow.chars().collect::<Vec<_>>())
-                .collect::<Vec<_>>();
+    ) -> IResult<&'a str, AttributeValue<'a>> {
+        map(
+            alt((
+                delimited(
+                    tag("\""),
+                    many0(alt((
+                        map(
+                            take_till1(|c| c == '<' || c == '&' || c == '\"'),
+                            |s: &'a str| AttributeValue::Value(s.into()),
+                        ),
+                        map(
+                            |i| Reference::parse(i, entity_references.clone()),
+                            |reference| reference.normalize_attribute(entity_references.clone()),
+                        ),
+                    ))),
+                    tag("\""),
+                ),
+                delimited(
+                    tag("'"),
+                    many0(alt((
+                        map(
+                            take_till1(|c| c == '<' || c == '&' || c == '\''),
+                            |s: &'a str| AttributeValue::Value(s.into()),
+                        ),
+                        map(
+                            |i| Reference::parse(i, entity_references.clone()),
+                            |reference| reference.normalize_attribute(entity_references.clone()),
+                        ),
+                    ))),
+                    tag("'"),
+                ),
+            )),
+            |contents: Vec<AttributeValue<'a>>| {
+                let mut buffer = String::new();
 
-            // End-of-Line Handling
-            let mut i = 0;
-            while i < buffer.len() {
-                if buffer[i] == '\r' {
-                    if i + 1 < buffer.len() && buffer[i + 1] == '\n' {
-                        buffer.remove(i);
-                    } else {
-                        buffer[i] = '\n';
+                for content in contents {
+                    if let AttributeValue::Value(mut value) = content {
+                        // End-of-Line Handling for each value
+                        let mut chars: Vec<char> = value.chars().collect();
+                        let mut i = 0;
+                        while i < chars.len() {
+                            if chars[i] == '\r' {
+                                if i + 1 < chars.len() && chars[i + 1] == '\n' {
+                                    chars.remove(i);
+                                } else {
+                                    chars[i] = '\n';
+                                }
+                            }
+                            i += 1;
+                        }
+                        value = chars.into_iter().collect();
+                        buffer.push_str(&value);
                     }
                 }
-                i += 1;
-            }
 
-            (remaining, Cow::Owned(buffer.into_iter().collect()))
-        })
+                AttributeValue::Value(buffer.into())
+            },
+        )(input)
     }
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
@@ -198,6 +194,7 @@ impl<'a> Attribute<'a> {
             |result| match result {
                 (name, _eq, value) if name.prefix.is_some() => {
                     let prefix = name.prefix.unwrap();
+
                     if &prefix == "xmlns" {
                         Attribute::Namespace {
                             prefix: Prefix::Default,
@@ -344,13 +341,22 @@ impl<'a> Parse<'a> for DefaultDecl<'a> {
         alt((
             value(DefaultDecl::Required, tag("#REQUIRED")),
             value(DefaultDecl::Implied, tag("#IMPLIED")),
-            map(
+            map_res(
                 pair(opt(tuple((tag("#FIXED"), Self::parse_multispace1))), |i| {
                     Attribute::parse_attvalue(i, args.clone())
                 }),
-                |(fixed, attvalue)| match fixed {
-                    Some(_) => DefaultDecl::Fixed(attvalue),
-                    None => DefaultDecl::Value(attvalue),
+                |(fixed, attvalue)| {
+                    if let AttributeValue::Value(value) = attvalue {
+                        match fixed {
+                            Some(_) => Ok(DefaultDecl::Fixed(value)),
+                            None => Ok(DefaultDecl::Value(value)),
+                        }
+                    } else {
+                        Err(nom::Err::Failure(nom::error::Error::new(
+                            input,
+                            nom::error::ErrorKind::Fail,
+                        )))
+                    }
                 },
             ),
         ))(input)

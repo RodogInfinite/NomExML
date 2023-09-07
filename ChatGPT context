@@ -40,7 +40,6 @@ pub enum EntityDecl<'a> {
     General(GeneralEntityDeclaration<'a>),
     Parameter(ParameterEntityDeclaration<'a>),
 }
-
 pub struct EntityDeclaration<'a> {
     pub name: Name<'a>,
     pub entity_def: EntityDefinition<'a>,
@@ -56,10 +55,13 @@ pub enum EntityDefinition<'a> {
     },
 }
 
-pub enum EntityDeclaration<'a> {
-    General(GeneralEntityDeclaration<'a>),
-    Parameter(ParameterEntityDefinition<'a>),
+pub struct EntityDeclaration<'a> {
+    pub name: Name<'a>,
+    pub entity_def: EntityDefinition<'a>,
 }
+pub type GeneralEntityDeclaration<'a> = EntityDeclaration<'a>;
+pub type ParameterEntityDeclaration<'a> = EntityDeclaration<'a>;
+
 pub enum ID<'a> {
     ExternalID(ExternalID<'a>),
     PublicID(Cow<'a, str>),

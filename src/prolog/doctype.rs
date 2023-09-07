@@ -1,4 +1,12 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, Name};
+use crate::{
+    namespaces::ParseNamespace,
+    parse::Parse,
+    prolog::internal_subset::{
+        entity_declaration::{EntityDecl, EntityDeclaration},
+        entity_definition::EntityDefinition,
+    },
+    Name,
+};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
@@ -51,13 +59,40 @@ impl<'a> Parse<'a> for DocType<'a> {
                 name,
                 external_id,
                 _open_bracket_whitespace,
-                int_subset,
+                mut int_subset,
                 _whitespace2,
                 _close_tag,
                 _whitespace3,
             )| {
                 dbg!("INSIDE DOCTYPE PARSE");
                 dbg!(&int_subset);
+                dbg!(&args);
+                // Iterate over the internal subset and normalize any references
+                if !int_subset.is_empty() {
+                    for item in &mut int_subset {
+                        match item {
+                            InternalSubset::Entity(EntityDecl::General(EntityDeclaration {
+                                entity_def,
+                                ..
+                            }))
+                            | InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                                entity_def,
+                                ..
+                            })) => {
+                                if let EntityDefinition::EntityValue(ev) = entity_def {
+                                    if let EntityValue::Reference(ref ref_val) = *ev {
+                                        dbg!("WHY");
+                                        dbg!(&ref_val);
+                                        let x = ref_val.normalize_entity(args.clone());
+                                        dbg!(&x);
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
                 Self {
                     name,
                     external_id,
