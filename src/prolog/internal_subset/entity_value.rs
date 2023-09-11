@@ -7,23 +7,23 @@ use crate::{reference::Reference, Document};
 use super::InternalSubset;
 
 #[derive(Clone, PartialEq)]
-pub enum EntityValue<'a> {
-    Document(Document<'a>),
-    Value(Cow<'a, str>),
-    Reference(Reference<'a>),
-    ParameterReference(Reference<'a>),
-    InternalSubset(Box<InternalSubset<'a>>),
+pub enum EntityValue {
+    Document(Document),
+    Value(String),
+    Reference(Reference),
+    ParameterReference(Reference),
+    InternalSubset(Box<InternalSubset>),
 }
 
-impl<'a> EntityValue<'a> {
-    pub fn get_value(&self) -> Option<Cow<'a, str>> {
+impl EntityValue {
+    pub fn get_value(&self) -> Option<String> {
         match self {
             EntityValue::Value(value) => Some(value.clone()),
             _ => None,
         }
     }
 
-    pub fn get_reference(&self) -> Option<&Reference<'a>> {
+    pub fn get_reference(&self) -> Option<&Reference> {
         if let EntityValue::Reference(reference) = self {
             Some(reference)
         } else {
@@ -31,7 +31,7 @@ impl<'a> EntityValue<'a> {
         }
     }
 
-    pub fn get_perameter_reference(&self) -> Option<&Reference<'a>> {
+    pub fn get_perameter_reference(&self) -> Option<&Reference> {
         if let EntityValue::ParameterReference(reference) = self {
             Some(reference)
         } else {

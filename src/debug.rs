@@ -26,14 +26,14 @@ fn fmt_indented(f: &mut String, indent: usize, s: &str) {
     f.push_str(&" ".repeat(indent));
     f.push_str(s);
 }
-impl<'a> fmt::Debug for Tag<'a> {
+impl fmt::Debug for Tag {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_tag(&mut s, 0);
         write!(f, "{}", s)
     }
 }
-impl<'a> Tag<'a> {
+impl Tag {
     fn fmt_indented_tag(&self, f: &mut String, indent: usize) {
         let Tag {
             name,
@@ -68,13 +68,13 @@ impl<'a> Tag<'a> {
     }
 }
 
-impl<'a> fmt::Debug for QualifiedName<'a> {
+impl fmt::Debug for QualifiedName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.fmt_qualified_name(0))
     }
 }
 
-impl<'a> QualifiedName<'a> {
+impl QualifiedName {
     fn fmt_qualified_name(&self, indent: usize) -> String {
         let QualifiedName { prefix, local_part } = self;
         let mut f = String::new();
@@ -121,7 +121,7 @@ impl MiscState {
     }
 }
 
-impl<'a> fmt::Debug for Misc<'a> {
+impl fmt::Debug for Misc {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_misc(&mut s, 0);
@@ -129,7 +129,7 @@ impl<'a> fmt::Debug for Misc<'a> {
     }
 }
 
-impl<'a> Misc<'a> {
+impl Misc {
     fn fmt_indented_misc(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "Misc {\n");
         fmt_indented(f, indent + 4, &format!("content: {:?}", self.content));
@@ -138,7 +138,7 @@ impl<'a> Misc<'a> {
     }
 }
 
-impl<'a> Document<'a> {
+impl Document {
     fn fmt_indented_doc(&self, f: &mut String, indent: usize) {
         match self {
             Document::Prolog {
@@ -217,17 +217,13 @@ impl<'a> Document<'a> {
             }
 
             Document::CDATA(cdata) => {
-                fmt_indented(
-                    f,
-                    indent,
-                    &format!("CDATA(\"{}\"),\n", cdata.clone().as_ref()),
-                );
+                fmt_indented(f, indent, &format!("CDATA(\"{}\"),\n", cdata.clone()));
             }
         }
     }
 }
 
-impl<'a> fmt::Debug for Document<'a> {
+impl fmt::Debug for Document {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_doc(&mut s, 0);
@@ -235,7 +231,7 @@ impl<'a> fmt::Debug for Document<'a> {
     }
 }
 
-impl<'a> DeclarationContent<'a> {
+impl DeclarationContent {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
             DeclarationContent::Mixed(mixed) => {
@@ -260,7 +256,7 @@ impl<'a> DeclarationContent<'a> {
     }
 }
 
-impl<'a> fmt::Debug for DeclarationContent<'a> {
+impl fmt::Debug for DeclarationContent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_dec_content(&mut s, 0);
@@ -268,7 +264,7 @@ impl<'a> fmt::Debug for DeclarationContent<'a> {
     }
 }
 
-impl<'a> Mixed<'a> {
+impl Mixed {
     fn fmt_indented_mixed(&self, f: &mut String, indent: usize) {
         match self {
             Mixed::PCDATA { names, parsed } => {
@@ -282,14 +278,14 @@ impl<'a> Mixed<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Mixed<'a> {
+impl fmt::Debug for Mixed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_mixed(&mut s, 0);
         write!(f, "{}", s)
     }
 }
-impl<'a> ContentParticle<'a> {
+impl ContentParticle {
     fn fmt_indented_content_particle(&self, f: &mut String, indent: usize) {
         match self {
             ContentParticle::Name(name, conditional_state) => {
@@ -343,7 +339,7 @@ impl fmt::Debug for Standalone {
     }
 }
 
-impl<'a> XmlDecl<'a> {
+impl XmlDecl {
     fn fmt_indented_xml_decl(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "XmlDecl {\n");
         fmt_indented(f, indent + 4, &format!("version: {:?},\n", self.version));
@@ -357,7 +353,7 @@ impl<'a> XmlDecl<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for DocType<'a> {
+impl std::fmt::Debug for DocType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DocType")
             .field("name", &self.name)
@@ -367,7 +363,7 @@ impl<'a> std::fmt::Debug for DocType<'a> {
     }
 }
 
-impl<'a> DocType<'a> {
+impl DocType {
     fn fmt_indented_doc_type(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "DocType {\n");
         fmt_indented(
@@ -388,7 +384,7 @@ impl<'a> DocType<'a> {
         fmt_indented(f, indent, "},\n");
     }
 }
-impl<'a> ExternalID<'a> {
+impl ExternalID {
     fn fmt_indented_external_id(&self, f: &mut String, indent: usize) {
         match self {
             ExternalID::System(system) => {
@@ -408,7 +404,7 @@ impl<'a> ExternalID<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for ID<'a> {
+impl std::fmt::Debug for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ID::ExternalID(external_id) => f.debug_tuple("ExternalID").field(&external_id).finish(),
@@ -417,7 +413,7 @@ impl<'a> std::fmt::Debug for ID<'a> {
     }
 }
 
-impl<'a> ID<'a> {
+impl ID {
     fn fmt_indented_id(&self, f: &mut String, indent: usize) {
         match self {
             ID::ExternalID(external_id) => {
@@ -432,7 +428,7 @@ impl<'a> ID<'a> {
     }
 }
 
-impl<'a> InternalSubset<'a> {
+impl InternalSubset {
     fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
         match self {
             InternalSubset::Element { name, content_spec } => {
@@ -547,7 +543,7 @@ impl<'a> InternalSubset<'a> {
     }
 }
 
-impl<'a> fmt::Debug for InternalSubset<'a> {
+impl fmt::Debug for InternalSubset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_internal_subset(&mut s, 0);
@@ -555,7 +551,7 @@ impl<'a> fmt::Debug for InternalSubset<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for XmlDecl<'a> {
+impl std::fmt::Debug for XmlDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("XmlDecl")
             .field("version", &self.version)
@@ -565,7 +561,7 @@ impl<'a> std::fmt::Debug for XmlDecl<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for AttributeValue<'a> {
+impl std::fmt::Debug for AttributeValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut debug_string = String::new();
         self.fmt_indented_attribute_value(&mut debug_string, 4);
@@ -573,7 +569,7 @@ impl<'a> std::fmt::Debug for AttributeValue<'a> {
     }
 }
 
-impl<'a> AttributeValue<'a> {
+impl AttributeValue {
     fn fmt_indented_attribute_value(&self, f: &mut String, indent: usize) {
         match self {
             AttributeValue::Value(value) => {
@@ -597,7 +593,7 @@ impl<'a> AttributeValue<'a> {
     }
 }
 
-impl<'a> Attribute<'a> {
+impl Attribute {
     fn fmt_indented_attribute(&self, f: &mut String, indent: usize) {
         match self {
             Attribute::Definition {
@@ -644,7 +640,7 @@ impl<'a> Attribute<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Attribute<'a> {
+impl fmt::Debug for Attribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_indented_attribute(&mut s, 0);
@@ -652,7 +648,7 @@ impl<'a> fmt::Debug for Attribute<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Prefix<'a> {
+impl fmt::Debug for Prefix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Prefix::Default => write!(f, "Default"),
@@ -661,7 +657,7 @@ impl<'a> fmt::Debug for Prefix<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Reference<'a> {
+impl fmt::Debug for Reference {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Reference::EntityRef(entity) => f
@@ -676,7 +672,7 @@ impl<'a> fmt::Debug for Reference<'a> {
     }
 }
 
-impl<'a> fmt::Debug for EntityDeclaration<'a> {
+impl fmt::Debug for EntityDeclaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("EntityDeclaration")
             .field("name", &self.name)
@@ -685,7 +681,7 @@ impl<'a> fmt::Debug for EntityDeclaration<'a> {
     }
 }
 
-impl<'a> EntityDeclaration<'a> {
+impl EntityDeclaration {
     fn fmt_indented_entity_declaration(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "EntityDeclaration {\n");
         fmt_indented(
@@ -703,7 +699,7 @@ impl<'a> EntityDeclaration<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for EntityDefinition<'a> {
+impl std::fmt::Debug for EntityDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
         self.fmt_indented_entity_definition(&mut s, 0);
@@ -711,7 +707,7 @@ impl<'a> std::fmt::Debug for EntityDefinition<'a> {
     }
 }
 
-impl<'a> EntityDefinition<'a> {
+impl EntityDefinition {
     fn fmt_indented_entity_definition(&self, f: &mut String, indent: usize) {
         match self {
             EntityDefinition::EntityValue(value) => {
@@ -731,7 +727,7 @@ impl<'a> EntityDefinition<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for EntityValue<'a> {
+impl std::fmt::Debug for EntityValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EntityValue::Value(value) => {
@@ -759,7 +755,7 @@ impl<'a> std::fmt::Debug for EntityValue<'a> {
     }
 }
 
-impl<'a> EntityValue<'a> {
+impl EntityValue {
     fn fmt_indented_entity_value(&self, f: &mut String, indent: usize) {
         match self {
             EntityValue::Value(value) => {

@@ -3,21 +3,21 @@ use crate::{prolog::external_id::ExternalID, Name};
 use super::{entity_definition::EntityDefinition, entity_value::EntityValue};
 
 #[derive(Clone, PartialEq)]
-pub enum EntityDecl<'a> {
-    General(GeneralEntityDeclaration<'a>),
-    Parameter(ParameterEntityDeclaration<'a>),
+pub enum EntityDecl {
+    General(GeneralEntityDeclaration),
+    Parameter(ParameterEntityDeclaration),
 }
 
 #[derive(Clone, PartialEq)]
-pub struct EntityDeclaration<'a> {
-    pub name: Name<'a>,
-    pub entity_def: EntityDefinition<'a>,
+pub struct EntityDeclaration {
+    pub name: Name,
+    pub entity_def: EntityDefinition,
 }
-pub type GeneralEntityDeclaration<'a> = EntityDeclaration<'a>;
-pub type ParameterEntityDeclaration<'a> = EntityDeclaration<'a>;
+pub type GeneralEntityDeclaration = EntityDeclaration;
+pub type ParameterEntityDeclaration = EntityDeclaration;
 
-impl<'a> EntityDeclaration<'a> {
-    pub fn find_name(&self, name: Name<'a>) -> Option<&GeneralEntityDeclaration<'a>> {
+impl EntityDeclaration {
+    pub fn find_name(&self, name: Name) -> Option<&GeneralEntityDeclaration> {
         if self.name == name {
             Some(self)
         } else {
@@ -25,11 +25,11 @@ impl<'a> EntityDeclaration<'a> {
         }
     }
 
-    pub fn get_name(&self) -> &Name<'a> {
+    pub fn get_name(&self) -> &Name {
         &self.name
     }
 
-    pub fn get_entity_def(&self) -> &EntityDefinition<'a> {
+    pub fn get_entity_def(&self) -> &EntityDefinition {
         &self.entity_def
     }
 }

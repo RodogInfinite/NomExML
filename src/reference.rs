@@ -20,24 +20,24 @@ use nom::{
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
-pub enum Reference<'a> {
-    EntityRef(Name<'a>),
-    CharRef(Cow<'a, str>),
+pub enum Reference {
+    EntityRef(Name),
+    CharRef(String),
 }
 
-impl<'a> Parse<'a> for Reference<'a> {
-    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+impl<'a> Parse<'a> for Reference {
+    type Args = Rc<RefCell<HashMap<Name, EntityValue>>>;
     type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
     }
 }
-impl<'a> Reference<'a> {
+impl Reference {
     pub fn normalize_entity(
         &self,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> EntityValue<'a> {
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> EntityValue {
         match self {
             Reference::EntityRef(name) => {
                 dbg!(&*entity_references.borrow());
@@ -47,13 +47,13 @@ impl<'a> Reference<'a> {
                     Some(EntityValue::Value(val))
                         if refs_map.contains_key(&Name {
                             prefix: None,
-                            local_part: Cow::Borrowed(val.as_ref()),
+                            local_part: val.clone(),
                         }) =>
                     {
                         // This value is another reference
                         let reference_name = Name {
                             prefix: None,
-                            local_part: Cow::Owned(val.into_owned()),
+                            local_part: val,
                         };
                         Reference::EntityRef(reference_name)
                             .normalize_entity(entity_references.clone())
@@ -69,16 +69,16 @@ impl<'a> Reference<'a> {
                         EntityValue::Value(value)
                     }
                     Some(entity_value) => entity_value,
-                    None => EntityValue::Value(Cow::Owned(name.local_part.to_string())),
+                    None => EntityValue::Value(name.local_part.clone()),
                 }
             }
-            Reference::CharRef(value) => EntityValue::Value(Cow::Owned(value.to_string())),
+            Reference::CharRef(value) => EntityValue::Value(value.clone()),
         }
     }
     pub fn normalize_attribute(
         &self,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> AttributeValue<'a> {
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> AttributeValue {
         match self {
             Reference::EntityRef(name) => {
                 dbg!(&*entity_references.borrow());
@@ -88,12 +88,12 @@ impl<'a> Reference<'a> {
                     Some(EntityValue::Value(val))
                         if refs_map.contains_key(&Name {
                             prefix: None,
-                            local_part: Cow::Borrowed(val.as_ref()),
+                            local_part: val.clone(),
                         }) =>
                     {
                         let reference_name = Name {
                             prefix: None,
-                            local_part: Cow::Owned(val.into_owned()),
+                            local_part: val,
                         };
                         Reference::EntityRef(reference_name)
                             .normalize_attribute(entity_references.clone())
@@ -116,16 +116,16 @@ impl<'a> Reference<'a> {
                             _ => panic!("Unexpected EntityValue variant"),
                         }
                     }
-                    None => AttributeValue::Value(Cow::Owned(name.local_part.to_string())),
+                    None => AttributeValue::Value(name.local_part.clone()),
                 }
             }
-            Reference::CharRef(value) => AttributeValue::Value(Cow::Owned(value.to_string())),
+            Reference::CharRef(value) => AttributeValue::Value(value.clone()),
         }
     }
 }
 
-impl<'a> ParseReference<'a> for Reference<'a> {}
-impl<'a> Decode for Reference<'a> {
+impl<'a> ParseReference<'a> for Reference {}
+impl Decode for Reference {
     fn as_str(&self) -> &str {
         match self {
             Reference::EntityRef(name) => &name.local_part,
@@ -136,7 +136,7 @@ impl<'a> Decode for Reference<'a> {
 
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
-    fn parse_entity_ref(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+    fn parse_entity_ref(input: &str) -> IResult<&str, Reference> {
         map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
@@ -144,7 +144,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     }
 
     //[69] PEReference ::= '%' Name ';'
-    fn parse_parameter_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+    fn parse_parameter_reference(input: &str) -> IResult<&str, Reference> {
         map(
             tuple((char('%'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
@@ -152,7 +152,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     }
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
-    fn parse_char_reference(input: &'a str) -> IResult<&'a str, Reference<'a>> {
+    fn parse_char_reference(input: &str) -> IResult<&str, Reference> {
         //TODO: remove reconstruction if possible
         alt((
             map(
@@ -160,7 +160,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 |(start, digits, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, digits, end);
                     let decoded = reconstructed.decode().unwrap().into_owned();
-                    Reference::CharRef(Cow::Owned(decoded))
+                    Reference::CharRef(decoded)
                 },
             ),
             map(
@@ -168,7 +168,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
                 |(start, hex, end): (&str, &str, &str)| {
                     let reconstructed = format!("{}{}{}", start, hex, end);
                     let decoded = reconstructed.decode().unwrap().into_owned();
-                    Reference::CharRef(Cow::Owned(decoded))
+                    Reference::CharRef(decoded)
                 },
             ),
         ))(input)

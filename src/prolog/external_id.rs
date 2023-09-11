@@ -11,15 +11,15 @@ use std::borrow::Cow;
 use super::id::ID;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExternalID<'a> {
-    System(Cow<'a, str>),
+pub enum ExternalID {
+    System(String),
     Public {
-        pubid: Cow<'a, str>,
-        system_identifier: Box<ExternalID<'a>>, // Box<ExternalID::System>
+        pubid: String,
+        system_identifier: Box<ExternalID>, // Box<ExternalID::System>
     },
 }
 
-impl<'a> Parse<'a> for ExternalID<'a> {
+impl<'a> Parse<'a> for ExternalID {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[75] ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -28,8 +28,8 @@ impl<'a> Parse<'a> for ExternalID<'a> {
     }
 }
 
-impl<'a> ExternalID<'a> {
-    fn parse_system(input: &'a str) -> IResult<&'a str, ExternalID<'a>> {
+impl ExternalID {
+    fn parse_system(input: &str) -> IResult<&str, ExternalID> {
         map(
             tuple((
                 tag("SYSTEM"),
@@ -40,7 +40,7 @@ impl<'a> ExternalID<'a> {
         )(input)
     }
 
-    fn parse_public(input: &'a str) -> IResult<&'a str, ExternalID<'a>> {
+    fn parse_public(input: &str) -> IResult<&str, ExternalID> {
         map(
             tuple((
                 tag("PUBLIC"),
@@ -59,13 +59,13 @@ impl<'a> ExternalID<'a> {
     }
 
     // [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
-    fn parse_system_literal(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_system_literal(input: &str) -> IResult<&str, String> {
         map(
             alt((
                 delimited(tag("\""), is_not("\""), tag("\"")),
                 delimited(tag("'"), is_not("'"), tag("'")),
             )),
-            Cow::Borrowed,
+            |s: &str| s.to_string(),
         )(input)
     }
 }

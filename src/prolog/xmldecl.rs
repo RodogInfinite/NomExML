@@ -30,12 +30,12 @@ impl FromStr for Standalone {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct XmlDecl<'a> {
-    pub version: Cow<'a, str>,
-    pub encoding: Option<Cow<'a, str>>,
+pub struct XmlDecl {
+    pub version: String,
+    pub encoding: Option<String>,
     pub standalone: Option<Standalone>,
 }
-impl<'a> Parse<'a> for XmlDecl<'a> {
+impl<'a> Parse<'a> for XmlDecl {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
@@ -58,9 +58,9 @@ impl<'a> Parse<'a> for XmlDecl<'a> {
     }
 }
 
-impl<'a> XmlDecl<'a> {
+impl XmlDecl {
     // [24] VersionInfo	::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
-    fn parse_version_info(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_version_info(input: &str) -> IResult<&str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -76,13 +76,13 @@ impl<'a> XmlDecl<'a> {
     }
 
     // [26] VersionNum	::= '1.' [0-9]+
-    fn parse_version_num(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_version_num(input: &str) -> IResult<&str, String> {
         map(preceded(tag("1."), digit1), |version| {
-            format!("1.{}", version).into()
+            format!("1.{}", version)
         })(input)
     }
     // [80] EncodingDecl	::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
-    fn parse_encoding_decl(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_encoding_decl(input: &str) -> IResult<&str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -98,18 +98,18 @@ impl<'a> XmlDecl<'a> {
     }
 
     // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
-    fn parse_enc_name(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_enc_name(input: &str) -> IResult<&str, String> {
         map(
             pair(
                 alt((alpha1, tag("-"))),
                 many0(alt((alphanumeric1, tag("."), tag("_"), tag("-")))),
             ),
-            |(first, rest)| format!("{}{}", first, rest.join("")).into(),
+            |(first, rest)| format!("{}{}", first, rest.join("")),
         )(input)
     }
 
     // [32] SDDecl	::= S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
-    fn parse_sd_decl(input: &'a str) -> IResult<&'a str, Standalone> {
+    fn parse_sd_decl(input: &str) -> IResult<&str, Standalone> {
         map(
             tuple((
                 Self::parse_multispace1,
