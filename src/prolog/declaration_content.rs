@@ -11,14 +11,14 @@ use nom::{
 use super::content_particle::ContentParticle;
 
 #[derive(Clone, PartialEq)]
-pub enum DeclarationContent<'a> {
-    Mixed(Mixed<'a>),
-    Children(ContentParticle<'a>),
+pub enum DeclarationContent {
+    Mixed(Mixed),
+    Children(ContentParticle),
     Empty,
     Any,
 }
 
-impl<'a> Parse<'a> for DeclarationContent<'a> {
+impl<'a> Parse<'a> for DeclarationContent {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
@@ -31,9 +31,9 @@ impl<'a> Parse<'a> for DeclarationContent<'a> {
         ))(input)
     }
 }
-impl<'a> DeclarationContent<'a> {
+impl DeclarationContent {
     // [47] children ::= (choice | seq) ('?' | '*' | '+')?
-    fn parse_children(input: &'a str) -> IResult<&'a str, ContentParticle<'a>> {
+    fn parse_children(input: &str) -> IResult<&str, ContentParticle> {
         let (input, particle) = alt((
             map(
                 tuple((
@@ -59,14 +59,14 @@ impl<'a> DeclarationContent<'a> {
 }
 
 #[derive(Clone, PartialEq)]
-pub enum Mixed<'a> {
+pub enum Mixed {
     PCDATA {
-        names: Option<Vec<QualifiedName<'a>>>,
+        names: Option<Vec<QualifiedName>>,
         parsed: bool,
     },
 }
-impl<'a> ParseNamespace<'a> for Mixed<'a> {}
-impl<'a> Parse<'a> for Mixed<'a> {
+impl<'a> ParseNamespace<'a> for Mixed {}
+impl<'a> Parse<'a> for Mixed {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'

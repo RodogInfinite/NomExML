@@ -9,13 +9,13 @@ use nom::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ContentParticle<'a> {
-    Name(QualifiedName<'a>, ConditionalState),
-    Choice(Vec<ContentParticle<'a>>, ConditionalState),
-    Sequence(Vec<ContentParticle<'a>>, ConditionalState),
+pub enum ContentParticle {
+    Name(QualifiedName, ConditionalState),
+    Choice(Vec<ContentParticle>, ConditionalState),
+    Sequence(Vec<ContentParticle>, ConditionalState),
 }
-impl<'a> ParseNamespace<'a> for ContentParticle<'a> {}
-impl<'a> Parse<'a> for ContentParticle<'a> {
+impl<'a> ParseNamespace<'a> for ContentParticle {}
+impl<'a> Parse<'a> for ContentParticle {
     type Args = ();
     type Output = IResult<&'a str, Self>;
 
@@ -58,9 +58,9 @@ impl<'a> Parse<'a> for ContentParticle<'a> {
     }
 }
 
-impl<'a> ContentParticle<'a> {
+impl ContentParticle {
     // [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
-    pub fn parse_choice(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
+    pub fn parse_choice(input: &str) -> IResult<&str, Vec<ContentParticle>> {
         map(
             delimited(
                 tuple((char('('), Self::parse_multispace0)),
@@ -83,7 +83,7 @@ impl<'a> ContentParticle<'a> {
     }
 
     // [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
-    pub fn parse_sequence(input: &'a str) -> IResult<&'a str, Vec<ContentParticle<'a>>> {
+    pub fn parse_sequence(input: &str) -> IResult<&str, Vec<ContentParticle>> {
         delimited(
             tuple((char('('), Self::parse_multispace0)),
             separated_list0(

@@ -1,135 +1,135 @@
-pub enum Document<'a> {
+pub enum Document {
     Prolog {
-        xml_decl: Option<XmlDecl<'a>>,
-        misc: Option<Vec<Misc<'a>>>,
-        doc_type: Option<DocType<'a>>,
+        xml_decl: Option<XmlDecl>,
+        misc: Option<Vec<Misc>>,
+        doc_type: Option<DocType>,
     },
-    Element(Tag<'a>, Box<Document<'a>>, Tag<'a>),
-    Content(Option<Cow<'a, str>>),
-    Nested(Vec<Document<'a>>),
+    Element(Tag, Box<Document>, Tag),
+    Content(Option<String>),
+    Nested(Vec<Document>),
     Empty,
-    EmptyTag(Tag<'a>),
-    ProcessingInstruction(ProcessingInstruction<'a>),
-    Comment(Cow<'a, str>),
-    CDATA(Cow<'a, str>),
+    EmptyTag(Tag),
+    ProcessingInstruction(ProcessingInstruction),
+    Comment(String),
+    CDATA(String),
 }
 pub enum TagState {
     Start,
     End,
     Empty,
 }
-pub struct Tag<'a> {
-    pub name: Name<'a>,
-    pub attributes: Option<Vec<Attribute<'a>>>, // Attribute::Instance
+pub struct Tag {
+    pub name: Name,
+    pub attributes: Option<Vec<Attribute>>, // Attribute::Instance
     pub state: TagState,
 }
-pub struct DocType<'a> {
-    pub name: Name<'a>,
-    pub external_id: Option<ExternalID<'a>>,
-    pub int_subset: Option<Vec<InternalSubset<'a>>>,
+pub struct DocType {
+    pub name: Name,
+    pub external_id: Option<ExternalID>,
+    pub int_subset: Option<Vec<InternalSubset>>,
 }
-pub enum EntityValue<'a> {
-    Document(Document<'a>),
-    Value(Cow<'a, str>),
-    Reference(Reference<'a>),
-    ParameterReference(Reference<'a>),
-    InternalSubset(Box<InternalSubset<'a>>),
+pub enum EntityValue {
+    Document(Document),
+    Value(String),
+    Reference(Reference),
+    ParameterReference(Reference),
+    InternalSubset(Box<InternalSubset>),
 }
 
-pub enum EntityDecl<'a> {
-    General(GeneralEntityDeclaration<'a>),
-    Parameter(ParameterEntityDeclaration<'a>),
+pub enum EntityDecl {
+    General(GeneralEntityDeclaration),
+    Parameter(ParameterEntityDeclaration),
 }
-pub struct EntityDeclaration<'a> {
-    pub name: Name<'a>,
-    pub entity_def: EntityDefinition<'a>,
+pub struct EntityDeclaration {
+    pub name: Name,
+    pub entity_def: EntityDefinition,
 }
-pub type GeneralEntityDeclaration<'a> = EntityDeclaration<'a>;
-pub type ParameterEntityDeclaration<'a> = EntityDeclaration<'a>;
+pub type GeneralEntityDeclaration = EntityDeclaration;
+pub type ParameterEntityDeclaration = EntityDeclaration;
 
-pub enum EntityDefinition<'a> {
-    EntityValue(EntityValue<'a>),
+pub enum EntityDefinition {
+    EntityValue(EntityValue),
     External {
-        id: ExternalID<'a>,
-        n_data: Option<Name<'a>>,
+        id: ExternalID,
+        n_data: Option<Name>,
     },
 }
 
-pub struct EntityDeclaration<'a> {
-    pub name: Name<'a>,
-    pub entity_def: EntityDefinition<'a>,
+pub struct EntityDeclaration {
+    pub name: Name,
+    pub entity_def: EntityDefinition,
 }
-pub type GeneralEntityDeclaration<'a> = EntityDeclaration<'a>;
-pub type ParameterEntityDeclaration<'a> = EntityDeclaration<'a>;
+pub type GeneralEntityDeclaration = EntityDeclaration;
+pub type ParameterEntityDeclaration = EntityDeclaration;
 
-pub enum ID<'a> {
-    ExternalID(ExternalID<'a>),
-    PublicID(Cow<'a, str>),
+pub enum ID {
+    ExternalID(ExternalID),
+    PublicID(String),
 }
-pub enum InternalSubset<'a> {
+pub enum InternalSubset {
     Element {
-        name: QualifiedName<'a>,
-        content_spec: Option<DeclarationContent<'a>>,
+        name: QualifiedName,
+        content_spec: Option<DeclarationContent>,
     },
     AttList {
-        name: QualifiedName<'a>,
-        att_defs: Option<Vec<Attribute<'a>>>,
+        name: QualifiedName,
+        att_defs: Option<Vec<Attribute>>,
     },
     Notation {
-        name: QualifiedName<'a>,
-        id: ID<'a>,
+        name: QualifiedName,
+        id: ID,
     },
-    Entity(EntityDeclaration<'a>),
-    DeclSep(Reference<'a>),
-    ProcessingInstruction(ProcessingInstruction<'a>),
-    Comment(Document<'a>),
+    Entity(EntityDeclaration),
+    DeclSep(Reference),
+    ProcessingInstruction(ProcessingInstruction),
+    Comment(Document),
 }
 pub enum Standalone {
     Yes,
     No,
 }
-pub enum DeclarationContent<'a> {
-    Mixed(Mixed<'a>),
-    Children(ContentParticle<'a>),
+pub enum DeclarationContent {
+    Mixed(Mixed),
+    Children(ContentParticle),
     Empty,
     Any,
 }
-pub enum Mixed<'a> {
+pub enum Mixed {
     PCDATA {
-        names: Option<Vec<QualifiedName<'a>>>,
+        names: Option<Vec<QualifiedName>>,
         parsed: bool,
     },
 }
-pub struct XmlDecl<'a> {
-    pub version: Cow<'a, str>,
-    pub encoding: Option<Cow<'a, str>>,
+pub struct XmlDecl {
+    pub version: String,
+    pub encoding: Option<String>,
     pub standalone: Option<Standalone>,
 }
-pub struct QualifiedName<'a> {
-    pub prefix: Option<Cow<'a, str>>,
-    pub local_part: Cow<'a, str>,
+pub struct QualifiedName {
+    pub prefix: Option<String>,
+    pub local_part: String,
 }
-pub type Name<'a> = QualifiedName<'a>;
-pub enum Prefix<'a> {
+pub type Name = QualifiedName;
+pub enum Prefix {
     Default,
-    Prefix(Cow<'a, str>),
+    Prefix(String),
 }
-pub enum Attribute<'a> {
+pub enum Attribute {
     Definition {
-        name: QualifiedName<'a>,
-        att_type: AttType<'a>,
-        default_decl: DefaultDecl<'a>,
+        name: QualifiedName,
+        att_type: AttType,
+        default_decl: DefaultDecl,
     },
-    Reference(Reference<'a>),
+    Reference(Reference),
     Instance {
-        name: QualifiedName<'a>,
-        value: Cow<'a, str>,
+        name: QualifiedName,
+        value: String,
     },
     Required,
     Implied,
     Namespace {
-        prefix: Prefix<'a>,
-        uri: Cow<'a, str>,
+        prefix: Prefix,
+        uri: String,
     },
 }
 pub enum TokenizedType {
@@ -141,19 +141,19 @@ pub enum TokenizedType {
     NMTOKEN,
     NMTOKENS,
 }
-pub enum AttType<'a> {
+pub enum AttType {
     CDATA,
     Tokenized(TokenizedType),
     Enumerated {
-        notation: Option<Vec<Name<'a>>>,
-        enumeration: Option<Vec<Cow<'a, str>>>,
+        notation: Option<Vec<Name>>,
+        enumeration: Option<Vec<String>>,
     },
 }
-pub enum DefaultDecl<'a> {
+pub enum DefaultDecl {
     Required,
     Implied,
-    Fixed(Cow<'a, str>),
-    Value(Cow<'a, str>),
+    Fixed(String),
+    Value(String),
 }
 pub enum ConditionalState {
     None,
@@ -161,23 +161,23 @@ pub enum ConditionalState {
     ZeroOrMore,
     OneOrMore,
 }
-pub enum ContentParticle<'a> {
-    Name(QualifiedName<'a>, ConditionalState),
-    Choice(Vec<ContentParticle<'a>>, ConditionalState),
-    Sequence(Vec<ContentParticle<'a>>, ConditionalState),
+pub enum ContentParticle {
+    Name(QualifiedName, ConditionalState),
+    Choice(Vec<ContentParticle>, ConditionalState),
+    Sequence(Vec<ContentParticle>, ConditionalState),
 }
-pub enum ExternalID<'a> {
-    System(Cow<'a, str>),
+pub enum ExternalID {
+    System(String),
     Public {
-        pubid: Cow<'a, str>,
-        system_identifier: Box<ExternalID<'a>>, // Box<ExternalID::System>
+        pubid: String,
+        system_identifier: Box<ExternalID>, // Box<ExternalID::System>
     },
 }
-pub struct ProcessingInstruction<'a> {
-    pub target: Name<'a>,
-    pub data: Option<Cow<'a, str>>,
+pub struct ProcessingInstruction {
+    pub target: Name,
+    pub data: Option<String>,
 }
-pub enum Reference<'a> {
-    EntityRef(Name<'a>),
-    CharRef { value: Cow<'a, str> },
+pub enum Reference {
+    EntityRef(Name),
+    CharRef { value: String },
 }

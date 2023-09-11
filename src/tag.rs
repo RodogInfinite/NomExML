@@ -22,27 +22,27 @@ pub enum TagState {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Tag<'a> {
-    pub name: Name<'a>,
-    pub attributes: Option<Vec<Attribute<'a>>>, // Attribute::Instance
+pub struct Tag {
+    pub name: Name,
+    pub attributes: Option<Vec<Attribute>>, // Attribute::Instance
     pub state: TagState,
 }
 
-impl<'a> Parse<'a> for Tag<'a> {
+impl<'a> Parse<'a> for Tag {
     type Args = ();
     type Output = IResult<&'a str, Self>;
 }
-impl<'a> ParseNamespace<'a> for Tag<'a> {}
+impl<'a> ParseNamespace<'a> for Tag {}
 
 // TODO: Investigate. The hardcoded bracket codes is kind of a hack to get reference element parsing to work. Unsure of how this is going to impact invalid XML.
 // Tried to use decode, but having some lifetime issues
-impl<'a> Tag<'a> {
+impl Tag {
     // [40] STag ::= '<' Name (S Attribute)* S? '>'
     // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
     pub fn parse_start_tag(
-        input: &'a str,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, Self> {
+        input: &str,
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> IResult<&str, Self> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
@@ -74,7 +74,7 @@ impl<'a> Tag<'a> {
 
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
-    pub fn parse_end_tag(input: &'a str) -> IResult<&'a str, Self> {
+    pub fn parse_end_tag(input: &str) -> IResult<&str, Self> {
         delimited(
             alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
             map(
@@ -96,9 +96,9 @@ impl<'a> Tag<'a> {
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
     pub fn parse_empty_element_tag(
-        input: &'a str,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, Tag<'a>> {
+        input: &str,
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> IResult<&str, Tag> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),

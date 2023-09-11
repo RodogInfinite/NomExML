@@ -9,19 +9,19 @@ pub enum MiscState {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Misc<'a> {
-    pub content: Box<Document<'a>>, // Document::Comment | Document::ProcessingInstruction>
+pub struct Misc {
+    pub content: Box<Document>, // Document::Comment | Document::ProcessingInstruction>
     pub state: MiscState,
 }
 
-impl<'a> Parse<'a> for Misc<'a> {
+impl<'a> Parse<'a> for Misc {
     type Args = MiscState;
     type Output = IResult<&'a str, Self>;
 
     //[27] Misc ::= Comment | PI | S
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
-        let mut content_vec: Vec<Document<'a>> = vec![];
+        let mut content_vec: Vec<Document> = vec![];
         loop {
             let parse_result = alt((
                 Document::parse_comment,

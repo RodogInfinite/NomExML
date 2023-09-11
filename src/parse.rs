@@ -24,7 +24,7 @@ pub trait Parse<'a>: Sized {
         matches!(c, '\u{9}' | '\u{A}' | '\u{D}' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}')
     }
 
-    fn parse_char(input: &'a str) -> IResult<&'a str, char> {
+    fn parse_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_char)(input)
     }
 
@@ -34,12 +34,12 @@ pub trait Parse<'a>: Sized {
         matches!(c, ' ' | '\t' | '\r' | '\n')
     }
 
-    fn parse_multispace1(input: &'a str) -> IResult<&'a str, ()> {
+    fn parse_multispace1(input: &str) -> IResult<&str, ()> {
         let (input, _) = many1(satisfy(Self::is_whitespace))(input)?;
         Ok((input, ()))
     }
 
-    fn parse_multispace0(input: &'a str) -> IResult<&'a str, ()> {
+    fn parse_multispace0(input: &str) -> IResult<&str, ()> {
         let (input, _) = many0(satisfy(Self::is_whitespace))(input)?;
         Ok((input, ()))
     }
@@ -71,27 +71,27 @@ pub trait Parse<'a>: Sized {
             '\u{0300}'..='\u{036F}' | '\u{203F}'..='\u{2040}')
     }
 
-    fn parse_name_char(input: &'a str) -> IResult<&'a str, char> {
+    fn parse_name_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_name_char)(input)
     }
 
-    fn parse_name_start_char(input: &'a str) -> IResult<&'a str, char> {
+    fn parse_name_start_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_name_start_char)(input)
     }
 
     // [7] Nmtoken ::= (NameChar)+
-    fn parse_nmtoken(input: &'a str) -> IResult<&'a str, Cow<'a, str>> {
+    fn parse_nmtoken(input: &str) -> IResult<&str, String> {
         let (input, result) = recognize(many1(Self::parse_name_char))(input)?;
-        Ok((input, Cow::Borrowed(result)))
+        Ok((input, result.to_string()))
     }
 
     // [8] Nmtokens ::= Nmtoken (#x20 Nmtoken)*
-    fn parse_nmtokens(input: &'a str) -> IResult<&'a str, Vec<Cow<'a, str>>> {
+    fn parse_nmtokens(input: &str) -> IResult<&str, Vec<String>> {
         separated_list1(char(' '), Self::parse_nmtoken)(input)
     }
 
     // [5] Name ::= NameStartChar (NameChar)*
-    fn parse_name(input: &'a str) -> IResult<&'a str, Name> {
+    fn parse_name(input: &str) -> IResult<&str, Name> {
         map(
             tuple((Self::parse_name_start_char, opt(Self::parse_nmtoken))),
             |(start_char, rest_chars)| {
@@ -108,19 +108,19 @@ pub trait Parse<'a>: Sized {
                 };
                 Name {
                     prefix: None,
-                    local_part: Cow::Owned(local_part),
+                    local_part,
                 }
             },
         )(input)
     }
 
     // [6] Names ::= Name (#x20 Name)*
-    fn parse_names(input: &'a str) -> IResult<&'a str, Vec<Name>> {
+    fn parse_names(input: &str) -> IResult<&str, Vec<Name>> {
         separated_list1(char(' '), Self::parse_name)(input)
     }
 
     //[25] Eq ::=  S? '=' S?
-    fn parse_eq(input: &'a str) -> IResult<&'a str, ()> {
+    fn parse_eq(input: &str) -> IResult<&str, ()> {
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag("=")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;

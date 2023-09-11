@@ -21,14 +21,14 @@ use super::{
 };
 
 #[derive(Clone, PartialEq)]
-pub struct DocType<'a> {
-    pub name: Name<'a>,
-    pub external_id: Option<ExternalID<'a>>,
-    pub int_subset: Option<Vec<InternalSubset<'a>>>,
+pub struct DocType {
+    pub name: Name,
+    pub external_id: Option<ExternalID>,
+    pub int_subset: Option<Vec<InternalSubset>>,
 }
 
-impl<'a> Parse<'a> for DocType<'a> {
-    type Args = Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>;
+impl<'a> Parse<'a> for DocType {
+    type Args = Rc<RefCell<HashMap<Name, EntityValue>>>;
 
     type Output = IResult<&'a str, Self>;
 
@@ -102,8 +102,8 @@ impl<'a> Parse<'a> for DocType<'a> {
 }
 
 //TODO integrate this
-impl<'a> DocType<'a> {
-    pub fn get_entities(&self) -> InternalSubset<'a> {
+impl DocType {
+    pub fn get_entities(&self) -> InternalSubset {
         let entities: Vec<_> = self.int_subset.as_ref().map_or(Vec::new(), |subset| {
             subset
                 .iter()
@@ -121,9 +121,9 @@ impl<'a> DocType<'a> {
     }
     //TODO: figure out how to integrate this or remove
     fn _parse_qualified_doctype(
-        input: &'a str,
-        entity_references: Rc<RefCell<HashMap<Name<'a>, EntityValue<'a>>>>,
-    ) -> IResult<&'a str, DocType<'a>> {
+        input: &str,
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> IResult<&str, DocType> {
         let (input, _) = tag("<!DOCTYPE")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, name) = Self::parse_qualified_name(input)?;
@@ -155,4 +155,4 @@ impl<'a> DocType<'a> {
     }
 }
 
-impl<'a> ParseNamespace<'a> for DocType<'a> {}
+impl<'a> ParseNamespace<'a> for DocType {}
