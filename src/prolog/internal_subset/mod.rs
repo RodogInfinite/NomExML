@@ -2,7 +2,7 @@ pub mod entity_declaration;
 pub mod entity_definition;
 pub mod entity_value;
 
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, fs::File};
 
 use nom::{
     branch::alt,
@@ -24,7 +24,7 @@ use crate::{
         internal_subset::entity_declaration::GeneralEntityDeclaration,
     },
     reference::{ParseReference, Reference},
-    Document, Name, QualifiedName,
+    Document, Name, QualifiedName, ExternalEntityParseConfig, io::parse_external_ent_file,
 };
 
 use self::{
@@ -72,21 +72,48 @@ impl InternalSubset {
 impl<'a> ParseNamespace<'a> for InternalSubset {}
 
 impl<'a> Parse<'a> for  InternalSubset {
-    type Args = Rc<RefCell<HashMap<Name, EntityValue>>>;
+    type Args = (Rc<RefCell<HashMap<Name, EntityValue>>>,ExternalEntityParseConfig);
     type Output = IResult<&'a str, Vec<InternalSubset>>;
 
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-                
+        let(entity_references,external_parse_config) = args;
         let (input, parsed) = many0(alt((
-            |i| Self::parse_markup_decl(i, args.clone()),
-            |i| Self::parse_decl_sep(i,args.clone()),
+            |i| Self::parse_markup_decl(i, entity_references.clone()),
+            |i| Self::parse_decl_sep(i,entity_references.clone()),
         )))(input)?;
 
                                 
         let mut consolidated: Vec<InternalSubset> = vec![];
+        let mut expanded_entities: Vec<Box<InternalSubset>> = vec![];
+        for mut opt_internal_subset in parsed {
 
-        for opt_internal_subset in parsed {
+            if let Some(InternalSubset::Entity(entity)) = opt_internal_subset.clone() {
+                
+                let _ = Self::get_external_entity(entity.clone(), entity_references.clone(), external_parse_config.clone());
+                    
+                
+                
+               
+            }; 
+            
+            //dbg!(&expanded_entities);
+
+                if let Some(InternalSubset::DeclSep { reference, expansion }) = &mut opt_internal_subset {
+                    dbg!(&reference);
+                   
+                    dbg!(&entity_references);
+                    if let Reference::EntityRef(name) = reference {
+                        if let Some(EntityValue::InternalSubset(inner_expansion)) = entity_references.borrow().get(name) {
+                            *expansion = Some(inner_expansion.clone());
+                        }
+                        
+                    }
+                   
+                }
+                
+            
+
             if let Some(InternalSubset::AttList { name, att_defs: Some(new_defs) }) = &opt_internal_subset {
                 if let Some(existing) = consolidated.iter_mut().find(|i| {
                     matches!(i, InternalSubset::AttList { name: existing_name, .. } if existing_name == name)
@@ -102,7 +129,7 @@ impl<'a> Parse<'a> for  InternalSubset {
             }
         }
 
-                        Ok((input, consolidated))
+        Ok((input, consolidated))
     }
 }
 
@@ -112,6 +139,7 @@ impl InternalSubset {
         match reference {
             Reference::EntityRef(name) => {
                 let entities = entity_references.borrow();
+                dbg!(&entities);
                 entities.get(name).cloned()
             },
             Reference::CharRef(_) => {
@@ -120,6 +148,69 @@ impl InternalSubset {
             }
         }
     }
+
+    fn get_external_entity<'a>(
+        entity_decl: EntityDecl,
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        external_parse_config: ExternalEntityParseConfig,
+    ) -> Result<(), nom::Err<nom::error::Error<&'a str>>> {
+        if let ExternalEntityParseConfig { allow_ext_parse: true, base_directory, .. } = &external_parse_config {
+            if let EntityDecl::Parameter(EntityDeclaration {
+                name,
+                entity_def: EntityDefinition::External {
+                    id: ExternalID::System(ent_file),
+                    ..
+                },
+            }) = &entity_decl
+            {
+                let file_path = match base_directory {
+                    Some(base) => format!("{}/{}", base, ent_file),
+                    None => ent_file.clone(),
+                };
+    
+                match File::open(file_path) {
+                    Ok(mut file) => {
+                        match parse_external_ent_file(&mut file, external_parse_config.clone(), entity_references.clone()) {
+                            Ok(parsed_internal_subset) => {
+                                match parsed_internal_subset.as_slice() {
+                                    [internal_subset] => {
+                                        let boxed_entity = Box::new(internal_subset.clone());
+                                        entity_references.borrow_mut().insert(name.clone(), EntityValue::InternalSubset(boxed_entity));
+                                        dbg!(entity_references);
+                                        Ok(())
+                                    },
+                                    _ => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                                }
+                            },
+                            Err(_) => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                        }
+                    },
+                    Err(_) => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                }
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))) // Using an empty string slice here, adjust as needed
+            }
+        } else {
+            Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))) // Using an empty string slice here, adjust as needed
+        }
+    }
+    
+
+
+
+    // fn expand_external_entity(
+    //     internal_subset: &mut InternalSubset,
+    //     expanded_entity: InternalSubset,
+    //     entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    //     external_parse_config: ExternalEntityParseConfig,
+    // ) -> Result<(), nom::Err<nom::error::Error<&str>>> {
+    //     if let InternalSubset::DeclSep { reference, expansion } = internal_subset {
+    //         expansion = 
+    //     } else {
+    //         Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))
+    //     }
+    // }
+    
     
     // [28a] DeclSep ::=  PEReference | S 
     fn parse_decl_sep(input: &str, entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>) -> IResult<&str, Option<InternalSubset>> {
@@ -308,7 +399,6 @@ impl InternalSubset {
         ))(input)
     }
 
-    //TODO: dig into this, this is probably causing the failure
     // [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
     fn parse_entity_definition(
         input: &str,
@@ -484,8 +574,6 @@ impl InternalSubset {
                 
             )),
             
-           
-
             ))(input)
     }
 

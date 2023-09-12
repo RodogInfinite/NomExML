@@ -4905,11 +4905,10 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file(
         "097",
         Config {
-            external_parse_config: {
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    ignore_ext_parse_warning: true,
-                }
+            external_parse_config: ExternalEntityParseConfig {
+                allow_ext_parse: true,
+                ignore_ext_parse_warning: true,
+                base_directory: Some("tests/xmltest/valid/sa".into()),
             },
         },
     )?;
@@ -4930,39 +4929,39 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                                 parsed: true,
                             })),
                         },
-                        InternalSubset::AttList {
-                            name: QualifiedName::new(None, "doc"),
-                            att_defs: Some(vec![Attribute::Definition {
-                                name: QualifiedName::new(None, "a1"),
-                                att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Value("v1".to_string()),
-                            }]),
-                        },
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::External {
                                 id: ExternalID::System("097.ent".to_string()),
                                 n_data: None,
                             },
                         })),
-                        InternalSubset::Entities(vec![
-                            Box::new(InternalSubset::AttList {
+                        InternalSubset::AttList {
+                            name: QualifiedName::new(None, "doc"),
+                            att_defs: Some(vec![
+                                Attribute::Definition {
+                                    name: QualifiedName::new(None, "a1"),
+                                    att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Value("v1".to_string()),
+                                },
+                                Attribute::Definition {
+                                    name: QualifiedName::new(None, "a2"),
+                                    att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Value("v2".to_string()),
+                                },
+                            ]),
+                        },
+                        InternalSubset::DeclSep {
+                            reference: Reference::EntityRef(QualifiedName::new(None, "e")),
+                            expansion: Some(Box::new(InternalSubset::AttList {
                                 name: QualifiedName::new(None, "doc"),
                                 att_defs: Some(vec![Attribute::Definition {
                                     name: QualifiedName::new(None, "a2"),
                                     att_type: AttType::CDATA,
                                     default_decl: DefaultDecl::Implied,
-                                }]),
-                            }),
-                            Box::new(InternalSubset::AttList {
-                                name: QualifiedName::new(None, "doc"),
-                                att_defs: Some(vec![Attribute::Definition {
-                                    name: QualifiedName::new(None, "a2"),
-                                    att_type: AttType::CDATA,
-                                    default_decl: DefaultDecl::Value("v2".to_string()),
-                                }]),
-                            }),
-                        ]),
+                                },]),
+                            })),
+                        }
                     ]),
                 }),
             },

@@ -1,11 +1,16 @@
 use crate::parse::Parse;
-use crate::Config;
+use crate::prolog::internal_subset::entity_value::EntityValue;
+use crate::prolog::internal_subset::InternalSubset;
+use crate::{Config, ExternalEntityParseConfig, Name};
 // io.rs
 use crate::{error::CustomError, Document};
 use encoding_rs::*;
 use rayon::iter::{ParallelBridge, ParallelIterator};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::io::BufReader;
 use std::path::Path;
+use std::rc::Rc;
 use std::{
     fs::{self, File},
     io::Read,
@@ -37,6 +42,27 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomErr
     })?;
 
     Ok(document)
+}
+
+pub fn parse_external_ent_file(
+    file: &mut File,
+    external_parse_config: ExternalEntityParseConfig,
+    entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+) -> Result<Vec<InternalSubset>, CustomError> {
+    let mut data = read_file(file)?;
+    data = data.replace("\r\n", "\n");
+
+    let (_, internal_subset) =
+        InternalSubset::parse(data.as_str(), (entity_references, external_parse_config)).map_err(
+            |err| match err {
+                nom::Err::Error(e) | nom::Err::Failure(e) => {
+                    CustomError::NomError(format!("error: {:?}, input: {}", e.code, e.input))
+                }
+                nom::Err::Incomplete(_) => CustomError::NomError("Incomplete parsing".to_string()),
+            },
+        )?;
+
+    Ok(internal_subset)
 }
 
 pub fn parse_directory(

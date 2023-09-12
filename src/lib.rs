@@ -52,6 +52,7 @@ use std::{
 pub struct ExternalEntityParseConfig {
     pub allow_ext_parse: bool,
     pub ignore_ext_parse_warning: bool,
+    pub base_directory: Option<String>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -89,6 +90,7 @@ fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                 ExternalEntityParseConfig {
                     allow_ext_parse: true,
                     ignore_ext_parse_warning: false,
+                    ..
                 },
         } => {
             warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
@@ -116,6 +118,7 @@ fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                 ExternalEntityParseConfig {
                     allow_ext_parse: false,
                     ignore_ext_parse_warning: true,
+                    ..
                 },
         } => {
             warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
@@ -131,46 +134,54 @@ impl<'a> Parse<'a> for Document {
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
-                let entity_references = Rc::new(RefCell::new(HashMap::new()));
-                let (input, prolog_and_references) =
-                    opt(|i| Self::parse_prolog(i, entity_references.clone()))(input)?;
-
-                let (prolog, new_entity_references) = match prolog_and_references {
-                    Some((p, r)) => (p, r),
-                    None => (None, entity_references.clone()),
-                };
-
-                let mut documents = Vec::new();
-
-                let mut current_input = input;
-                while !current_input.is_empty() {
-                    let (input, start_tag) =
-                        opt(|i| Tag::parse_start_tag(i, new_entity_references.clone()))(
-                            current_input,
-                        )?;
-                    let (input, content) =
-                        Self::parse_content(input, new_entity_references.clone())?;
-                    let (input, end_tag) = opt(Tag::parse_end_tag)(input)?;
-
-                    let empty_tag = if let Document::EmptyTag(empty_tag) = &content {
-                        Some(empty_tag.clone())
-                    } else {
-                        None
+                if let Config {external_parse_config} = args {
+                    let entity_references = Rc::new(RefCell::new(HashMap::new()));
+                    let (input, prolog_and_references) =
+                        opt(|i| Self::parse_prolog(i, entity_references.clone(),external_parse_config.clone()))(input)?;
+    
+                    let (prolog, new_entity_references) = match prolog_and_references {
+                        Some((p, r)) => (p, r),
+                        None => (None, entity_references.clone()),
                     };
-                    let (input, doc) = Self::construct_document_element(
-                        input, start_tag, content, end_tag, empty_tag,
-                    )?;
-                    if let Document::Empty = &doc {
-                        break;
+    
+                    let mut documents = Vec::new();
+    
+                    let mut current_input = input;
+                    while !current_input.is_empty() {
+                        let (input, start_tag) =
+                            opt(|i| Tag::parse_start_tag(i, new_entity_references.clone()))(
+                                current_input,
+                            )?;
+                        let (input, content) =
+                            Self::parse_content(input, new_entity_references.clone())?;
+                        let (input, end_tag) = opt(Tag::parse_end_tag)(input)?;
+    
+                        let empty_tag = if let Document::EmptyTag(empty_tag) = &content {
+                            Some(empty_tag.clone())
+                        } else {
+                            None
+                        };
+                        let (input, doc) = Self::construct_document_element(
+                            input, start_tag, content, end_tag, empty_tag,
+                        )?;
+                        if let Document::Empty = &doc {
+                            break;
+                        }
+    
+                        documents.push(doc);
+                        current_input = input;
                     }
-
-                    documents.push(doc);
-                    current_input = input;
+    
+                    let (input, documents) = Self::construct_document(input, prolog, documents)?;
+    
+                    Ok((input, documents))
+                } else {
+                    Err(nom::Err::Error(nom::error::Error {
+                        input: "missing ExternalEntityParseConfig",
+                        code: nom::error::ErrorKind::Fail, // Or any other ErrorKind that is suitable for your case
+                    }))
                 }
-
-                let (input, documents) = Self::construct_document(input, prolog, documents)?;
-
-                Ok((input, documents))
+                
             }
             Err(nom::Err::Error(err_msg)) => {
                 Err(nom::Err::Error(nom::error::Error {
@@ -203,13 +214,14 @@ impl Document {
     pub fn parse_prolog(
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        external_parse_config: ExternalEntityParseConfig,
     ) -> IResult<&str, (Option<Document>, Rc<RefCell<HashMap<Name, EntityValue>>>)> {
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
 
-        let (input, doc_type) = opt(|i| DocType::parse(i, entity_references.clone()))(input)?;
+        let (input, doc_type) = opt(|i| DocType::parse(i, (entity_references.clone(),external_parse_config.clone())))(input)?;
 
         let (input, misc_after) = match &doc_type {
             Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
@@ -237,34 +249,7 @@ impl Document {
         Ok((input, (prolog, updated_entity_references)))
     }
 
-    fn collect_entity_references(
-        doc_type: &DocType,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-    ) -> Rc<RefCell<HashMap<Name, EntityValue>>> {
-        if let InternalSubset::Entities(entities) = &doc_type.get_entities() {
-            for boxed_entity in entities {
-                if let InternalSubset::Entity(entity_decl) = &**boxed_entity {
-                    match entity_decl {
-                        EntityDecl::General(decl) | EntityDecl::Parameter(decl) => {
-                            if let EntityDefinition::EntityValue(value) = &decl.entity_def {
-                                // Check if the name already exists in the map
-                                let mut references = entity_references.borrow_mut();
-                                if !references.contains_key(&decl.name) {
-                                    references.insert(decl.name.clone(), value.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
-        if entity_references.borrow().is_empty() {
-            Rc::new(RefCell::new(HashMap::new()))
-        } else {
-            entity_references
-        }
-    }
 
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
     fn parse_char_data(input: &str) -> IResult<&str, String> {
@@ -329,7 +314,35 @@ impl Document {
         ))(input)?;
         Ok((input, doc))
     }
+    
+    fn collect_entity_references(
+        doc_type: &DocType,
+        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+    ) -> Rc<RefCell<HashMap<Name, EntityValue>>> {
+        if let InternalSubset::Entities(entities) = &doc_type.get_entities() {
+            for boxed_entity in entities {
+                if let InternalSubset::Entity(entity_decl) = &**boxed_entity {
+                    match entity_decl {
+                        EntityDecl::General(decl) | EntityDecl::Parameter(decl) => {
+                            if let EntityDefinition::EntityValue(value) = &decl.entity_def {
+                                // Check if the name already exists in the map
+                                let mut references = entity_references.borrow_mut();
+                                if !references.contains_key(&decl.name) {
+                                    references.insert(decl.name.clone(), value.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
+        if entity_references.borrow().is_empty() {
+            Rc::new(RefCell::new(HashMap::new()))
+        } else {
+            entity_references
+        }
+    }
     pub fn process_references(
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> impl Fn(Vec<Reference>) -> Document {
@@ -685,7 +698,7 @@ impl Document {
         }
     }
 
-    pub fn extract_subtags_using_inner_key(
+    pub fn extract_subtags_using_inner_val_as_key(
         &self,
         outer_tag: &str,
         inner_tag: &str,
@@ -893,7 +906,7 @@ impl AsOrderedMap for Result<Vec<Document>, Box<dyn Error>> {
 
                         if map.insert(key_value.clone(), content_map).is_some() {
                             warnln!(
-                                "`as_map_with_subtag_value(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
+                                "`as_map_with_subtag_value_key(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
                             );
                         }
                     }
@@ -960,7 +973,7 @@ impl AsOrderedMap for Vec<Document> {
                     // because we get it directly from the updated function
                     if map.insert(key_value.clone(), content_map).is_some() {
                         warnln!(
-                            "`as_map_with_subtag_value(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
+                            "`as_map_with_subtag_value_key(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
                             
                         );
                     }

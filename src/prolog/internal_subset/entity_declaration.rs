@@ -2,7 +2,7 @@ use crate::{prolog::external_id::ExternalID, Name};
 
 use super::{entity_definition::EntityDefinition, entity_value::EntityValue};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum EntityDecl {
     General(GeneralEntityDeclaration),
     Parameter(ParameterEntityDeclaration),
