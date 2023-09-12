@@ -1,3 +1,5 @@
+use crate::parse::Parse;
+use crate::Config;
 // io.rs
 use crate::{error::CustomError, Document};
 use encoding_rs::*;
@@ -23,11 +25,11 @@ fn read_file(file: &mut File) -> std::io::Result<String> {
     Ok(decoded_str.into_owned())
 }
 
-pub fn parse_file(file: &mut File) -> Result<Document, CustomError> {
+pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomError> {
     let mut data = read_file(file)?;
     data = data.replace("\r\n", "\n");
 
-    let (_, document) = Document::parse_xml_str(&mut data).map_err(|err| match err {
+    let (_, document) = Document::parse(&mut data, config).map_err(|err| match err {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
             CustomError::NomError(format!("error: {:?}, input: {}", e.code, e.input))
         }
@@ -37,7 +39,10 @@ pub fn parse_file(file: &mut File) -> Result<Document, CustomError> {
     Ok(document)
 }
 
-pub fn parse_directory(path: &Path) -> Result<Vec<Result<Document, CustomError>>, CustomError> {
+pub fn parse_directory(
+    path: &Path,
+    config: Config,
+) -> Result<Vec<Result<Document, CustomError>>, CustomError> {
     let entries = fs::read_dir(path)?;
     let results = entries
         .par_bridge()
@@ -45,7 +50,7 @@ pub fn parse_directory(path: &Path) -> Result<Vec<Result<Document, CustomError>>
         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml"))
         .map(|entry| {
             let mut file = File::open(entry.path())?;
-            parse_file(&mut file)
+            parse_file(&mut file, config.clone())
         })
         .collect::<Vec<_>>();
     Ok(results)
