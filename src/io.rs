@@ -5,6 +5,9 @@ use crate::{Config, ExternalEntityParseConfig, Name};
 // io.rs
 use crate::{error::CustomError, Document};
 use encoding_rs::*;
+use nom::branch::alt;
+use nom::combinator::map;
+use nom::multi::{many0, many1};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -15,7 +18,7 @@ use std::{
     fs::{self, File},
     io::Read,
 };
-fn read_file(file: &mut File) -> std::io::Result<String> {
+pub fn read_file(file: &mut File) -> std::io::Result<String> {
     let mut reader = BufReader::new(file);
     let mut bytes = vec![];
 
@@ -32,7 +35,7 @@ fn read_file(file: &mut File) -> std::io::Result<String> {
 
 pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomError> {
     let mut data = read_file(file)?;
-    data = data.replace("\r\n", "\n");
+    data = data.replace("\r\n", "\n").replace('\r', "\n");
 
     let (_, document) = Document::parse(&mut data, config).map_err(|err| match err {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
@@ -46,23 +49,39 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomErr
 
 pub fn parse_external_ent_file(
     file: &mut File,
-    external_parse_config: ExternalEntityParseConfig,
     entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-) -> Result<Vec<InternalSubset>, CustomError> {
+) -> Result<Vec<EntityValue>, CustomError> {
     let mut data = read_file(file)?;
-    data = data.replace("\r\n", "\n");
-
-    let (_, internal_subset) =
-        InternalSubset::parse(data.as_str(), (entity_references, external_parse_config)).map_err(
-            |err| match err {
-                nom::Err::Error(e) | nom::Err::Failure(e) => {
-                    CustomError::NomError(format!("error: {:?}, input: {}", e.code, e.input))
-                }
-                nom::Err::Incomplete(_) => CustomError::NomError("Incomplete parsing".to_string()),
+    data = data.replace("\r\n", "\n").replace('\r', "\n");
+    dbg!(&data);
+    let (_, entity_values) = alt((
+        map(
+            |i| InternalSubset::parse_markup_decl(i, entity_references.clone()),
+            |int_subsets| {
+                int_subsets
+                    .into_iter()
+                    .map(|int_subset| EntityValue::InternalSubset(Box::new(int_subset)))
+                    .collect::<Vec<_>>()
             },
-        )?;
-
-    Ok(internal_subset)
+        ),
+        map(
+            |i| Document::parse_content(i, entity_references.clone()),
+            |doc| {
+                dbg!("DOC");
+                dbg!(&doc);
+                vec![EntityValue::Document(doc)]
+            },
+        ),
+    ))(data.as_str())
+    .map_err(|err| match err {
+        nom::Err::Error(e) | nom::Err::Failure(e) => {
+            CustomError::NomError(format!("error: {:?}, input: {}", e.code, e.input))
+        }
+        nom::Err::Incomplete(_) => CustomError::NomError("Incomplete parsing".to_string()),
+    })?;
+    dbg!("PEEF");
+    dbg!(&entity_values);
+    Ok(entity_values)
 }
 
 pub fn parse_directory(

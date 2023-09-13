@@ -23,7 +23,7 @@ use nom_xml::{
     tag::{Tag, TagState},
     ConditionalState, Config, Document, ExternalEntityParseConfig, QualifiedName,
 };
-use std::{borrow::Cow, error::Error, fs::File};
+use std::{error::Error, fs::File};
 
 fn test_valid_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
@@ -3400,7 +3400,7 @@ fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
                     },
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName {
                                 prefix: None,
                                 local_part: "e".to_string(),
@@ -4110,7 +4110,7 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::External {
                                 id: ExternalID::System("e.dtd".to_string()),
@@ -4159,7 +4159,7 @@ fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::External {
                                 id: ExternalID::Public {
@@ -4258,7 +4258,7 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
                                 parsed: true,
                             })),
                         },
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::EntityValue(EntityValue::Value(
                                 "<foo>".to_string()
@@ -4749,7 +4749,7 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::EntityValue(EntityValue::Value(
                                 "foo".to_string()
@@ -4929,7 +4929,7 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                                 parsed: true,
                             })),
                         },
-                        InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
+                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
                             name: QualifiedName::new(None, "e"),
                             entity_def: EntityDefinition::External {
                                 id: ExternalID::System("097.ent".to_string()),

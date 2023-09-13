@@ -15,6 +15,7 @@ use nom::{
 };
 
 use crate::{
+    io::read_file,
     attribute::Attribute,
     namespaces::ParseNamespace,
     parse::Parse,
@@ -24,7 +25,7 @@ use crate::{
         internal_subset::entity_declaration::GeneralEntityDeclaration,
     },
     reference::{ParseReference, Reference},
-    Document, Name, QualifiedName, ExternalEntityParseConfig, io::parse_external_ent_file,
+    Document, Name, QualifiedName, ExternalEntityParseConfig, io::parse_external_ent_file, Config,
 };
 
 use self::{
@@ -33,6 +34,8 @@ use self::{
     entity_value::EntityValue,
 };
 
+
+//TODO handle circular references in all entity replacements
 #[derive(Clone, PartialEq)]
 pub enum InternalSubset {
     Element {
@@ -72,12 +75,12 @@ impl InternalSubset {
 impl<'a> ParseNamespace<'a> for InternalSubset {}
 
 impl<'a> Parse<'a> for  InternalSubset {
-    type Args = (Rc<RefCell<HashMap<Name, EntityValue>>>,ExternalEntityParseConfig);
+    type Args = (Rc<RefCell<HashMap<Name, EntityValue>>>,Config);
     type Output = IResult<&'a str, Vec<InternalSubset>>;
 
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        let(entity_references,external_parse_config) = args;
+        let(entity_references,config) = args;
         let (input, parsed) = many0(alt((
             |i| Self::parse_markup_decl(i, entity_references.clone()),
             |i| Self::parse_decl_sep(i,entity_references.clone()),
@@ -85,13 +88,13 @@ impl<'a> Parse<'a> for  InternalSubset {
 
                                 
         let mut consolidated: Vec<InternalSubset> = vec![];
-        let mut expanded_entities: Vec<Box<InternalSubset>> = vec![];
+
         for mut opt_internal_subset in parsed {
 
             if let Some(InternalSubset::Entity(entity)) = opt_internal_subset.clone() {
                 
-                let _ = Self::get_external_entity(entity.clone(), entity_references.clone(), external_parse_config.clone());
-                    
+                let _ = Self::get_external_entity(entity.clone(), entity_references.clone(), config.clone());
+                dbg!(&entity_references);    
                 
                 
                
@@ -148,14 +151,20 @@ impl InternalSubset {
             }
         }
     }
-
+    
     fn get_external_entity<'a>(
         entity_decl: EntityDecl,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-        external_parse_config: ExternalEntityParseConfig,
+        config: Config,
     ) -> Result<(), nom::Err<nom::error::Error<&'a str>>> {
-        if let ExternalEntityParseConfig { allow_ext_parse: true, base_directory, .. } = &external_parse_config {
+        if let Config {external_parse_config: ExternalEntityParseConfig { allow_ext_parse: true, base_directory, .. }} = &config {
             if let EntityDecl::Parameter(EntityDeclaration {
+                name,
+                entity_def: EntityDefinition::External {
+                    id: ExternalID::System(ent_file),
+                    ..
+                },
+            })| EntityDecl::General(EntityDeclaration {
                 name,
                 entity_def: EntityDefinition::External {
                     id: ExternalID::System(ent_file),
@@ -167,50 +176,36 @@ impl InternalSubset {
                     Some(base) => format!("{}/{}", base, ent_file),
                     None => ent_file.clone(),
                 };
-    
+                dbg!(&file_path);
                 match File::open(file_path) {
                     Ok(mut file) => {
-                        match parse_external_ent_file(&mut file, external_parse_config.clone(), entity_references.clone()) {
-                            Ok(parsed_internal_subset) => {
-                                match parsed_internal_subset.as_slice() {
-                                    [internal_subset] => {
-                                        let boxed_entity = Box::new(internal_subset.clone());
-                                        entity_references.borrow_mut().insert(name.clone(), EntityValue::InternalSubset(boxed_entity));
+                        
+                        match parse_external_ent_file(&mut file,  entity_references.clone()) {
+                            Ok(parsed_entity_value) => {
+                                dbg!(&parsed_entity_value);
+                                match parsed_entity_value.as_slice() {
+                                    [entity] => {
+                                        dbg!(&entity);
+                                        entity_references.borrow_mut().insert(name.clone(), entity.clone());
                                         dbg!(entity_references);
                                         Ok(())
                                     },
-                                    _ => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                                    _ => {dbg!("HERE0");Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))}, 
                                 }
                             },
-                            Err(_) => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                            Err(_) => {dbg!("HERE1");Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))}, 
                         }
                     },
-                    Err(_) => Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))), // Using an empty string slice here, adjust as needed
+                    Err(_) => {dbg!("HERE2");Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))}, 
                 }
             } else {
-                Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))) // Using an empty string slice here, adjust as needed
+                {dbg!("HERE3");Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))} 
             }
         } else {
-            Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))) // Using an empty string slice here, adjust as needed
+            Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail))) 
         }
     }
-    
-
-
-
-    // fn expand_external_entity(
-    //     internal_subset: &mut InternalSubset,
-    //     expanded_entity: InternalSubset,
-    //     entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-    //     external_parse_config: ExternalEntityParseConfig,
-    // ) -> Result<(), nom::Err<nom::error::Error<&str>>> {
-    //     if let InternalSubset::DeclSep { reference, expansion } = internal_subset {
-    //         expansion = 
-    //     } else {
-    //         Err(nom::Err::Error(nom::error::Error::new("", nom::error::ErrorKind::Fail)))
-    //     }
-    // }
-    
+        
     
     // [28a] DeclSep ::=  PEReference | S 
     fn parse_decl_sep(input: &str, entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>) -> IResult<&str, Option<InternalSubset>> {
@@ -435,7 +430,7 @@ impl InternalSubset {
 
 
     // [9] EntityValue	::= '"' ([^%&"] | PEReference | Reference)* '"'|  "'" ([^%&'] | PEReference | Reference)* "'"
-    fn parse_entity_value(
+    pub fn parse_entity_value(
         input: &str,
         name: Name,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
@@ -450,12 +445,12 @@ impl InternalSubset {
                         alt((char('\"'), char('\''))),
                         Self::capture_span(alt((
                             move |i| Document::parse_element(i, cloned_references.clone()),
-                            Document::parse_cdata_section
+                            Document::parse_cdata_section,
                         ))),
                         alt((char('\"'), char('\''))),
                     )),
                     |(_, (raw_entity_value, doc), _)| {
-                                                                        entity_references.borrow_mut().insert(name.clone(), EntityValue::Document(doc));
+                        entity_references.borrow_mut().insert(name.clone(), EntityValue::Document(doc));
                 
                         // Return the original string
                         EntityValue::Value(raw_entity_value.to_string())
@@ -599,7 +594,7 @@ impl InternalSubset {
     }
 
     // [29] markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
-    fn parse_markup_decl(
+    pub fn parse_markup_decl(
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> IResult<&str, Option<InternalSubset>> {

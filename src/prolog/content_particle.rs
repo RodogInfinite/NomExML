@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     character::complete::char,
     combinator::{map, opt},
-    multi::{many1, separated_list0, separated_list1},
+    multi::{many0, many1, separated_list0, separated_list1},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -61,6 +61,7 @@ impl<'a> Parse<'a> for ContentParticle {
 impl ContentParticle {
     // [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
     pub fn parse_choice(input: &str) -> IResult<&str, Vec<ContentParticle>> {
+        dbg!("PARSING CHOICE");
         map(
             delimited(
                 tuple((char('('), Self::parse_multispace0)),
@@ -73,7 +74,7 @@ impl ContentParticle {
                 )),
                 tuple((Self::parse_multispace0, char(')'))),
             ),
-            |(first_cp, mut others)| {
+            |(first_cp, others)| {
                 let mut all_cps = Vec::new();
                 all_cps.push(first_cp);
                 all_cps.extend(others.into_iter().map(|(_, cp)| cp));
@@ -84,13 +85,25 @@ impl ContentParticle {
 
     // [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
     pub fn parse_sequence(input: &str) -> IResult<&str, Vec<ContentParticle>> {
-        delimited(
-            tuple((char('('), Self::parse_multispace0)),
-            separated_list0(
-                tuple((Self::parse_multispace0, char(','), Self::parse_multispace0)),
-                |i| Self::parse(i, ()),
+        dbg!("PARSING SEQUENCE");
+        map(
+            delimited(
+                tuple((char('('), Self::parse_multispace0)),
+                tuple((
+                    |i| Self::parse(i, ()),
+                    many0(tuple((
+                        tuple((Self::parse_multispace0, char(','), Self::parse_multispace0)),
+                        |i| Self::parse(i, ()),
+                    ))),
+                )),
+                tuple((Self::parse_multispace0, char(')'))),
             ),
-            tuple((Self::parse_multispace0, char(')'))),
+            |(first_cp, others)| {
+                let mut all_cps = Vec::new();
+                all_cps.push(first_cp);
+                all_cps.extend(others.into_iter().map(|(_, cp)| cp));
+                all_cps
+            },
         )(input)
     }
 }

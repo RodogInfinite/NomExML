@@ -5,7 +5,7 @@ use crate::{
         entity_declaration::{EntityDecl, EntityDeclaration},
         entity_definition::EntityDefinition,
     },
-    ExternalEntityParseConfig, Name,
+    Config, ExternalEntityParseConfig, Name,
 };
 use nom::{
     bytes::complete::tag,
@@ -28,10 +28,7 @@ pub struct DocType {
 }
 
 impl<'a> Parse<'a> for DocType {
-    type Args = (
-        Rc<RefCell<HashMap<Name, EntityValue>>>,
-        ExternalEntityParseConfig,
-    );
+    type Args = (Rc<RefCell<HashMap<Name, EntityValue>>>, Config);
 
     type Output = IResult<&'a str, Self>;
 

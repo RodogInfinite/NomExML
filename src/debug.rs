@@ -175,7 +175,7 @@ impl Document {
                     indent,
                     &format!(
                         "Content(\"{}\"),\n",
-                        content.clone().map_or("".to_string(), |c| c.to_string())
+                        content.clone().map_or("".to_string(), |c| c)
                     ),
                 );
             }
@@ -194,7 +194,7 @@ impl Document {
                 );
             }
             Document::Empty => {
-                fmt_indented(f, indent, "Empty,\n");
+                fmt_indented(f, indent, "Empty\n");
             }
             Document::EmptyTag(tag) => {
                 fmt_indented(f, indent, "EmptyTag(\n");
@@ -711,11 +711,11 @@ impl EntityDefinition {
     fn fmt_indented_entity_definition(&self, f: &mut String, indent: usize) {
         match self {
             EntityDefinition::EntityValue(value) => {
-                f.push_str("EntityValue {\n");
+                f.push_str("EntityValue(\n");
                 let mut s = String::new();
                 value.fmt_indented_entity_value(&mut s, indent + 4);
                 f.push_str(&format!("{}", s));
-                fmt_indented(f, indent, "},");
+                fmt_indented(f, indent, ")");
             }
             EntityDefinition::External { id, n_data } => {
                 fmt_indented(f, indent, "External {\n");
@@ -775,8 +775,8 @@ impl EntityValue {
             }
             EntityValue::Document(document) => {
                 fmt_indented(f, indent, "Document(\n");
-                fmt_indented(f, indent + 4, &format!("{:?},\n", document));
-                fmt_indented(f, indent, "),\n");
+                fmt_indented(f, indent + 4, &format!("{:?}\n", document));
+                fmt_indented(f, indent, ")\n");
             }
             EntityValue::InternalSubset(internal_subset) => {
                 // Handle the new variant here

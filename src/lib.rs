@@ -134,10 +134,10 @@ impl<'a> Parse<'a> for Document {
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
-                if let Config {external_parse_config} = args {
+                
                     let entity_references = Rc::new(RefCell::new(HashMap::new()));
                     let (input, prolog_and_references) =
-                        opt(|i| Self::parse_prolog(i, entity_references.clone(),external_parse_config.clone()))(input)?;
+                        opt(|i| Self::parse_prolog(i, entity_references.clone(),args.clone()))(input)?;
     
                     let (prolog, new_entity_references) = match prolog_and_references {
                         Some((p, r)) => (p, r),
@@ -175,12 +175,7 @@ impl<'a> Parse<'a> for Document {
                     let (input, documents) = Self::construct_document(input, prolog, documents)?;
     
                     Ok((input, documents))
-                } else {
-                    Err(nom::Err::Error(nom::error::Error {
-                        input: "missing ExternalEntityParseConfig",
-                        code: nom::error::ErrorKind::Fail, // Or any other ErrorKind that is suitable for your case
-                    }))
-                }
+                
                 
             }
             Err(nom::Err::Error(err_msg)) => {
@@ -214,14 +209,14 @@ impl Document {
     pub fn parse_prolog(
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-        external_parse_config: ExternalEntityParseConfig,
+        config: Config,
     ) -> IResult<&str, (Option<Document>, Rc<RefCell<HashMap<Name, EntityValue>>>)> {
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
 
-        let (input, doc_type) = opt(|i| DocType::parse(i, (entity_references.clone(),external_parse_config.clone())))(input)?;
+        let (input, doc_type) = opt(|i| DocType::parse(i, (entity_references.clone(),config.clone())))(input)?;
 
         let (input, misc_after) = match &doc_type {
             Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
@@ -296,7 +291,7 @@ impl Document {
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
                 map(
                     |i| Tag::parse_empty_element_tag(i, entity_references.clone()),
-                    |tag| Document::EmptyTag(tag.clone()),
+                     Document::EmptyTag,
                 ),
             ),
             map(
@@ -308,13 +303,15 @@ impl Document {
                     Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
                 )),
                 |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
+                    dbg!("CONTENT PARSE ELEMENT");
+                    dbg!(&content);
                     Document::Element(start_tag, Box::new(content), end_tag)
                 },
             ),
         ))(input)?;
         Ok((input, doc))
     }
-    
+
     fn collect_entity_references(
         doc_type: &DocType,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
@@ -367,6 +364,8 @@ impl Document {
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> IResult<&str, Document> {
+        dbg!("PARSE CONTENT");
+        dbg!(&input);
         let (input, ((_whitespace, maybe_chardata), elements)) = tuple((
             pair(
                 Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
@@ -375,7 +374,7 @@ impl Document {
             many0(alt((
                 pair(
                     map(
-                        many1(|i| Reference::parse(i, entity_references.clone())), // TODO this is returning the bracket for &#60;doc>
+                        many1(|i| Reference::parse(i, entity_references.clone())), 
                         Self::process_references(entity_references.clone()),
                     ),
                     pair(
@@ -416,42 +415,76 @@ impl Document {
                 ),
             ))),
         ))(input)?;
+        
+        dbg!("ELEMENTS");
+        dbg!(&elements);
+        dbg!(&maybe_chardata);
+        // Check if maybe_chardata contains a comma
+
+
         let mut content = elements
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
                 let mut vec = Vec::new();
+
                 vec.push(doc);
+                dbg!("CONTENT HERE?");
+                dbg!(&vec);
+                dbg!(&maybe_chardata);
+                
+       
+                
                 if let (_, Some(chardata)) = maybe_chardata {
+                    dbg!("HHH");
+                    dbg!(chardata.contains(','));
+                    dbg!(chardata.is_empty());
                     if !chardata.is_empty() {
+                        dbg!("WHAT");
+                        dbg!(&chardata);
                         vec.push(Document::Content(Some(chardata)));
                     }
                 }
+                dbg!("VEC");
+                dbg!(&vec);
                 vec
             })
             .collect::<Vec<_>>();
+        
+
+            dbg!(&content);
+            dbg!(&entity_references);
         Ok((
             input,
             match maybe_chardata {
                 Some(chardata) if !chardata.is_empty() => {
                     let mut vec = Vec::new();
+                    
                     vec.push(Document::Content(Some(chardata)));
+                    
                     vec.append(&mut content);
+                    
                     match vec.as_slice() {
                         [doc] => doc.clone(),
+                        
                         _ => Document::Nested(vec),
                     }
                 }
                 _ => {
+                    dbg!(content.is_empty());
                     if content.is_empty() {
                         Document::Empty
                     } else {
+                        // dbg!("CONTENT HERE?");
+                        // dbg!(&content);
                         match &content[..] {
                             [doc @ Document::Content(_)] => doc.clone(),
                             [doc @ Document::ProcessingInstruction(_)] => doc.clone(),
                             [doc @ Document::CDATA(_)] => doc.clone(),
                             [doc @ Document::Comment(_)] => doc.clone(),
                             [doc @ Document::EmptyTag(_)] => doc.clone(),
-                            _ => Document::Nested(content),
+                            [doc @ Document::Empty] => doc.clone(),
+                            [doc @ Document::Nested(_)] => doc.clone(),
+                            _ => {dbg!("WHAT HERE");dbg!(&content);Document::Nested(content)},
                         }
                     }
                 }
