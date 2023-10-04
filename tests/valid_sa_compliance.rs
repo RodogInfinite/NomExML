@@ -9,13 +9,14 @@ use nom_xml::{
         doctype::DocType,
         external_id::ExternalID,
         id::ID,
-        internal_subset::{
+        subset::{
             entity_declaration::{
                 EntityDecl, EntityDeclaration, GeneralEntityDeclaration, ParameterEntityDeclaration,
             },
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
-            InternalSubset,
+            internal::InternalSubset,
+            markup_declaration::MarkupDeclaration,
         },
         xmldecl::{Standalone, XmlDecl},
     },
@@ -44,13 +45,12 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -83,13 +83,12 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -122,13 +121,12 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -162,21 +160,18 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -214,21 +209,18 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -266,21 +258,18 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -317,13 +306,12 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -356,13 +344,12 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -395,13 +382,12 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -435,21 +421,18 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -486,14 +469,11 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -507,7 +487,7 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Implied,
                                 },
                             ]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -551,21 +531,18 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, ":"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -575,7 +552,7 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, ":"), // TODO: confirm this is correct
                         value: AttributeValue::Value("v1".to_string()),
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -603,21 +580,18 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "_.-0123456789"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -627,7 +601,7 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "_.-0123456789"),
                         value: AttributeValue::Value("v1".to_string()),
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -655,21 +629,18 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "abcdefghijklmnopqrstuvwxyz"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -679,7 +650,7 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "abcdefghijklmnopqrstuvwxyz"),
                         value: AttributeValue::Value("v1".to_string()),
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -707,21 +678,18 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -731,7 +699,7 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
                         value: AttributeValue::Value("v1".to_string()),
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -758,13 +726,12 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -800,13 +767,12 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -848,13 +814,12 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -890,13 +855,12 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -929,13 +893,12 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -968,13 +931,12 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1007,13 +969,12 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1046,13 +1007,12 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1086,19 +1046,18 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -1133,7 +1092,7 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -1144,20 +1103,19 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "foo"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "&#60;foo></foo>".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "&#60;foo></foo>".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -1204,7 +1162,7 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -1215,14 +1173,11 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "foo"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -1276,7 +1231,7 @@ fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -1287,11 +1242,11 @@ fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "foo"),
                             content_spec: Some(DeclarationContent::Empty),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -1345,7 +1300,7 @@ fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -1356,11 +1311,11 @@ fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "foo"),
                             content_spec: Some(DeclarationContent::Any),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -1417,13 +1372,12 @@ fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1460,13 +1414,12 @@ fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1503,13 +1456,12 @@ fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1546,13 +1498,12 @@ fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1589,13 +1540,12 @@ fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1632,13 +1582,12 @@ fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1671,13 +1620,12 @@ fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::EmptyTag(Tag {
@@ -1702,13 +1650,12 @@ fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::EmptyTag(Tag {
@@ -1733,13 +1680,12 @@ fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1776,13 +1722,12 @@ fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1817,17 +1762,16 @@ fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
                         " comment ".to_string()
                     )])),
                     state: MiscState::BeforeDoctype,
-                },]),
+                }]),
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1864,17 +1808,16 @@ fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
                         },
                     )])),
                     state: MiscState::BeforeDoctype,
-                },]),
+                }]),
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -1908,21 +1851,18 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -1932,7 +1872,7 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: AttributeValue::Value("\"<&>'".to_string()), // using .into() instead of Cow::Borrowed
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -1960,21 +1900,18 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
+                            }]),
+                        }),
                     ]),
                 }),
             },
@@ -1984,7 +1921,7 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: AttributeValue::Value("A".to_string()), // '&#65;' decodes to 'A'
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -2011,13 +1948,12 @@ fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2051,21 +1987,18 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::AttList {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
-                            },]),
-                        },
-                        InternalSubset::Element {
+                            }]),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -2075,7 +2008,7 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: AttributeValue::Value("foo\nbar".to_string()), // attribute value spans multiple lines
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -2103,7 +2036,7 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -2114,12 +2047,12 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None,
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
-                        },
-                        InternalSubset::AttList {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "e"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -2138,7 +2071,7 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Implied,
                                 },
                             ]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -2204,14 +2137,11 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -2225,7 +2155,7 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Value("z1".to_string()),
                                 },
                             ]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -2260,14 +2190,11 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -2281,7 +2208,7 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Value("v2".to_string()),
                                 },
                             ]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -2315,13 +2242,12 @@ fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2354,13 +2280,12 @@ fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2393,13 +2318,12 @@ fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2432,13 +2356,12 @@ fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2471,13 +2394,12 @@ fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "เจมส์"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "เจมส์"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "เจมส์"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2510,13 +2432,12 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2550,13 +2471,15 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<e/>".to_string()
-                            ))
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<e/>".to_string()
+                                ))
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -2567,11 +2490,11 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty)
-                        }
+                        })
                     ]),
                 }),
             },
@@ -2610,13 +2533,12 @@ fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2658,13 +2580,12 @@ fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2697,13 +2618,12 @@ fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2736,18 +2656,20 @@ fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Children(
-                            ContentParticle::Sequence(
-                                vec![ContentParticle::Name(
-                                    QualifiedName::new(None, "a"),
-                                    ConditionalState::ZeroOrMore,
-                                ),],
-                                ConditionalState::None
-                            )
-                        )),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Children(
+                                ContentParticle::Sequence(
+                                    vec![ContentParticle::Name(
+                                        QualifiedName::new(None, "a"),
+                                        ConditionalState::ZeroOrMore,
+                                    ),],
+                                    ConditionalState::None
+                                )
+                            )),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2781,21 +2703,18 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::AttList {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -2805,7 +2724,7 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
                     attributes: Some(vec![Attribute::Instance {
                         name: QualifiedName::new(None, "a1"),
                         value: AttributeValue::Value(" 1  	2 	".to_string()), // The attribute value from the input
-                    },]),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -2833,7 +2752,7 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -2844,12 +2763,12 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
-                        },
-                        InternalSubset::AttList {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "e"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -2868,7 +2787,7 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Implied,
                                 },
                             ]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -2953,13 +2872,12 @@ fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -2997,13 +2915,12 @@ fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -3036,13 +2953,12 @@ fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -3079,13 +2995,12 @@ fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "เจมส์"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "เจมส์"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "เจมส์"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -3118,13 +3033,12 @@ fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -3158,19 +3072,18 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                Reference::CharRef("<".to_string())
-                            )),
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                    Reference::CharRef("<".to_string())
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -3205,30 +3118,29 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
-                        InternalSubset::Comment(Document::Comment(
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Comment(Document::Comment(
                             " 34 is double quote ".to_string()
-                        )),
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e1"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                Reference::CharRef("\"".to_string())
-                            )),
-                        })),
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e1"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                    Reference::CharRef("\"".to_string())
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -3265,13 +3177,12 @@ fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -3305,19 +3216,18 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                Reference::CharRef("\r".to_string())
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                    Reference::CharRef("\r".to_string())
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -3352,17 +3262,14 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Notation {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Notation {
                             name: QualifiedName::new(None, "n"),
                             id: ID::PublicID("whatever".to_string()),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3400,30 +3307,31 @@ fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
                     },
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName {
-                                prefix: None,
-                                local_part: "e".to_string(),
-                            },
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<!ELEMENT doc (#PCDATA)>".to_string()
-                            )),
-                        })),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName {
+                                    prefix: None,
+                                    local_part: "e".to_string(),
+                                },
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<!ELEMENT doc (#PCDATA)>".to_string()
+                                )),
+                            })
+                        )),
                         InternalSubset::DeclSep {
                             reference: Reference::EntityRef(QualifiedName {
                                 prefix: None,
                                 local_part: "e".to_string(),
                             }),
-                            expansion: Some(Box::new(InternalSubset::Element {
-                                name: QualifiedName {
-                                    prefix: None,
-                                    local_part: "doc".to_string(),
-                                },
-                                content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                    names: None,
-                                    parsed: true,
-                                })),
-                            })),
+                            expansion: Some(Box::new(InternalSubset::MarkupDecl(
+                                MarkupDeclaration::Element {
+                                    name: QualifiedName {
+                                        prefix: None,
+                                        local_part: "doc".to_string(),
+                                    },
+                                    content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                                }
+                            ))),
                         },
                     ]),
                 }),
@@ -3465,21 +3373,18 @@ fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::ID),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3514,21 +3419,18 @@ fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::IDREF),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3563,21 +3465,18 @@ fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::IDREFS),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3612,21 +3511,18 @@ fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::ENTITY),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3661,21 +3557,18 @@ fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::ENTITIES),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3710,14 +3603,11 @@ fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
@@ -3730,19 +3620,19 @@ fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
                                 },
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
-                        InternalSubset::Notation {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Notation {
                             name: QualifiedName::new(None, "n1"),
                             id: ID::ExternalID(ExternalID::System(
                                 "http://www.w3.org/".to_string()
                             )),
-                        },
-                        InternalSubset::Notation {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Notation {
                             name: QualifiedName::new(None, "n2"),
                             id: ID::ExternalID(ExternalID::System(
                                 "http://www.w3.org/".to_string()
                             )),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3777,14 +3667,11 @@ fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
@@ -3794,7 +3681,7 @@ fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
                                 },
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        }
+                        })
                     ]),
                 }),
             },
@@ -3829,21 +3716,18 @@ fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Required,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3881,21 +3765,18 @@ fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Fixed("v".to_string()),
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3933,21 +3814,18 @@ fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Fixed("v".to_string()),
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -3984,7 +3862,7 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4005,8 +3883,8 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "a"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4017,8 +3895,8 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "b"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4029,8 +3907,8 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "c"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Choice(
@@ -4047,7 +3925,7 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::OneOrMore
                                 )
                             )),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -4110,20 +3988,20 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::External {
-                                id: ExternalID::System("e.dtd".to_string()),
-                                n_data: None,
-                            },
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::System("e.dtd".to_string()),
+                                    n_data: None,
+                                    text_decl: None,
+                                },
+                            })
+                        )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -4159,25 +4037,25 @@ fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::External {
-                                id: ExternalID::Public {
-                                    pubid: "whatever".to_string(),
-                                    system_identifier: Box::new(ExternalID::System(
-                                        "e.dtd".to_string()
-                                    )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::Public {
+                                        pubid: "whatever".to_string(),
+                                        system_identifier: Box::new(ExternalID::System(
+                                            "e.dtd".to_string()
+                                        )),
+                                    },
+                                    n_data: None,
+                                    text_decl: None,
                                 },
-                                n_data: None,
-                            },
-                        })),
-                        InternalSubset::Element {
+                            })
+                        )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -4211,13 +4089,12 @@ fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -4251,25 +4128,26 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<foo>".to_string()
-                            )),
-                        })),
-                        InternalSubset::Entity(EntityDecl::General(EntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo>".to_string()
+                                )),
+                            })
+                        )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            EntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -4304,25 +4182,26 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "".to_string()
-                            )),
-                        })),
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<foo>".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "".to_string()
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo>".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -4357,13 +4236,15 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<foo/&#62;".to_string()
-                            )),
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo/&#62;".to_string()
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4374,11 +4255,11 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "foo"),
                             content_spec: Some(DeclarationContent::Empty),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -4417,19 +4298,18 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<foo>".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<foo>".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -4465,19 +4345,18 @@ fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\u{10000}\u{10FFFD}\u{10FFFF}".to_string()
-                            )),
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\u{10000}\u{10FFFD}\u{10FFFF}".to_string()
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        }
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        })
                     ]),
                 }),
             },
@@ -4514,7 +4393,7 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::AttList {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "e"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
@@ -4524,8 +4403,8 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
                                 },
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4536,18 +4415,15 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::ZeroOrMore,
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "e"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Notation {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Notation {
                             name: QualifiedName::new(None, "n"),
                             id: ID::PublicID("whatever".to_string()),
-                        }
+                        })
                     ]),
                 }),
             },
@@ -4582,34 +4458,34 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Notation {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Notation {
                             name: QualifiedName::new(None, "n"),
                             id: ID::ExternalID(ExternalID::System(
                                 "http://www.w3.org/".to_string()
                             ))
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::External {
-                                id: ExternalID::System("http://www.w3.org/".to_string()),
-                                n_data: Some(QualifiedName::new(None, "n")),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::System("http://www.w3.org/".to_string()),
+                                    n_data: Some(QualifiedName::new(None, "n")),
+                                    text_decl: None,
+                                }
                             }
-                        })),
-                        InternalSubset::Element {
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::ENTITY),
                                 default_decl: DefaultDecl::Value("e".to_string()),
                             }]),
-                        }
+                        })
                     ]),
                 }),
             },
@@ -4644,7 +4520,7 @@ fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -4655,11 +4531,11 @@ fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::ZeroOrMore
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "a"),
                             content_spec: Some(DeclarationContent::Empty),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -4709,13 +4585,12 @@ fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -4749,27 +4624,26 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "foo".to_string()
-                            )),
-                        })),
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "foo".to_string()
+                                )),
+                            })
+                        )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Value("%e;".to_string()),
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -4804,7 +4678,7 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::AttList {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -4818,14 +4692,11 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Implied,
                                 }
                             ]),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -4863,21 +4734,18 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::AttList {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a1"),
                                 att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
                                 default_decl: DefaultDecl::Value(" 1  \t2 \t".to_string()),
                             }]),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -4922,21 +4790,21 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::Parameter(ParameterEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::External {
-                                id: ExternalID::System("097.ent".to_string()),
-                                n_data: None,
-                            },
-                        })),
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(ParameterEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::System("097.ent".to_string()),
+                                    n_data: None,
+                                    text_decl: None,
+                                },
+                            })
+                        )),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
@@ -4950,17 +4818,19 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                                     default_decl: DefaultDecl::Value("v2".to_string()),
                                 },
                             ]),
-                        },
+                        }),
                         InternalSubset::DeclSep {
                             reference: Reference::EntityRef(QualifiedName::new(None, "e")),
-                            expansion: Some(Box::new(InternalSubset::AttList {
-                                name: QualifiedName::new(None, "doc"),
-                                att_defs: Some(vec![Attribute::Definition {
-                                    name: QualifiedName::new(None, "a2"),
-                                    att_type: AttType::CDATA,
-                                    default_decl: DefaultDecl::Implied,
-                                },]),
-                            })),
+                            expansion: Some(Box::new(InternalSubset::MarkupDecl(
+                                MarkupDeclaration::AttList {
+                                    name: QualifiedName::new(None, "doc"),
+                                    att_defs: Some(vec![Attribute::Definition {
+                                        name: QualifiedName::new(None, "a2"),
+                                        att_type: AttType::CDATA,
+                                        default_decl: DefaultDecl::Implied,
+                                    }]),
+                                }
+                            ))),
                         }
                     ]),
                 }),
@@ -4995,13 +4865,12 @@ fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -5042,13 +4911,12 @@ fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -5083,25 +4951,25 @@ fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::External {
-                                id: ExternalID::Public {
-                                    pubid: ";!*#@$_%".to_string(),
-                                    system_identifier: Box::new(ExternalID::System(
-                                        "100.xml".to_string()
-                                    ))
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::Public {
+                                        pubid: ";!*#@$_%".to_string(),
+                                        system_identifier: Box::new(ExternalID::System(
+                                            "100.xml".to_string()
+                                        ))
+                                    },
+                                    n_data: None,
+                                    text_decl: None,
                                 },
-                                n_data: None,
-                            },
-                        })),
-                        InternalSubset::Element {
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -5136,19 +5004,18 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                Reference::CharRef("\"".to_string())
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                    Reference::CharRef("\"".to_string())
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -5183,21 +5050,18 @@ fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5234,13 +5098,12 @@ fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -5277,21 +5140,18 @@ fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5329,21 +5189,18 @@ fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5381,21 +5238,18 @@ fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5433,21 +5287,18 @@ fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5485,27 +5336,26 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\n".to_string()
-                            )),
-                        })),
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\n".to_string()
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5543,21 +5393,18 @@ fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5596,27 +5443,26 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "\r\n".to_string()
-                            )),
-                        })),
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "\r\n".to_string()
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5654,21 +5500,18 @@ fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5707,7 +5550,7 @@ fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Choice(
@@ -5724,14 +5567,11 @@ fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
                                     ConditionalState::None,
                                 )
                             )),
-                        },
-                        InternalSubset::Element {
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "a"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
                     ]),
                 }),
             },
@@ -5777,21 +5617,18 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::AttList {
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
                             name: QualifiedName::new(None, "e"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: QualifiedName::new(None, "a"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
                             }]),
-                        },
+                        }),
                     ]),
                 }),
             },
@@ -5827,19 +5664,18 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "<![CDATA[&foo;]]>".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "<![CDATA[&foo;]]>".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -5875,25 +5711,26 @@ fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e1"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                Reference::EntityRef(QualifiedName::new(None, "e2"))
-                            )),
-                        })),
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "e2"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "v".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e1"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
+                                    Reference::EntityRef(QualifiedName::new(None, "e2"))
+                                )),
+                            }
+                        ))),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "e2"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "v".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -5927,13 +5764,12 @@ fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                            names: None,
-                            parsed: true,
-                        })),
-                    },]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }
+                    )]),
                 }),
             },
             Document::Element(
@@ -5967,19 +5803,18 @@ fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "rsqb"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "]".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "rsqb"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "]".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -6014,19 +5849,18 @@ fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
-                        InternalSubset::Element {
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
                             name: QualifiedName::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA {
-                                names: None,
-                                parsed: true,
-                            })),
-                        },
-                        InternalSubset::Entity(EntityDecl::General(GeneralEntityDeclaration {
-                            name: QualifiedName::new(None, "rsqb"),
-                            entity_def: EntityDefinition::EntityValue(EntityValue::Value(
-                                "]]".to_string()
-                            )),
-                        })),
+                            content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                            GeneralEntityDeclaration {
+                                name: QualifiedName::new(None, "rsqb"),
+                                entity_def: EntityDefinition::EntityValue(EntityValue::Value(
+                                    "]]".to_string()
+                                )),
+                            }
+                        ))),
                     ]),
                 }),
             },
@@ -6060,10 +5894,12 @@ fn test_valid_sa_119() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: QualifiedName::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![InternalSubset::Element {
-                        name: QualifiedName::new(None, "doc"),
-                        content_spec: Some(DeclarationContent::Any),
-                    }]),
+                    int_subset: Some(vec![InternalSubset::MarkupDecl(
+                        MarkupDeclaration::Element {
+                            name: QualifiedName::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Any),
+                        }
+                    )]),
                 }),
             },
             Document::Element(

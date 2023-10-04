@@ -35,6 +35,8 @@ impl<'a> Parse<'a> for ContentParticle {
             map(
                 tuple((Self::parse_choice, opt(|i| ConditionalState::parse(i, ())))),
                 |(choice, conditional_state)| {
+                    dbg!("CHOICE HERE");
+                    dbg!(&choice);
                     ContentParticle::Choice(
                         choice,
                         conditional_state.unwrap_or(ConditionalState::None),
@@ -54,6 +56,8 @@ impl<'a> Parse<'a> for ContentParticle {
                 },
             ),
         ))(input)?;
+        dbg!("PARSED CONTENT PARTICLE");
+        dbg!(&res);
         Ok((input, res))
     }
 }

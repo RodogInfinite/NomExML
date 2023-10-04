@@ -1,12 +1,13 @@
 use crate::parse::Parse;
-use crate::prolog::internal_subset::entity_value::EntityValue;
-use crate::prolog::internal_subset::InternalSubset;
+use crate::prolog::subset::entity_value::EntityValue;
+use crate::prolog::subset::internal::InternalSubset;
+use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::{Config, ExternalEntityParseConfig, Name};
 // io.rs
 use crate::{error::CustomError, Document};
 use encoding_rs::*;
 use nom::branch::alt;
-use nom::combinator::map;
+use nom::combinator::{map, map_res};
 use nom::multi::{many0, many1};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::cell::RefCell;
@@ -49,6 +50,7 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomErr
 
 pub fn parse_external_ent_file(
     file: &mut File,
+    config: Config,
     entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
 ) -> Result<Vec<EntityValue>, CustomError> {
     let mut data = read_file(file)?;
@@ -56,12 +58,26 @@ pub fn parse_external_ent_file(
     dbg!(&data);
     let (_, entity_values) = alt((
         map(
-            |i| InternalSubset::parse_markup_decl(i, entity_references.clone()),
+            |i| MarkupDeclaration::parse(i, entity_references.clone()),
             |int_subsets| {
                 int_subsets
                     .into_iter()
-                    .map(|int_subset| EntityValue::InternalSubset(Box::new(int_subset)))
+                    .map(|markup_declaration| EntityValue::MarkupDecl(Box::new(markup_declaration)))
                     .collect::<Vec<_>>()
+            },
+        ),
+        map_res(
+            |i| Document::parse_prolog(i, entity_references.clone(), config.clone()),
+            |(doc_option, _entity_refs)| {
+                if let Some(doc) = doc_option {
+                    dbg!("DOC HERE?");
+                    dbg!(&doc);
+                    Ok(vec![EntityValue::Document(doc)])
+                } else {
+                    Err(CustomError::NomError(
+                        "Expected a document, but found None.".to_string(),
+                    ))
+                }
             },
         ),
         map(

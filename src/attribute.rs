@@ -1,5 +1,5 @@
 use crate::{
-    namespaces::ParseNamespace, parse::Parse, prolog::internal_subset::entity_value::EntityValue,
+    namespaces::ParseNamespace, parse::Parse, prolog::subset::entity_value::EntityValue,
     reference::Reference, Name, QualifiedName,
 };
 use nom::{

@@ -1,6 +1,6 @@
 use crate::{
     attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
-    prolog::internal_subset::entity_value::EntityValue, Name,
+    prolog::subset::entity_value::EntityValue, Name,
 };
 use nom::{
     branch::alt,

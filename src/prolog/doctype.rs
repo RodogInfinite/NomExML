@@ -1,9 +1,11 @@
 use crate::{
     namespaces::ParseNamespace,
     parse::Parse,
-    prolog::internal_subset::{
+    prolog::subset::{
         entity_declaration::{EntityDecl, EntityDeclaration},
         entity_definition::EntityDefinition,
+        entity_value::EntityValue,
+        internal::InternalSubset,
     },
     Config, ExternalEntityParseConfig, Name,
 };
@@ -15,10 +17,7 @@ use nom::{
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use super::{
-    external_id::ExternalID,
-    internal_subset::{entity_value::EntityValue, InternalSubset},
-};
+use super::{external_id::ExternalID, subset::markup_declaration::MarkupDeclaration};
 
 #[derive(Clone, PartialEq)]
 pub struct DocType {
@@ -32,10 +31,7 @@ impl<'a> Parse<'a> for DocType {
 
     type Output = IResult<&'a str, Self>;
 
-    // [28] doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
-    // Namespaces (Third Edition) [16] doctypedecl ::= '<!DOCTYPE' S QName (S ExternalID)? S? ('[' (markupdecl | PEReference | S)* ']' S?)? '>'
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        //let (entity_references, external_parse_config) = args;
         map(
             tuple((
                 tag("<!DOCTYPE"),
@@ -65,28 +61,20 @@ impl<'a> Parse<'a> for DocType {
                 _close_tag,
                 _whitespace3,
             )| {
-                // Iterate over the internal subset and normalize any references
-                if !int_subset.is_empty() {
-                    for item in &mut int_subset {
-                        match item {
-                            InternalSubset::Entity(EntityDecl::General(EntityDeclaration {
-                                entity_def,
-                                ..
-                            }))
-                            | InternalSubset::Entity(EntityDecl::Parameter(EntityDeclaration {
-                                entity_def,
-                                ..
-                            })) => {
-                                if let EntityDefinition::EntityValue(ev) = entity_def {
-                                    if let EntityValue::Reference(ref ref_val) = *ev {
-                                        let x = ref_val.normalize_entity(args.0.clone());
-                                    }
+                int_subset.iter_mut().for_each(|item| {
+                    if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity_enum)) = item
+                    {
+                        if let EntityDecl::General(entity_decl)
+                        | EntityDecl::Parameter(entity_decl) = entity_enum
+                        {
+                            if let EntityDefinition::EntityValue(ev) = &mut entity_decl.entity_def {
+                                if let EntityValue::Reference(ref_val) = ev {
+                                    let x = ref_val.normalize_entity(args.0.clone());
                                 }
                             }
-                            _ => {}
                         }
                     }
-                }
+                });
 
                 Self {
                     name,
@@ -101,24 +89,29 @@ impl<'a> Parse<'a> for DocType {
         )(input)
     }
 }
-
 //TODO integrate this
 impl DocType {
-    pub fn get_entities(&self) -> InternalSubset {
-        let entities: Vec<_> = self.int_subset.as_ref().map_or(Vec::new(), |subset| {
-            subset
-                .iter()
-                .filter_map(|item| {
-                    if let InternalSubset::Entity(_) = item {
-                        Some(Box::new(item.clone()))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        });
+    pub fn extract_entities(&self) -> Option<Vec<Box<InternalSubset>>> {
+        let entities: Vec<_> = self
+            .int_subset
+            .as_ref()?
+            .iter()
+            .filter_map(|item| {
+                if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(_)) = item {
+                    Some(Box::new(item.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        InternalSubset::Entities(entities)
+        if entities.is_empty() {
+            None
+        } else {
+            dbg!("ENTITIES HERE");
+            dbg!(&entities);
+            Some(entities)
+        }
     }
     //TODO: figure out how to integrate this or remove
     // fn _parse_qualified_doctype(

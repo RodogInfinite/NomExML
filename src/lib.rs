@@ -17,10 +17,10 @@ use crate::{
     processing_instruction::ProcessingInstruction,
     prolog::{
         doctype::DocType,
-        internal_subset::{
+        subset::{
             entity_declaration::{EntityDecl, EntityDeclaration},
             entity_definition::EntityDefinition,
-            InternalSubset,
+            internal::InternalSubset,
         },
         xmldecl::XmlDecl,
     },
@@ -38,7 +38,7 @@ use nom::{
     sequence::{pair, preceded, tuple},
     IResult,
 };
-use prolog::internal_subset::entity_value::EntityValue;
+use prolog::subset::{entity_value::EntityValue, markup_declaration::MarkupDeclaration};
 use std::{
     borrow::Cow,
     cell::RefCell,
@@ -199,18 +199,14 @@ impl<'a> Parse<'a> for Document {
 }
 
 impl Document {
-    // fn iter(&self) -> Box<dyn Iterator<Item = &Document> + '_> {
-    //     match self {
-    //         Document::Nested(docs) => Box::new(docs.iter()),
-    //         _ => Box::new(std::iter::empty::<&Document>()),
-    //     }
-    // }
     //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
     pub fn parse_prolog(
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
         config: Config,
     ) -> IResult<&str, (Option<Document>, Rc<RefCell<HashMap<Name, EntityValue>>>)> {
+        dbg!("PROLOG?");
+        dbg!(&input);
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
@@ -240,7 +236,8 @@ impl Document {
                 doc_type,
             }),
         };
-
+        
+        dbg!(&prolog);
         Ok((input, (prolog, updated_entity_references)))
     }
 
@@ -316,9 +313,10 @@ impl Document {
         doc_type: &DocType,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> Rc<RefCell<HashMap<Name, EntityValue>>> {
-        if let InternalSubset::Entities(entities) = &doc_type.get_entities() {
-            for boxed_entity in entities {
-                if let InternalSubset::Entity(entity_decl) = &**boxed_entity {
+        if let Some(entities) = doc_type.extract_entities() {
+            dbg!("MADE IT HERE");
+            for boxed_entity in &entities {
+                if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity_decl)) = &**boxed_entity {
                     match entity_decl {
                         EntityDecl::General(decl) | EntityDecl::Parameter(decl) => {
                             if let EntityDefinition::EntityValue(value) = &decl.entity_def {
@@ -333,13 +331,14 @@ impl Document {
                 }
             }
         }
-
+    
         if entity_references.borrow().is_empty() {
             Rc::new(RefCell::new(HashMap::new()))
         } else {
             entity_references
         }
     }
+    
     pub fn process_references(
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> impl Fn(Vec<Reference>) -> Document {

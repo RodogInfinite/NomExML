@@ -9,12 +9,14 @@ use crate::{
         doctype::DocType,
         external_id::ExternalID,
         id::ID,
-        internal_subset::{
+        subset::{
             entity_declaration::{EntityDecl, EntityDeclaration, GeneralEntityDeclaration},
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
-            InternalSubset,
+            internal::InternalSubset,
+            markup_declaration::MarkupDeclaration,
         },
+        textdecl::TextDecl,
         xmldecl::{Standalone, XmlDecl},
     },
     reference::Reference,
@@ -143,6 +145,7 @@ impl Document {
         match self {
             Document::Prolog {
                 xml_decl,
+
                 misc,
                 doc_type,
             } => {
@@ -151,6 +154,7 @@ impl Document {
                     if let Some(xml_decl) = xml_decl {
                         xml_decl.fmt_indented_xml_decl(f, indent + 4);
                     }
+
                     if let Some(misc_vec) = misc {
                         for misc in misc_vec {
                             misc.fmt_indented_misc(f, indent + 4);
@@ -235,22 +239,22 @@ impl DeclarationContent {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
             DeclarationContent::Mixed(mixed) => {
-                fmt_indented(f, indent, "Mixed {\n");
+                fmt_indented(f, indent, "Mixed(\n");
                 mixed.fmt_indented_mixed(f, indent + 4);
-                fmt_indented(f, indent, "},");
+                fmt_indented(f, indent, "),\n");
             }
             DeclarationContent::Children(children) => {
                 fmt_indented(f, indent, "Children {\n");
                 let mut s = String::new();
-                children.fmt_indented_content_particle(&mut s, indent + 4);
+                children.fmt_indented_content_particle(&mut s, indent + 4); // Assuming you have this function
                 f.push_str(&format!("[\n{}\n", s));
-                fmt_indented(f, indent, "},");
+                fmt_indented(f, indent, "},\n");
             }
             DeclarationContent::Empty => {
-                fmt_indented(f, indent, "Empty,");
+                fmt_indented(f, indent, "Empty,\n");
             }
             DeclarationContent::Any => {
-                fmt_indented(f, indent, "Any,");
+                fmt_indented(f, indent, "Any,\n");
             }
         }
     }
@@ -267,12 +271,16 @@ impl fmt::Debug for DeclarationContent {
 impl Mixed {
     fn fmt_indented_mixed(&self, f: &mut String, indent: usize) {
         match self {
-            Mixed::PCDATA { names, parsed } => {
-                fmt_indented(f, indent, "PCDATA {\n");
-                fmt_indented(f, indent + 4, &format!("names: {:?},\n", names));
-                fmt_indented(f, indent + 4, &format!("parsed: {:?},\n", parsed));
-
-                fmt_indented(f, indent, "},\n");
+            Mixed::PCDATA => {
+                fmt_indented(f, indent, "PCDATA,\n");
+            }
+            Mixed::Names(names) => {
+                fmt_indented(f, indent, "Names([\n");
+                for name in names {
+                    let formatted_name = name.fmt_qualified_name(indent + 4); // Assuming you have this function
+                    f.push_str(&format!("{},\n", formatted_name));
+                }
+                fmt_indented(f, indent, "]),\n");
             }
         }
     }
@@ -285,6 +293,7 @@ impl fmt::Debug for Mixed {
         write!(f, "{}", s)
     }
 }
+
 impl ContentParticle {
     fn fmt_indented_content_particle(&self, f: &mut String, indent: usize) {
         match self {
@@ -336,6 +345,14 @@ impl fmt::Debug for Standalone {
             Standalone::Yes => write!(f, "Yes"),
             Standalone::No => write!(f, "No"),
         }
+    }
+}
+impl TextDecl {
+    fn fmt_indented_text_decl(&self, f: &mut String, indent: usize) {
+        fmt_indented(f, indent, "TextDecl {\n");
+        fmt_indented(f, indent + 4, &format!("version: {:?},\n", self.version));
+        fmt_indented(f, indent + 4, &format!("encoding: {:?},\n", self.encoding));
+        fmt_indented(f, indent, "},\n");
     }
 }
 
@@ -428,10 +445,48 @@ impl ID {
     }
 }
 
+impl fmt::Debug for InternalSubset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_internal_subset(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
+
 impl InternalSubset {
     fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
         match self {
-            InternalSubset::Element { name, content_spec } => {
+            InternalSubset::MarkupDecl(markup_declaration) => {
+                markup_declaration.fmt_markup_decl(f, indent);
+            }
+            // InternalSubset::MarkupDecl(None) => {
+            //     fmt_indented(f, indent, "None");
+            // }
+            InternalSubset::DeclSep {
+                reference,
+                expansion,
+            } => {
+                fmt_indented(f, indent, "DeclSep {\n");
+                fmt_indented(f, indent + 4, &format!("reference: {:?},\n", reference));
+                fmt_indented(f, indent + 4, "expansion: ");
+                if let Some(inner) = expansion.as_deref() {
+                    let mut s = String::new();
+                    inner.fmt_internal_subset(&mut s, indent + 8);
+                    f.push_str(&format!("Some(\n{}\n", s));
+                    fmt_indented(f, indent + 4, "),\n");
+                } else {
+                    f.push_str("None,\n");
+                }
+                fmt_indented(f, indent, "},\n");
+            }
+        }
+    }
+}
+
+impl MarkupDeclaration {
+    fn fmt_markup_decl(&self, f: &mut String, indent: usize) {
+        match self {
+            MarkupDeclaration::Element { name, content_spec } => {
                 fmt_indented(f, indent, "Element {\n");
                 fmt_indented(
                     f,
@@ -451,7 +506,7 @@ impl InternalSubset {
                 fmt_indented(f, indent, "},\n");
             }
 
-            InternalSubset::AttList { name, att_defs } => {
+            MarkupDeclaration::AttList { name, att_defs } => {
                 fmt_indented(f, indent, "AttList {\n");
                 fmt_indented(
                     f,
@@ -467,7 +522,7 @@ impl InternalSubset {
                 fmt_indented(f, indent + 4, "],\n");
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::Notation { name, id } => {
+            MarkupDeclaration::Notation { name, id } => {
                 fmt_indented(f, indent, "Notation {\n");
                 fmt_indented(
                     f,
@@ -482,7 +537,7 @@ impl InternalSubset {
                 fmt_indented(f, indent, "},\n");
             }
 
-            InternalSubset::Entity(entity_declaration) => {
+            MarkupDeclaration::Entity(entity_declaration) => {
                 match entity_declaration {
                     EntityDecl::General(general_declaration) => {
                         fmt_indented(f, indent, "Entity::General {\n");
@@ -499,34 +554,14 @@ impl InternalSubset {
                     }
                 }
             }
-            InternalSubset::Entities(entity_declarations) => {
-                fmt_indented(f, indent, "Entities {\n");
-                for entity_declaration in entity_declarations.iter() {
-                    entity_declaration.fmt_internal_subset(f, indent + 4);
-                }
-                fmt_indented(f, indent, "},\n");
-            }
-            InternalSubset::DeclSep {
-                reference,
-                expansion,
-            } => {
-                fmt_indented(
-                    f,
-                    indent,
-                    &format!(
-                        "\nDeclSep({}",
-                        format!("reference: {reference:?},\nexpansion:{expansion:?}")
-                    ),
-                );
-                f.push_str("),\n");
-            }
-            InternalSubset::ProcessingInstruction(ProcessingInstruction { target, data }) => {
+
+            MarkupDeclaration::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
                 fmt_indented(f, indent + 4, &format!("target: {:?},\n", target));
                 fmt_indented(f, indent + 4, &format!("data: {:?},\n", data));
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::Comment(comment) => {
+            MarkupDeclaration::Comment(comment) => {
                 fmt_indented(f, indent, "Comment(\n");
                 match comment {
                     Document::Comment(comment_str) => {
@@ -543,10 +578,10 @@ impl InternalSubset {
     }
 }
 
-impl fmt::Debug for InternalSubset {
+impl fmt::Debug for MarkupDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
-        self.fmt_internal_subset(&mut s, 0);
+        self.fmt_markup_decl(&mut s, 0);
         write!(f, "{}", s)
     }
 }
@@ -557,6 +592,14 @@ impl std::fmt::Debug for XmlDecl {
             .field("version", &self.version)
             .field("encoding", &self.encoding)
             .field("standalone", &self.standalone)
+            .finish()
+    }
+}
+impl std::fmt::Debug for TextDecl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TextDecl")
+            .field("version", &self.version)
+            .field("encoding", &self.encoding)
             .finish()
     }
 }
@@ -717,11 +760,16 @@ impl EntityDefinition {
                 f.push_str(&format!("{}", s));
                 fmt_indented(f, indent, ")");
             }
-            EntityDefinition::External { id, n_data } => {
+            EntityDefinition::External {
+                id,
+                n_data,
+                text_decl,
+            } => {
                 fmt_indented(f, indent, "External {\n");
                 fmt_indented(f, indent + 4, &format!("id: {:?},\n", id));
                 fmt_indented(f, indent + 4, &format!("n_data: {:?},\n", n_data));
-                fmt_indented(f, indent, "},");
+                fmt_indented(f, indent + 4, &format!("text_decl: {:?},\n", text_decl));
+                fmt_indented(f, indent, "},\n");
             }
         }
     }
@@ -745,10 +793,10 @@ impl std::fmt::Debug for EntityValue {
                 .debug_struct("EntityValue")
                 .field("Document", document)
                 .finish(),
-            EntityValue::InternalSubset(internal_subset) => {
+            EntityValue::MarkupDecl(internal_subset) => {
                 f // Handle the new variant here
                     .debug_struct("EntityValue")
-                    .field("InternalSubset", internal_subset)
+                    .field("MarkupDecl", internal_subset)
                     .finish()
             }
         }
@@ -778,9 +826,9 @@ impl EntityValue {
                 fmt_indented(f, indent + 4, &format!("{:?}\n", document));
                 fmt_indented(f, indent, ")\n");
             }
-            EntityValue::InternalSubset(internal_subset) => {
+            EntityValue::MarkupDecl(internal_subset) => {
                 // Handle the new variant here
-                fmt_indented(f, indent, "InternalSubset(\n");
+                fmt_indented(f, indent, "MarkupDecl(\n");
                 fmt_indented(f, indent + 4, &format!("{:?},\n", internal_subset));
                 fmt_indented(f, indent, "),\n");
             }

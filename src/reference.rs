@@ -4,7 +4,7 @@ use crate::{
     attribute::AttributeValue,
     parse::Parse,
 
-    prolog::internal_subset::entity_value::EntityValue,
+    prolog::subset::entity_value::EntityValue,
     //transcode::{decode_digit, decode_hex},
     transcode::Decode,
     Name,

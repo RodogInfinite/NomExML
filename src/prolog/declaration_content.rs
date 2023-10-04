@@ -3,8 +3,8 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{map, opt},
-    multi::many0,
-    sequence::{delimited, tuple},
+    multi::{many0, many1},
+    sequence::{delimited, preceded, tuple},
     IResult,
 };
 
@@ -31,6 +31,7 @@ impl<'a> Parse<'a> for DeclarationContent {
         ))(input)
     }
 }
+impl<'a> ParseNamespace<'a> for DeclarationContent {}
 impl DeclarationContent {
     // [47] children ::= (choice | seq) ('?' | '*' | '+')?
     fn parse_children(input: &str) -> IResult<&str, ContentParticle> {
@@ -60,11 +61,10 @@ impl DeclarationContent {
 
 #[derive(Clone, PartialEq)]
 pub enum Mixed {
-    PCDATA {
-        names: Option<Vec<QualifiedName>>,
-        parsed: bool,
-    },
+    PCDATA,
+    Names(Vec<QualifiedName>),
 }
+
 impl<'a> ParseNamespace<'a> for Mixed {}
 impl<'a> Parse<'a> for Mixed {
     type Args = ();
@@ -73,50 +73,31 @@ impl<'a> Parse<'a> for Mixed {
     // Namespaces (Third Edition) [19] Mixed ::= '(' S? '#PCDATA' (S? '|' S? QName)* S? ')*' | '(' S? '#PCDATA' S? ')'
 
     fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        map(
-            tuple((
-                tag("("),
-                Self::parse_multispace0,
-                tag("#PCDATA"),
-                many0(delimited(
-                    tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
-                    alt((Self::parse_name, Self::parse_qualified_name)),
+        alt((
+            map(
+                tuple((
+                    tag("("),
                     Self::parse_multispace0,
+                    tag("#PCDATA"),
+                    many1(preceded(
+                        tuple((Self::parse_multispace0, tag("|"), Self::parse_multispace0)),
+                        alt((Self::parse_name, Self::parse_qualified_name)),
+                    )),
+                    Self::parse_multispace0,
+                    tag(")*"),
                 )),
-                Self::parse_multispace0,
-                tag(")"),
-                opt(tag("*")),
-            )),
-            |(
-                _open_bracket,
-                _whitespace1,
-                pcdata,
-                names,
-                _whitespace2,
-                _close_bracket,
-                zero_or_more,
-            )| {
-                if !pcdata.is_empty() && zero_or_more.is_some() {
-                    Self::PCDATA {
-                        names: if !names.is_empty() {
-                            Some(names.into_iter().collect())
-                        } else {
-                            None
-                        },
-                        parsed: true,
-                    }
-                } else if !&pcdata.is_empty() {
-                    Self::PCDATA {
-                        names: None,
-                        parsed: true,
-                    }
-                } else {
-                    Self::PCDATA {
-                        names: None,
-                        parsed: false,
-                    }
-                }
-            },
-        )(input)
+                |(_, _, _, names, _, _)| Mixed::Names(names),
+            ),
+            map(
+                tuple((
+                    tag("("),
+                    Self::parse_multispace0,
+                    tag("#PCDATA"),
+                    Self::parse_multispace0,
+                    tag(")"),
+                )),
+                |_| Mixed::PCDATA,
+            ),
+        ))(input)
     }
 }

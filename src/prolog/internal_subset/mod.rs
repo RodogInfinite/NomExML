@@ -95,9 +95,7 @@ impl<'a> Parse<'a> for  InternalSubset {
                 
                 let _ = Self::get_external_entity(entity.clone(), entity_references.clone(), config.clone());
                 dbg!(&entity_references);    
-                
-                
-               
+    
             }; 
             
             //dbg!(&expanded_entities);
@@ -180,7 +178,7 @@ impl InternalSubset {
                 match File::open(file_path) {
                     Ok(mut file) => {
                         
-                        match parse_external_ent_file(&mut file,  entity_references.clone()) {
+                        match parse_external_ent_file(&mut file,  config.clone(),entity_references.clone()) {
                             Ok(parsed_entity_value) => {
                                 dbg!(&parsed_entity_value);
                                 match parsed_entity_value.as_slice() {
