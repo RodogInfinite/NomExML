@@ -13,11 +13,11 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1, hex_digit1},
-    combinator::{map, recognize},
+    combinator::map,
     sequence::tuple,
     IResult,
 };
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub enum Reference {
@@ -40,8 +40,6 @@ impl Reference {
     ) -> EntityValue {
         match self {
             Reference::EntityRef(name) => {
-                dbg!(&*entity_references.borrow());
-
                 let refs_map = entity_references.borrow();
                 match refs_map.get(name).cloned() {
                     Some(EntityValue::Value(val))
@@ -81,8 +79,6 @@ impl Reference {
     ) -> AttributeValue {
         match self {
             Reference::EntityRef(name) => {
-                dbg!(&*entity_references.borrow());
-
                 let refs_map = entity_references.borrow();
                 match refs_map.get(name).cloned() {
                     Some(EntityValue::Value(val))
@@ -137,18 +133,20 @@ impl Decode for Reference {
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
     fn parse_entity_ref(input: &str) -> IResult<&str, Reference> {
-        map(
+        let (input, reference) = map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
-        )(input)
+        )(input)?;
+        Ok((input, reference))
     }
 
     //[69] PEReference ::= '%' Name ';'
     fn parse_parameter_reference(input: &str) -> IResult<&str, Reference> {
-        map(
+        let (input, output) = map(
             tuple((char('%'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
-        )(input)
+        )(input)?;
+        Ok((input, output))
     }
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'

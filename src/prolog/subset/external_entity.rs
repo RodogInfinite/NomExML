@@ -10,7 +10,7 @@ use super::{
     entity_definition::EntityDefinition, internal::InternalSubset,
     markup_declaration::MarkupDeclaration,
 };
-fn get_external_entity(doc: Document) -> Option<String> {
+pub fn get_external_entity(doc: Document) -> Option<String> {
     fn extract_external_id(entity_decl: &EntityDeclaration) -> Option<String> {
         if let EntityDefinition::External {
             id: ExternalID::System(value),

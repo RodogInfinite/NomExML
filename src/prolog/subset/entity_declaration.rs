@@ -1,6 +1,6 @@
-use crate::{prolog::external_id::ExternalID, Name};
+use crate::Name;
 
-use super::{entity_definition::EntityDefinition, entity_value::EntityValue};
+use super::entity_definition::EntityDefinition;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum EntityDecl {

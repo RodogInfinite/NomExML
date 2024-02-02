@@ -10,7 +10,7 @@ use crate::{
         external_id::ExternalID,
         id::ID,
         subset::{
-            entity_declaration::{EntityDecl, EntityDeclaration, GeneralEntityDeclaration},
+            entity_declaration::{EntityDecl, EntityDeclaration},
             entity_definition::EntityDefinition,
             entity_value::EntityValue,
             internal::InternalSubset,
@@ -145,7 +145,6 @@ impl Document {
         match self {
             Document::Prolog {
                 xml_decl,
-
                 misc,
                 doc_type,
             } => {
@@ -191,11 +190,7 @@ impl Document {
                 fmt_indented(f, indent, "]),\n");
             }
             Document::Comment(comment) => {
-                fmt_indented(
-                    f,
-                    indent,
-                    &format!("Comment(\"{}\"),\n", comment.to_string()),
-                );
+                fmt_indented(f, indent, &format!("Comment(\"{}\"),\n", comment));
             }
             Document::Empty => {
                 fmt_indented(f, indent, "Empty\n");
@@ -348,7 +343,7 @@ impl fmt::Debug for Standalone {
     }
 }
 impl TextDecl {
-    fn fmt_indented_text_decl(&self, f: &mut String, indent: usize) {
+    fn _fmt_indented_text_decl(&self, f: &mut String, indent: usize) {
         fmt_indented(f, indent, "TextDecl {\n");
         fmt_indented(f, indent + 4, &format!("version: {:?},\n", self.version));
         fmt_indented(f, indent + 4, &format!("encoding: {:?},\n", self.encoding));
@@ -478,6 +473,9 @@ impl InternalSubset {
                     f.push_str("None,\n");
                 }
                 fmt_indented(f, indent, "},\n");
+            }
+            InternalSubset::None => {
+                fmt_indented(f, indent, "None");
             }
         }
     }
@@ -757,7 +755,7 @@ impl EntityDefinition {
                 f.push_str("EntityValue(\n");
                 let mut s = String::new();
                 value.fmt_indented_entity_value(&mut s, indent + 4);
-                f.push_str(&format!("{}", s));
+                f.push_str(s.as_str());
                 fmt_indented(f, indent, ")");
             }
             EntityDefinition::External {

@@ -1,19 +1,17 @@
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, fs::File, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     character::complete::char,
     combinator::{map, map_res, opt},
-    multi::{fold_many0, fold_many1, many0, many1},
-    sequence::{delimited, tuple},
-    IResult, Parser,
+    multi::{fold_many1, many0, many1},
+    sequence::tuple,
+    IResult,
 };
 
 use crate::{
     attribute::Attribute,
-    io::parse_external_ent_file,
-    io::read_file,
     namespaces::ParseNamespace,
     parse::Parse,
     processing_instruction::ProcessingInstruction,
@@ -21,12 +19,12 @@ use crate::{
         declaration_content::DeclarationContent, external_id::ExternalID, id::ID,
         subset::entity_declaration::GeneralEntityDeclaration,
     },
-    reference::{ParseReference, Reference},
-    Config, Document, ExternalEntityParseConfig, Name, QualifiedName,
+    reference::Reference,
+    Document, Name, QualifiedName,
 };
 
 use super::{
-    entity_declaration::{EntityDecl, EntityDeclaration, ParameterEntityDeclaration},
+    entity_declaration::{EntityDecl, ParameterEntityDeclaration},
     entity_definition::EntityDefinition,
     entity_value::EntityValue,
 };
@@ -56,119 +54,19 @@ impl<'a> Parse<'a> for MarkupDeclaration {
     type Output = IResult<&'a str, Option<MarkupDeclaration>>;
     // [29] markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        dbg!("PARSING MARKUPDECL");
-        map(
-            alt((
-                Self::parse_element_declaration,
-                |i| Self::parse_attlist_declaration(i, args.clone()),
-                |i| Self::parse_entity(i, args.clone()),
-                Self::parse_notation,
-                Self::parse_processing_instruction,
-                Self::parse_comment,
-            )),
-            Some,
-        )(input)
+        let (input, res) = opt(alt((
+            Self::parse_element_declaration,
+            |i| Self::parse_attlist_declaration(i, args.clone()),
+            |i| Self::parse_entity(i, args.clone()),
+            Self::parse_notation,
+            Self::parse_processing_instruction,
+            Self::parse_comment,
+        )))(input)?;
+        Ok((input, res))
     }
 }
 
 impl MarkupDeclaration {
-    pub fn get_external_entity<'a>(
-        entity_decl: EntityDecl,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
-        config: Config,
-    ) -> Result<(), nom::Err<nom::error::Error<&'a str>>> {
-        if let Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    base_directory,
-                    ..
-                },
-        } = &config
-        {
-            if let EntityDecl::Parameter(EntityDeclaration {
-                name,
-                entity_def:
-                    EntityDefinition::External {
-                        id: ExternalID::System(ent_file),
-                        ..
-                    },
-            })
-            | EntityDecl::General(EntityDeclaration {
-                name,
-                entity_def:
-                    EntityDefinition::External {
-                        id: ExternalID::System(ent_file),
-                        ..
-                    },
-            }) = &entity_decl
-            {
-                let file_path = match base_directory {
-                    Some(base) => format!("{}/{}", base, ent_file),
-                    None => ent_file.clone(),
-                };
-                dbg!(&file_path);
-                match File::open(file_path) {
-                    Ok(mut file) => {
-                        match parse_external_ent_file(
-                            &mut file,
-                            config.clone(),
-                            entity_references.clone(),
-                        ) {
-                            Ok(parsed_entity_value) => {
-                                dbg!(&parsed_entity_value);
-                                match parsed_entity_value.as_slice() {
-                                    [entity] => {
-                                        dbg!(&entity);
-                                        entity_references
-                                            .borrow_mut()
-                                            .insert(name.clone(), entity.clone());
-                                        dbg!(entity_references);
-                                        Ok(())
-                                    }
-                                    _ => {
-                                        dbg!("HERE0");
-                                        Err(nom::Err::Error(nom::error::Error::new(
-                                            "",
-                                            nom::error::ErrorKind::Fail,
-                                        )))
-                                    }
-                                }
-                            }
-                            Err(_) => {
-                                dbg!("HERE1");
-                                Err(nom::Err::Error(nom::error::Error::new(
-                                    "",
-                                    nom::error::ErrorKind::Fail,
-                                )))
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        dbg!("HERE2");
-                        Err(nom::Err::Error(nom::error::Error::new(
-                            "",
-                            nom::error::ErrorKind::Fail,
-                        )))
-                    }
-                }
-            } else {
-                {
-                    dbg!("HERE3");
-                    Err(nom::Err::Error(nom::error::Error::new(
-                        "",
-                        nom::error::ErrorKind::Fail,
-                    )))
-                }
-            }
-        } else {
-            Err(nom::Err::Error(nom::error::Error::new(
-                "",
-                nom::error::ErrorKind::Fail,
-            )))
-        }
-    }
-
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
     fn parse_element_declaration(input: &str) -> IResult<&str, MarkupDeclaration> {
@@ -223,8 +121,6 @@ impl MarkupDeclaration {
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> IResult<&str, MarkupDeclaration> {
-        dbg!("PARSING ATTLIST DECL");
-        dbg!(&input);
         let (input, (_start, _whitespace1, name, att_defs, _whitespace2, _close)) =
             tuple((
                 tag("<!ATTLIST"),
@@ -234,8 +130,6 @@ impl MarkupDeclaration {
                 Self::parse_multispace0,
                 tag(">"),
             ))(input)?;
-        dbg!("ATTLIST");
-        dbg!(&att_defs);
         Ok((
             input,
             MarkupDeclaration::AttList {
@@ -321,7 +215,7 @@ impl MarkupDeclaration {
         alt((
             map(
                 |i| Self::parse_entity_value(i, name.clone(), entity_references.clone()),
-                |val| EntityDefinition::EntityValue(val),
+                EntityDefinition::EntityValue,
             ),
             map(
                 |i| ExternalID::parse(i, ()),
@@ -343,7 +237,7 @@ impl MarkupDeclaration {
         alt((
             map(
                 |i| Self::parse_entity_value(i, name.clone(), entity_references.clone()),
-                |val| EntityDefinition::EntityValue(val),
+                EntityDefinition::EntityValue,
             ),
             map(
                 tuple((
@@ -431,14 +325,13 @@ impl MarkupDeclaration {
                                     acc
                                 },
                             ),
-                            |data| EntityValue::Value(data),
+                            EntityValue::Value,
                         ),
                     )))),
                     tag("\""),
                 )),
                 |(_, maybe_entities, _)| {
                     let mut buffer = String::new();
-
                     if let Some(entities) = maybe_entities {
                         match entities.as_slice() {
                             [EntityValue::Reference(_)] => return entities[0].clone(),
@@ -478,7 +371,7 @@ impl MarkupDeclaration {
                                     acc
                                 },
                             ),
-                            |data| EntityValue::Value(data),
+                            EntityValue::Value,
                         ),
                     )))),
                     tag("\'"),

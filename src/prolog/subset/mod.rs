@@ -1,13 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use nom::{branch::alt, IResult};
+use nom::IResult;
 
-use crate::{
-    reference::{ParseReference, Reference},
-    Name,
-};
+use crate::{reference::Reference, Name};
 
-use self::{entity_value::EntityValue, markup_declaration::MarkupDeclaration};
+use self::entity_value::EntityValue;
 
 pub mod entity_declaration;
 pub mod entity_definition;
@@ -30,7 +27,6 @@ pub trait ParseDeclSep {
         match reference {
             Reference::EntityRef(name) => {
                 let entities = entity_references.borrow();
-                dbg!(&entities);
                 entities.get(name).cloned()
             }
             Reference::CharRef(_) => {

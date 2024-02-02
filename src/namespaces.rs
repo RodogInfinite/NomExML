@@ -7,7 +7,6 @@ use nom::{
     sequence::{pair, preceded, tuple},
     IResult,
 };
-use std::borrow::Cow;
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName

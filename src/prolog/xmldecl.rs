@@ -9,7 +9,7 @@ use nom::{
     sequence::{delimited, pair, preceded, tuple},
     IResult,
 };
-use std::{borrow::Cow, str::FromStr};
+use std::str::FromStr;
 
 #[derive(Clone, PartialEq)]
 pub enum Standalone {

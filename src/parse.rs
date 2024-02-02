@@ -9,11 +9,10 @@ use nom::{
     sequence::tuple,
     IResult, Offset,
 };
-use std::borrow::Cow;
 
 pub trait Parse<'a>: Sized {
     type Args;
-    type Output; //TODO: refactor this when associated type defaults are stabalized
+    type Output; //TODO: refactor this to have default values when associated type defaults are stabalized
     fn parse(_input: &'a str, _args: Self::Args) -> Self::Output {
         unimplemented!()
     }

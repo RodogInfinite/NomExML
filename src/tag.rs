@@ -1,11 +1,13 @@
 use crate::{
-    attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
-    prolog::subset::entity_value::EntityValue, Name,
+    attribute::{Attribute, AttributeValue, DefaultDecl},
+    namespaces::ParseNamespace,
+    parse::Parse,
+    prolog::subset::entity_value::EntityValue,
+    Name,
 };
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::char,
     combinator::{map, opt},
     multi::{many0, many1},
     sequence::{delimited, pair, tuple},
@@ -47,10 +49,9 @@ impl Tag {
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
                 alt((Self::parse_name, Self::parse_qualified_name)),
-                many0(pair(
-                    Self::parse_multispace1,
-                    |i| Attribute::parse_qualified_attribute(i, entity_references.clone()), //TODO merge behavior with parse_attribute
-                )),
+                many0(pair(Self::parse_multispace1, |i| {
+                    Attribute::parse_attribute(i, entity_references.clone())
+                })),
                 Self::parse_multispace0,
                 alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
             )),
@@ -62,6 +63,7 @@ impl Tag {
                 Self {
                     name,
                     attributes: if attributes.is_empty() {
+                        // check doctype here, if within that, add them to the tag else, None
                         None
                     } else {
                         Some(attributes)
@@ -116,5 +118,47 @@ impl Tag {
                 state: TagState::Empty,
             },
         )(input)
+    }
+
+    pub fn merge_default_attributes(&mut self, default_attributes: &[Attribute]) {
+        let existing_attributes = self.attributes.get_or_insert_with(Vec::new);
+
+        let mut seen_names = std::collections::HashSet::new();
+        for default_attr in default_attributes {
+            if let Attribute::Definition {
+                name, default_decl, ..
+            } = default_attr
+            {
+                if seen_names.contains(name) {
+                    // Skip if this name has already been processed.
+                    continue;
+                }
+                seen_names.insert(name.clone());
+
+                // Only add the attribute if it doesn't already exist and has a default value
+                let exists = existing_attributes.iter().any(|attr| matches!(attr, Attribute::Instance { name: existing_name, .. } if existing_name == name));
+                if !exists {
+                    if let DefaultDecl::Value(val) = default_decl {
+                        existing_attributes.push(Attribute::Instance {
+                            name: name.clone(),
+                            value: AttributeValue::Value(val.clone()),
+                        });
+                    }
+                }
+            }
+        }
+
+        // If no attributes were added (and none were already present), set attributes to None
+        if existing_attributes.is_empty() {
+            self.attributes = None;
+        }
+    }
+
+    pub fn add_attributes(&mut self, new_attributes: Vec<Attribute>) {
+        self.attributes = if new_attributes.is_empty() {
+            None
+        } else {
+            Some(new_attributes)
+        };
     }
 }

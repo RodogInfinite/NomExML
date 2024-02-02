@@ -6,7 +6,6 @@ use nom::{
     sequence::{delimited, tuple},
     IResult,
 };
-use std::borrow::Cow;
 
 use super::id::ID;
 

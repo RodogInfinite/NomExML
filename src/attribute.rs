@@ -4,14 +4,14 @@ use crate::{
 };
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag, take_till1},
+    bytes::complete::{tag, take_till1},
     character::complete::char,
     combinator::{map, map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{delimited, pair, tuple},
     IResult,
 };
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, PartialEq)]
 pub enum Prefix {
@@ -172,13 +172,13 @@ impl Attribute {
                     }
                 }
 
-                AttributeValue::Value(buffer.into())
+                AttributeValue::Value(buffer)
             },
         )(input)
     }
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
-    pub fn parse_qualified_attribute(
+    pub fn parse_attribute(
         input: &str,
         entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
     ) -> IResult<&str, Attribute> {

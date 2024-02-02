@@ -2,12 +2,10 @@ use crate::{
     namespaces::ParseNamespace,
     parse::Parse,
     prolog::subset::{
-        entity_declaration::{EntityDecl, EntityDeclaration},
-        entity_definition::EntityDefinition,
-        entity_value::EntityValue,
-        internal::InternalSubset,
+        entity_declaration::EntityDecl, entity_definition::EntityDefinition,
+        entity_value::EntityValue, internal::InternalSubset,
     },
-    Config, ExternalEntityParseConfig, Name,
+    Config, Name,
 };
 use nom::{
     bytes::complete::tag,
@@ -62,20 +60,20 @@ impl<'a> Parse<'a> for DocType {
                 _whitespace3,
             )| {
                 int_subset.iter_mut().for_each(|item| {
-                    if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity_enum)) = item
+                    if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                        EntityDecl::General(entity_decl),
+                    ))
+                    | InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                        EntityDecl::Parameter(entity_decl),
+                    )) = item
                     {
-                        if let EntityDecl::General(entity_decl)
-                        | EntityDecl::Parameter(entity_decl) = entity_enum
+                        if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
+                            &mut entity_decl.entity_def
                         {
-                            if let EntityDefinition::EntityValue(ev) = &mut entity_decl.entity_def {
-                                if let EntityValue::Reference(ref_val) = ev {
-                                    let x = ref_val.normalize_entity(args.0.clone());
-                                }
-                            }
+                            ref_val.normalize_entity(args.0.clone());
                         }
                     }
                 });
-
                 Self {
                     name,
                     external_id,
@@ -89,6 +87,7 @@ impl<'a> Parse<'a> for DocType {
         )(input)
     }
 }
+
 //TODO integrate this
 impl DocType {
     pub fn extract_entities(&self) -> Option<Vec<Box<InternalSubset>>> {
@@ -108,8 +107,6 @@ impl DocType {
         if entities.is_empty() {
             None
         } else {
-            dbg!("ENTITIES HERE");
-            dbg!(&entities);
             Some(entities)
         }
     }

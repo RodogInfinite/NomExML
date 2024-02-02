@@ -8,7 +8,6 @@ use nom::{
     sequence::{preceded, tuple},
     IResult,
 };
-use std::borrow::Cow;
 
 #[derive(Clone, PartialEq)]
 pub struct ProcessingInstruction {

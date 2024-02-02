@@ -1,11 +1,9 @@
-use std::borrow::Cow;
-
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag},
     character::complete::alphanumeric1,
     combinator::map,
-    multi::{many0, many1},
+    multi::many0,
     sequence::{delimited, pair, preceded},
     IResult,
 };

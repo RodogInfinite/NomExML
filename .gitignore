@@ -18,6 +18,7 @@ Cargo.lock
 # Prevent large files from being uploaded
 # Ignore everything in the 'data' directory
 data/*
+notes.txt
 
 # Except for the 'test.xml' file
 !data/test.xml

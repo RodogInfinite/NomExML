@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     character::complete::char,
     combinator::{map, opt},
-    multi::{many0, many1, separated_list0, separated_list1},
+    multi::{many0, many1},
     sequence::{delimited, tuple},
     IResult,
 };
@@ -35,8 +35,6 @@ impl<'a> Parse<'a> for ContentParticle {
             map(
                 tuple((Self::parse_choice, opt(|i| ConditionalState::parse(i, ())))),
                 |(choice, conditional_state)| {
-                    dbg!("CHOICE HERE");
-                    dbg!(&choice);
                     ContentParticle::Choice(
                         choice,
                         conditional_state.unwrap_or(ConditionalState::None),
@@ -56,8 +54,6 @@ impl<'a> Parse<'a> for ContentParticle {
                 },
             ),
         ))(input)?;
-        dbg!("PARSED CONTENT PARTICLE");
-        dbg!(&res);
         Ok((input, res))
     }
 }
@@ -65,7 +61,6 @@ impl<'a> Parse<'a> for ContentParticle {
 impl ContentParticle {
     // [49] choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
     pub fn parse_choice(input: &str) -> IResult<&str, Vec<ContentParticle>> {
-        dbg!("PARSING CHOICE");
         map(
             delimited(
                 tuple((char('('), Self::parse_multispace0)),
@@ -89,7 +84,6 @@ impl ContentParticle {
 
     // [50] seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
     pub fn parse_sequence(input: &str) -> IResult<&str, Vec<ContentParticle>> {
-        dbg!("PARSING SEQUENCE");
         map(
             delimited(
                 tuple((char('('), Self::parse_multispace0)),

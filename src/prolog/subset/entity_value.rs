@@ -1,10 +1,8 @@
 // entity_value.rs
 
-use std::borrow::Cow;
-
 use crate::{reference::Reference, Document};
 
-use super::{internal::InternalSubset, markup_declaration::MarkupDeclaration};
+use super::markup_declaration::MarkupDeclaration;
 
 #[derive(Clone, PartialEq)]
 pub enum EntityValue {

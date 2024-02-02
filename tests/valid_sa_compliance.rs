@@ -2162,7 +2162,10 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a1"),
+                        value: AttributeValue::Value("v1".to_string()),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -2215,7 +2218,16 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![
+                        Attribute::Instance {
+                            name: QualifiedName::new(None, "a1"),
+                            value: AttributeValue::Value("v1".to_string()),
+                        },
+                        Attribute::Instance {
+                            name: QualifiedName::new(None, "a2"),
+                            value: AttributeValue::Value("v2".to_string()),
+                        },
+                    ]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -4485,14 +4497,17 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
                                 att_type: AttType::Tokenized(TokenizedType::ENTITY),
                                 default_decl: DefaultDecl::Value("e".to_string()),
                             }]),
-                        })
+                        }),
                     ]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a"),
+                        value: AttributeValue::Value("e".to_string()),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -4650,7 +4665,10 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a1"),
+                        value: AttributeValue::Value("%e;".to_string()),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -4752,7 +4770,10 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a1"),
+                        value: AttributeValue::Value(" 1  \t2 \t".to_string()),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
@@ -4767,7 +4788,6 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-//TODO: Test 097 with lookup in test 097.ent
 #[test]
 fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file(
@@ -4815,30 +4835,25 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
                                 Attribute::Definition {
                                     name: QualifiedName::new(None, "a2"),
                                     att_type: AttType::CDATA,
+                                    default_decl: DefaultDecl::Implied,
+                                },
+                                Attribute::Definition {
+                                    name: QualifiedName::new(None, "a2"),
+                                    att_type: AttType::CDATA,
                                     default_decl: DefaultDecl::Value("v2".to_string()),
                                 },
                             ]),
                         }),
-                        InternalSubset::DeclSep {
-                            reference: Reference::EntityRef(QualifiedName::new(None, "e")),
-                            expansion: Some(Box::new(InternalSubset::MarkupDecl(
-                                MarkupDeclaration::AttList {
-                                    name: QualifiedName::new(None, "doc"),
-                                    att_defs: Some(vec![Attribute::Definition {
-                                        name: QualifiedName::new(None, "a2"),
-                                        att_type: AttType::CDATA,
-                                        default_decl: DefaultDecl::Implied,
-                                    }]),
-                                }
-                            ))),
-                        }
                     ]),
                 }),
             },
             Document::Element(
                 Tag {
                     name: QualifiedName::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: QualifiedName::new(None, "a1"),
+                        value: AttributeValue::Value("v1".to_string()),
+                    },]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
