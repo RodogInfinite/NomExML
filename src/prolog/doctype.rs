@@ -39,11 +39,11 @@ impl<'a> Parse<'a> for DocType {
                     ExternalID::parse(i, ())
                 })),
                 Self::parse_multispace0,
-                delimited(
+                opt(delimited(
                     pair(tag("["), Self::parse_multispace0),
                     |i| InternalSubset::parse(i, args.clone()),
                     pair(Self::parse_multispace0, tag("]")),
-                ),
+                )),
                 Self::parse_multispace0,
                 tag(">"),
                 Self::parse_multispace0,
@@ -59,29 +59,27 @@ impl<'a> Parse<'a> for DocType {
                 _close_tag,
                 _whitespace3,
             )| {
-                int_subset.iter_mut().for_each(|item| {
-                    if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
-                        EntityDecl::General(entity_decl),
-                    ))
-                    | InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
-                        EntityDecl::Parameter(entity_decl),
-                    )) = item
-                    {
-                        if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
-                            &mut entity_decl.entity_def
+                if let Some(int_subset) = &mut int_subset {
+                    int_subset.iter_mut().for_each(|item| {
+                        if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::General(entity_decl),
+                        ))
+                        | InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            EntityDecl::Parameter(entity_decl),
+                        )) = item
                         {
-                            ref_val.normalize_entity(args.0.clone());
+                            if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
+                                &mut entity_decl.entity_def
+                            {
+                                ref_val.normalize_entity(args.0.clone());
+                            }
                         }
-                    }
-                });
+                    })
+                };
                 Self {
                     name,
                     external_id,
-                    int_subset: if int_subset.is_empty() {
-                        None
-                    } else {
-                        Some(int_subset)
-                    },
+                    int_subset,
                 }
             },
         )(input)
