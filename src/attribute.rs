@@ -1,6 +1,6 @@
 use crate::{
     namespaces::ParseNamespace, parse::Parse, prolog::subset::entity_value::EntityValue,
-    reference::Reference, Name, QualifiedName,
+    reference::Reference, Name,
 };
 use nom::{
     branch::alt,
@@ -28,13 +28,13 @@ pub enum AttributeValue {
 #[derive(Clone, PartialEq)]
 pub enum Attribute {
     Definition {
-        name: QualifiedName,
+        name: Name,
         att_type: AttType,
         default_decl: DefaultDecl,
     },
     Reference(Reference),
     Instance {
-        name: QualifiedName,
+        name: Name,
         value: AttributeValue,
     },
     Required,
@@ -207,8 +207,8 @@ impl Attribute {
                         }
                     }
                 }
-                (QualifiedName { prefix, local_part }, _eq, value) => Attribute::Instance {
-                    name: QualifiedName { prefix, local_part },
+                (Name { prefix, local_part }, _eq, value) => Attribute::Instance {
+                    name: Name { prefix, local_part },
                     value,
                 },
             },

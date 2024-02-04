@@ -20,7 +20,7 @@ use crate::{
         subset::entity_declaration::GeneralEntityDeclaration,
     },
     reference::Reference,
-    Document, Name, QualifiedName,
+    Document, Name,
 };
 
 use super::{
@@ -32,16 +32,16 @@ use super::{
 #[derive(Clone, PartialEq)]
 pub enum MarkupDeclaration {
     Element {
-        name: QualifiedName,
+        name: Name,
         content_spec: Option<DeclarationContent>,
     },
     AttList {
-        name: QualifiedName,
+        name: Name,
         att_defs: Option<Vec<Attribute>>,
     },
     Entity(EntityDecl),
     Notation {
-        name: QualifiedName,
+        name: Name,
         id: ID,
     },
     ProcessingInstruction(ProcessingInstruction),

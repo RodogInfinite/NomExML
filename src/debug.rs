@@ -20,7 +20,7 @@ use crate::{
         xmldecl::{Standalone, XmlDecl},
     },
     reference::Reference,
-    Document, QualifiedName, Tag,
+    Document, Name, Tag,
 };
 use std::fmt::{self, Formatter};
 
@@ -70,18 +70,18 @@ impl Tag {
     }
 }
 
-impl fmt::Debug for QualifiedName {
+impl fmt::Debug for Name {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.fmt_qualified_name(0))
     }
 }
 
-impl QualifiedName {
+impl Name {
     fn fmt_qualified_name(&self, indent: usize) -> String {
-        let QualifiedName { prefix, local_part } = self;
+        let Name { prefix, local_part } = self;
         let mut f = String::new();
 
-        fmt_indented(&mut f, indent, "QualifiedName {\n");
+        fmt_indented(&mut f, indent, "Name {\n");
 
         match prefix {
             Some(p) => {

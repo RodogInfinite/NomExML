@@ -619,13 +619,12 @@ impl Document {
 }
 
 #[derive(Clone, Hash, Eq, PartialEq)]
-pub struct QualifiedName {
+pub struct Name {
     pub prefix: Option<String>,
     pub local_part: String,
 }
-pub type Name = QualifiedName;
 
-impl QualifiedName {
+impl Name {
     pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
         Self {
             prefix: prefix.map(|p| p.to_string()),
@@ -637,7 +636,7 @@ impl QualifiedName {
 impl<'a> ParseNamespace<'a> for Document {}
 
 impl Document {
-    pub fn extract(&self, tag: &QualifiedName) -> Result<Document, Box<dyn Error>> {
+    pub fn extract(&self, tag: &Name) -> Result<Document, Box<dyn Error>> {
         let mut documents: Vec<Document> = Vec::new();
 
         match self {

@@ -1,4 +1,4 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, QualifiedName};
+use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, Name};
 use nom::{
     branch::alt,
     character::complete::char,
@@ -10,7 +10,7 @@ use nom::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ContentParticle {
-    Name(QualifiedName, ConditionalState),
+    Name(Name, ConditionalState),
     Choice(Vec<ContentParticle>, ConditionalState),
     Sequence(Vec<ContentParticle>, ConditionalState),
 }
