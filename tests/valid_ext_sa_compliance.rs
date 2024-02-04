@@ -16,7 +16,7 @@ use nom_xml::{
     },
     reference::Reference,
     tag::{Tag, TagState},
-    ConditionalState, Config, Document, ExternalEntityParseConfig, QualifiedName,
+    ConditionalState, Config, Document, ExternalEntityParseConfig, Name,
 };
 use std::{error::Error, fs::File};
 fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
@@ -46,16 +46,16 @@ fn test_valid_ext_sa_001() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("001.ent".to_string()),
                                     n_data: None,
@@ -68,13 +68,13 @@ fn test_valid_ext_sa_001() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("Data\n".to_string()))),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -103,16 +103,16 @@ fn test_valid_ext_sa_002() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("002.ent".to_string()),
                                     n_data: None,
@@ -125,13 +125,13 @@ fn test_valid_ext_sa_002() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("Data".to_string()))),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -160,16 +160,16 @@ fn test_valid_ext_sa_003() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("003.ent".to_string()),
                                     n_data: None,
@@ -182,13 +182,13 @@ fn test_valid_ext_sa_003() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -218,16 +218,16 @@ fn test_valid_ext_sa_004() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("004.ent".to_string()),
                                     n_data: None,
@@ -240,13 +240,13 @@ fn test_valid_ext_sa_004() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("Data\n".to_string()))),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -276,15 +276,15 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
                                     vec![ContentParticle::Name(
-                                        QualifiedName::new(None, "e"),
+                                        Name::new(None, "e"),
                                         ConditionalState::ZeroOrMore,
                                     )],
                                     ConditionalState::None,
@@ -292,12 +292,12 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
                             )),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "e"),
+                            name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("005.ent".to_string()),
                                     n_data: None,
@@ -310,29 +310,29 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Nested(vec![
                     Document::EmptyTag(Tag {
-                        name: QualifiedName::new(None, "e"),
+                        name: Name::new(None, "e"),
                         attributes: None,
                         state: TagState::Empty,
                     }),
                     Document::EmptyTag(Tag {
-                        name: QualifiedName::new(None, "e"),
+                        name: Name::new(None, "e"),
                         attributes: None,
                         state: TagState::Empty,
                     }),
                     Document::EmptyTag(Tag {
-                        name: QualifiedName::new(None, "e"),
+                        name: Name::new(None, "e"),
                         attributes: None,
                         state: TagState::Empty,
                     }),
                 ])),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -362,22 +362,22 @@ fn test_valid_ext_sa_006() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::Names(vec!(
-                                QualifiedName::new(None, "e")
+                                Name::new(None, "e")
                             )))),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "e"),
+                            name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("006.ent".to_string()),
                                     n_data: None,
@@ -390,26 +390,26 @@ fn test_valid_ext_sa_006() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Nested(vec![
                     Document::Content(Some("Data\n".to_string())),
                     Document::EmptyTag(Tag {
-                        name: QualifiedName::new(None, "e"),
+                        name: Name::new(None, "e"),
                         attributes: None,
                         state: TagState::Empty,
                     }),
                     Document::Content(Some("More data\n".to_string())),
                     Document::EmptyTag(Tag {
-                        name: QualifiedName::new(None, "e"),
+                        name: Name::new(None, "e"),
                         attributes: None,
                         state: TagState::Empty,
                     }),
                 ])),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -440,16 +440,16 @@ fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("007.ent".to_string()),
                                     n_data: None,
@@ -462,7 +462,7 @@ fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
@@ -472,7 +472,7 @@ fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
                     Document::Content(Some("Z".to_string())),
                 ])),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -504,16 +504,16 @@ fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("008.ent".to_string()),
                                     n_data: None,
@@ -526,7 +526,7 @@ fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
@@ -536,7 +536,7 @@ fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
                     Document::Content(Some("Z".to_string())),
                 ])),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -568,16 +568,16 @@ fn test_valid_ext_sa_009() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("009.ent".to_string()),
                                     n_data: None,
@@ -590,13 +590,13 @@ fn test_valid_ext_sa_009() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -628,16 +628,16 @@ fn test_valid_ext_sa_010() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("010.ent".to_string()),
                                     n_data: None,
@@ -650,13 +650,13 @@ fn test_valid_ext_sa_010() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -688,16 +688,16 @@ fn test_valid_ext_sa_011() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::Public {
                                         pubid: "a not very interesting file".to_string(),
@@ -715,13 +715,13 @@ fn test_valid_ext_sa_011() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("xyzzy\n".to_string())),),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -752,28 +752,28 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e1"),
+                                name: Name::new(None, "e1"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                    Reference::EntityRef(QualifiedName::new(None, "e2"))
+                                    Reference::EntityRef(Name::new(None, "e2"))
                                 )),
                             }
                         ))),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e2"),
+                                name: Name::new(None, "e2"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                    Reference::EntityRef(QualifiedName::new(None, "e3"))
+                                    Reference::EntityRef(Name::new(None, "e3"))
                                 )),
                             }
                         ))),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e3"),
+                                name: Name::new(None, "e3"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("012.ent".to_string()),
                                     n_data: None,
@@ -783,22 +783,22 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                         ))),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e4"),
+                                name: Name::new(None, "e4"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
-                                    Reference::EntityRef(QualifiedName::new(None, "e5"))
+                                    Reference::EntityRef(Name::new(None, "e5"))
                                 )),
                             }
                         ))),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e5"),
+                                name: Name::new(None, "e5"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
                                     "(e5)".to_string()
                                 )),
                             }
                         ))),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                     ]),
@@ -806,13 +806,13 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("(e5)".to_string()))),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -843,15 +843,15 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
                 xml_decl: None,
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
                                     vec![ContentParticle::Name(
-                                        QualifiedName::new(None, "e"),
+                                        Name::new(None, "e"),
                                         ConditionalState::None
                                     )],
                                     ConditionalState::None
@@ -859,19 +859,19 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
                             )),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "e"),
+                            name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
-                            name: QualifiedName::new(None, "e"),
+                            name: Name::new(None, "e"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
-                                    name: QualifiedName::new(None, "a1"),
+                                    name: Name::new(None, "a1"),
                                     att_type: AttType::CDATA,
                                     default_decl: DefaultDecl::Value("a1 default".to_string()),
                                 },
                                 Attribute::Definition {
-                                    name: QualifiedName::new(None, "a2"),
+                                    name: Name::new(None, "a2"),
                                     att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
                                     default_decl: DefaultDecl::Value("a2 default".to_string()),
                                 },
@@ -879,7 +879,7 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "x"),
+                                name: Name::new(None, "x"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("013.ent".to_string()),
                                     n_data: None,
@@ -892,26 +892,26 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::EmptyTag(Tag {
-                    name: QualifiedName::new(None, "e"),
+                    name: Name::new(None, "e"),
                     attributes: Some(vec![
                         Attribute::Instance {
-                            name: QualifiedName::new(None, "a1"),
+                            name: Name::new(None, "a1"),
                             value: AttributeValue::Value("a1 default".to_string()),
                         },
                         Attribute::Instance {
-                            name: QualifiedName::new(None, "a2"),
+                            name: Name::new(None, "a2"),
                             value: AttributeValue::Value("a2 default".to_string()),
                         },
                     ]),
                     state: TagState::Empty,
                 },)),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
@@ -942,16 +942,16 @@ fn test_valid_ext_sa_014() -> Result<(), Box<dyn Error>> {
 
                 misc: None,
                 doc_type: Some(DocType {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     external_id: None,
                     int_subset: Some(vec![
                         InternalSubset::MarkupDecl(MarkupDeclaration::Element {
-                            name: QualifiedName::new(None, "doc"),
+                            name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
                         InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
-                                name: QualifiedName::new(None, "e"),
+                                name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
                                     id: ExternalID::System("014.ent".to_string()),
                                     n_data: None,
@@ -964,13 +964,13 @@ fn test_valid_ext_sa_014() -> Result<(), Box<dyn Error>> {
             },
             Document::Element(
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::Start,
                 },
                 Box::new(Document::Content(Some("data".to_string()))),
                 Tag {
-                    name: QualifiedName::new(None, "doc"),
+                    name: Name::new(None, "doc"),
                     attributes: None,
                     state: TagState::End,
                 },
