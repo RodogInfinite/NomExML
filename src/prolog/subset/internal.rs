@@ -156,7 +156,7 @@ impl<'a> Parse<'a> for InternalSubset {
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (entity_references, config) = args;
-
+        dbg!("HERE");
         let (input, parsed) = many0(alt((
             |i| {
                 let (i, decl_sep) = Self::parse_decl_sep(i, entity_references.clone())?;
@@ -178,6 +178,9 @@ impl<'a> Parse<'a> for InternalSubset {
                 }
             },
         )))(input)?;
+
+        dbg!(&parsed);
+
         let mut consolidated: Vec<InternalSubset> = vec![];
         for mut internal_subset in parsed {
             if let Some(InternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity))) =
@@ -258,10 +261,10 @@ impl ParseDeclSep for InternalSubset {
                     Some(EntityValue::MarkupDecl(elem)) => Some(elem.clone()),
                     _ => None,
                 };
-                Some(InternalSubset::DeclSep {
+                Some(Self::DeclSep {
                     reference,
                     expansion: expanded_internal_subset
-                        .map(|subset| Box::new(InternalSubset::MarkupDecl(*subset))),
+                        .map(|subset| Box::new(Self::MarkupDecl(*subset))),
                 })
             }),
             map(Self::parse_multispace1, |_| None),
