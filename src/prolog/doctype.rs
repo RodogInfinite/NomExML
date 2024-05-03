@@ -3,13 +3,13 @@ use crate::{
     parse::Parse,
     prolog::subset::{
         entity::entity_declaration::EntityDecl, entity::entity_definition::EntityDefinition,
-        entity::entity_value::EntityValue, subset::Subset,
+        entity::entity_value::EntityValue, Subset,
     },
     Config, Name,
 };
 use nom::{
     bytes::complete::tag,
-    combinator::{map, opt},
+    combinator::opt,
     sequence::{delimited, pair, preceded, tuple},
     IResult,
 };

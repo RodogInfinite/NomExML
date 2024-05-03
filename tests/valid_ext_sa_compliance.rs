@@ -14,7 +14,7 @@ use nom_xml::{
                 EntitySource,
             },
             markup_declaration::MarkupDeclaration,
-            subset::Subset,
+            Subset,
         },
     },
     reference::Reference,

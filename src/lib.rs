@@ -23,7 +23,7 @@ use crate::{
                 entity_value::EntityValue, EntitySource,
             },
             markup_declaration::MarkupDeclaration,
-            subset::Subset,
+            Subset,
         },
         xmldecl::XmlDecl,
     },

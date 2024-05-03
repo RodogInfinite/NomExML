@@ -1,22 +1,14 @@
 use nom_xml::{
-    attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
+    attribute::{AttType, Attribute, DefaultDecl},
     io::parse_file,
     prolog::{
-        content_particle::ContentParticle,
-        declaration_content::{DeclarationContent, Mixed},
+        declaration_content::DeclarationContent,
         doctype::DocType,
         external_id::ExternalID,
-        subset::{
-            entity_declaration::{EntityDecl, GeneralEntityDeclaration},
-            entity_definition::EntityDefinition,
-            entity_value::EntityValue,
-            internal::InternalSubset,
-            markup_declaration::MarkupDeclaration,
-        },
+        subset::{entity::EntitySource, markup_declaration::MarkupDeclaration, Subset},
     },
-    reference::Reference,
     tag::{Tag, TagState},
-    ConditionalState, Config, Document, ExternalEntityParseConfig, Name,
+    Config, Document, ExternalEntityParseConfig, Name,
 };
 use std::{error::Error, fs::File};
 fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
@@ -48,12 +40,10 @@ fn test_valid_not_sa_001() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: Some(ExternalID::System("001.ent".to_string())),
-                    int_subset: Some(vec![InternalSubset::MarkupDecl(
-                        MarkupDeclaration::Element {
-                            name: Name::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Empty),
-                        }
-                    ),]),
+                    subset: Some(vec![Subset::MarkupDecl(MarkupDeclaration::Element {
+                        name: Name::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Empty),
+                    }),]),
                 }),
             },
             Document::Element(
@@ -96,12 +86,10 @@ fn test_valid_not_sa_002() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: Some(ExternalID::System("002.ent".to_string())),
-                    int_subset: Some(vec![InternalSubset::MarkupDecl(
-                        MarkupDeclaration::Element {
-                            name: Name::new(None, "doc"),
-                            content_spec: Some(DeclarationContent::Empty),
-                        }
-                    ),]),
+                    subset: Some(vec![Subset::MarkupDecl(MarkupDeclaration::Element {
+                        name: Name::new(None, "doc"),
+                        content_spec: Some(DeclarationContent::Empty),
+                    }),]),
                 }),
             },
             Document::Element(
@@ -144,17 +132,18 @@ fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: Some(ExternalID::System("003-1.ent".to_string())),
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
+                        Subset::MarkupDecl(MarkupDeclaration::AttList {
                             name: Name::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: Name::new(None, "a1"),
                                 att_type: AttType::CDATA,
                                 default_decl: DefaultDecl::Implied,
+                                source: EntitySource::External,
                             },]),
                         }),
                     ]),

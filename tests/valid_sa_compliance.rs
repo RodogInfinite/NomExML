@@ -20,7 +20,7 @@ use nom_xml::{
                 EntitySource,
             },
             markup_declaration::MarkupDeclaration,
-            subset::Subset,
+            Subset,
         },
         xmldecl::{Standalone, XmlDecl},
     },
