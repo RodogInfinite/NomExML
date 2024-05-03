@@ -2,7 +2,7 @@ use crate::{
     attribute::{Attribute, AttributeValue, DefaultDecl},
     namespaces::ParseNamespace,
     parse::Parse,
-    prolog::subset::entity_value::EntityValue,
+    prolog::subset::entity::{entity_value::EntityValue, EntitySource},
     Name,
 };
 use nom::{
@@ -43,14 +43,15 @@ impl Tag {
     // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
     pub fn parse_start_tag(
         input: &str,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        entity_source: EntitySource,
     ) -> IResult<&str, Self> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 many0(pair(Self::parse_multispace1, |i| {
-                    Attribute::parse_attribute(i, entity_references.clone())
+                    Attribute::parse_attribute(i, entity_references.clone(), entity_source.clone())
                 })),
                 Self::parse_multispace0,
                 alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
@@ -99,14 +100,15 @@ impl Tag {
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
     pub fn parse_empty_element_tag(
         input: &str,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        entity_source: EntitySource,
     ) -> IResult<&str, Tag> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
                 alt((Self::parse_name, Self::parse_qualified_name)),
                 opt(many1(pair(Self::parse_multispace1, |i| {
-                    Attribute::parse(i, entity_references.clone())
+                    Attribute::parse(i, (entity_references.clone(), entity_source.clone()))
                 }))),
                 Self::parse_multispace0,
                 alt((tag("/&#62;"), tag("/&#x3E;"), tag("/>"))),

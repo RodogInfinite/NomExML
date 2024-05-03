@@ -1,8 +1,8 @@
 // entity_value.rs
 
-use crate::{reference::Reference, Document};
-
-use super::markup_declaration::MarkupDeclaration;
+use crate::{
+    prolog::subset::markup_declaration::MarkupDeclaration, reference::Reference, Document,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum EntityValue {

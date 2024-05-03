@@ -1,3 +1,5 @@
+use self::subset::subset::Subset;
+
 pub mod content_particle;
 pub mod declaration_content;
 pub mod doctype;

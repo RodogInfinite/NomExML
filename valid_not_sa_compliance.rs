@@ -121,3 +121,60 @@ fn test_valid_not_sa_002() -> Result<(), Box<dyn Error>> {
     );
     Ok(())
 }
+
+#[test]
+fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
+    let document = test_valid_ext_sa_file(
+        "003",
+        Config {
+            external_parse_config: ExternalEntityParseConfig {
+                allow_ext_parse: true,
+                ignore_ext_parse_warning: true,
+                base_directory: Some("tests/xmltest/valid/not-sa".into()),
+            },
+        },
+    )?;
+
+    assert_eq!(
+        document,
+        Document::Nested(vec![
+            Document::Prolog {
+                xml_decl: None,
+                misc: None,
+                doc_type: Some(DocType {
+                    name: Name::new(None, "doc"),
+                    external_id: Some(ExternalID::System("003-1.ent".to_string())),
+                    int_subset: Some(vec![
+                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                            name: Name::new(None, "doc"),
+                            content_spec: Some(DeclarationContent::Empty),
+                        }),
+                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
+                            name: Name::new(None, "doc"),
+                            att_defs: Some(vec![Attribute::Definition {
+                                name: Name::new(None, "a1"),
+                                att_type: AttType::CDATA,
+                                default_decl: DefaultDecl::Implied,
+                            },]),
+                        }),
+                    ]),
+                }),
+            },
+            Document::Element(
+                Tag {
+                    name: Name::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::Start,
+                },
+                Box::new(Document::Empty),
+                Tag {
+                    name: Name::new(None, "doc"),
+                    attributes: None,
+                    state: TagState::End,
+                },
+            ),
+        ]),
+    );
+
+    Ok(())
+}

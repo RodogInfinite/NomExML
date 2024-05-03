@@ -1,13 +1,13 @@
 use crate::{
     prolog::{
         external_id::ExternalID,
-        subset::entity_declaration::{EntityDecl, EntityDeclaration},
+        subset::{entity_declaration::{EntityDecl, EntityDeclaration}, external::ExternalSubset, Subset},
     },
     Document,
 };
 
 use super::{
-    entity_definition::EntityDefinition, internal::InternalSubset,
+    entity_definition::EntityDefinition, 
     markup_declaration::MarkupDeclaration,
 };
 pub fn get_external_entity(doc: Document) -> Option<String> {
@@ -28,9 +28,9 @@ pub fn get_external_entity(doc: Document) -> Option<String> {
             doc_type: Some(doctype),
             ..
         } => {
-            if let Some(subsets) = doctype.int_subset {
+            if let Some(subsets) = doctype.subset {
                 for subset in subsets {
-                    if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity_enum)) =
+                    if let Subset::External(ExternalSubset::MarkupDecl(MarkupDeclaration::Entity(entity_enum))) =
                         subset
                     {
                         match entity_enum {
@@ -52,11 +52,11 @@ pub fn get_external_entity(doc: Document) -> Option<String> {
                     ..
                 } = inner_doc
                 {
-                    if let Some(subsets) = doctype.int_subset {
+                    if let Some(subsets) = doctype.subset {
                         for subset in subsets {
-                            if let InternalSubset::MarkupDecl(MarkupDeclaration::Entity(
+                            if let Subset::External(ExternalSubset::MarkupDecl(MarkupDeclaration::Entity(
                                 entity_enum,
-                            )) = subset
+                            ))) = subset
                             {
                                 match entity_enum {
                                     EntityDecl::General(entity_decl)

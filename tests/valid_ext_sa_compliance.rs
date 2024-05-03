@@ -7,11 +7,14 @@ use nom_xml::{
         doctype::DocType,
         external_id::ExternalID,
         subset::{
-            entity_declaration::{EntityDecl, GeneralEntityDeclaration},
-            entity_definition::EntityDefinition,
-            entity_value::EntityValue,
-            internal::InternalSubset,
+            entity::{
+                entity_declaration::{EntityDecl, GeneralEntityDeclaration},
+                entity_definition::EntityDefinition,
+                entity_value::EntityValue,
+                EntitySource,
+            },
             markup_declaration::MarkupDeclaration,
+            subset::Subset,
         },
     },
     reference::Reference,
@@ -48,12 +51,12 @@ fn test_valid_ext_sa_001() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -105,12 +108,12 @@ fn test_valid_ext_sa_002() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -162,12 +165,12 @@ fn test_valid_ext_sa_003() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -220,12 +223,12 @@ fn test_valid_ext_sa_004() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -278,8 +281,8 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -291,11 +294,11 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
                                 ),
                             )),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -364,18 +367,18 @@ fn test_valid_ext_sa_006() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::Names(vec!(
                                 Name::new(None, "e")
                             )))),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -442,12 +445,12 @@ fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -506,12 +509,12 @@ fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -570,12 +573,12 @@ fn test_valid_ext_sa_009() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -630,12 +633,12 @@ fn test_valid_ext_sa_010() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -690,12 +693,12 @@ fn test_valid_ext_sa_011() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
@@ -754,8 +757,8 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e1"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
@@ -763,7 +766,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                                 )),
                             }
                         ))),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e2"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
@@ -771,7 +774,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                                 )),
                             }
                         ))),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e3"),
                                 entity_def: EntityDefinition::External {
@@ -781,7 +784,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                                 },
                             }
                         ))),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e4"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Reference(
@@ -789,7 +792,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                                 )),
                             }
                         ))),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e5"),
                                 entity_def: EntityDefinition::EntityValue(EntityValue::Value(
@@ -797,7 +800,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
                                 )),
                             }
                         ))),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
@@ -845,8 +848,8 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Children(
                                 ContentParticle::Sequence(
@@ -858,26 +861,28 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
                                 )
                             )),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "e"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::AttList {
+                        Subset::MarkupDecl(MarkupDeclaration::AttList {
                             name: Name::new(None, "e"),
                             att_defs: Some(vec![
                                 Attribute::Definition {
                                     name: Name::new(None, "a1"),
                                     att_type: AttType::CDATA,
                                     default_decl: DefaultDecl::Value("a1 default".to_string()),
+                                    source: EntitySource::Internal,
                                 },
                                 Attribute::Definition {
                                     name: Name::new(None, "a2"),
                                     att_type: AttType::Tokenized(TokenizedType::NMTOKENS),
                                     default_decl: DefaultDecl::Value("a2 default".to_string()),
+                                    source: EntitySource::Internal,
                                 },
                             ]),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "x"),
                                 entity_def: EntityDefinition::External {
@@ -944,12 +949,12 @@ fn test_valid_ext_sa_014() -> Result<(), Box<dyn Error>> {
                 doc_type: Some(DocType {
                     name: Name::new(None, "doc"),
                     external_id: None,
-                    int_subset: Some(vec![
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Element {
+                    subset: Some(vec![
+                        Subset::MarkupDecl(MarkupDeclaration::Element {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Mixed(Mixed::PCDATA)),
                         }),
-                        InternalSubset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
                             GeneralEntityDeclaration {
                                 name: Name::new(None, "e"),
                                 entity_def: EntityDefinition::External {
