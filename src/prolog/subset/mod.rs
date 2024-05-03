@@ -2,11 +2,10 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use nom::IResult;
 
-use crate::{reference::Reference, Name};
+use crate::{reference::Reference, Document, Name};
 
 use self::{
     entity::entity_declaration::{EntityDecl, EntityDeclaration},
-    entity::entity_definition::EntityDefinition,
     entity::entity_value::EntityValue,
     entity::EntitySource,
 };
@@ -14,20 +13,12 @@ use self::{
 pub mod entity;
 
 pub mod markup_declaration;
-pub mod subset;
-use std::fs::File;
 
 use nom::{branch::alt, combinator::map, multi::many0};
 
 use crate::{
-    attribute::Attribute,
-    error::CustomError,
-    io::parse_external_entity_file,
-    namespaces::ParseNamespace,
-    parse::Parse,
-    prolog::{external_id::ExternalID, subset::markup_declaration::MarkupDeclaration},
-    reference::ParseReference,
-    Config, ExternalEntityParseConfig,
+    attribute::Attribute, namespaces::ParseNamespace, parse::Parse,
+    prolog::subset::markup_declaration::MarkupDeclaration, reference::ParseReference, Config,
 };
 
 //TODO handle circular references in all entity replacements
@@ -49,111 +40,6 @@ impl Subset {
                 EntityDecl::Parameter(parameter_decl) => Some(parameter_decl),
             },
             _ => None,
-        }
-    }
-
-    fn get_external_entity(
-        entity_declaration: EntityDecl,
-        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        config: Config,
-    ) -> Result<(), CustomError> {
-        if let Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    base_directory,
-                    ..
-                },
-        } = &config
-        {
-            if let EntityDecl::Parameter(EntityDeclaration {
-                name,
-                entity_def:
-                    EntityDefinition::External {
-                        id: ExternalID::System(ent_file),
-                        ..
-                    },
-            })
-            | EntityDecl::General(EntityDeclaration {
-                name,
-                entity_def:
-                    EntityDefinition::External {
-                        id: ExternalID::System(ent_file),
-                        ..
-                    },
-            }) = &entity_declaration
-            {
-                let file_path = match base_directory {
-                    Some(base) => format!("{}/{}", base, ent_file),
-                    None => ent_file.clone(),
-                };
-                Self::process_external_entity_file(file_path, name, config, entity_references)
-            } else if let EntityDecl::General(EntityDeclaration {
-                name,
-                entity_def:
-                    EntityDefinition::External {
-                        id:
-                            ExternalID::Public {
-                                system_identifier, ..
-                            },
-                        ..
-                    },
-            }) = entity_declaration
-            {
-                if let ExternalID::System(system_identifier) = *system_identifier {
-                    let file_path = match base_directory {
-                        Some(base) => format!("{}/{}", base, system_identifier),
-                        None => system_identifier.clone(),
-                    };
-                    Self::process_external_entity_file(file_path, &name, config, entity_references)
-                } else {
-                    Err(nom::Err::Error(nom::error::Error::new(
-                        "Failed to match *system_identifier",
-                        nom::error::ErrorKind::Fail,
-                    ))
-                    .into())
-                }
-            } else {
-                Err(nom::Err::Error(nom::error::Error::new(
-                    "Failed to match ExternalID::Public",
-                    nom::error::ErrorKind::Fail,
-                ))
-                .into())
-            }
-        } else {
-            Err(nom::Err::Error(nom::error::Error::new(
-                "Failed to match &entity_declaration",
-                nom::error::ErrorKind::Fail,
-            ))
-            .into())
-        }
-    }
-
-    fn process_external_entity_file(
-        file_path: String,
-        name: &Name,
-        config: Config,
-        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<(), CustomError> {
-        match File::open(file_path) {
-            Ok(mut file) => {
-                match parse_external_entity_file(&mut file, &config, entity_references.clone())
-                    .as_deref()
-                {
-                    Ok([entity]) => {
-                        entity_references
-                            .borrow_mut()
-                            .insert((name.clone(), EntitySource::External), entity.clone());
-                        Ok(())
-                    }
-                    _ => Err(nom::Err::Error(nom::error::Error::new(
-                        "Failed to match [entity] from `parse_external_entity_file`",
-                        nom::error::ErrorKind::Fail,
-                    ))
-                    .into()),
-                }
-            }
-            Err(e) => Err(CustomError::from(e)),
         }
     }
 }
@@ -201,7 +87,7 @@ impl<'a> Parse<'a> for Subset {
         let mut consolidated: Vec<Subset> = vec![];
         for mut subset in parsed {
             if let Some(Subset::MarkupDecl(MarkupDeclaration::Entity(entity))) = subset.clone() {
-                let _ = Self::get_external_entity(
+                let _ = Document::get_external_entity(
                     entity.clone(),
                     entity_references.clone(),
                     config.clone(),

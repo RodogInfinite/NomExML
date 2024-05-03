@@ -31,6 +31,8 @@ use crate::{
     tag::Tag,
 };
 
+use error::CustomError;
+use io::parse_external_entity_file;
 use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
@@ -40,11 +42,13 @@ use nom::{
     sequence::{pair, preceded, tuple},
     IResult,
 };
+use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
 use std::{
     cell::RefCell,
     collections::{BTreeMap, HashMap},
     error::Error,
+    fs::File,
     io::Write,
     rc::Rc,
 };
@@ -651,6 +655,115 @@ impl Document {
                 }
                 None => Ok((input, Document::Nested(documents))),
             },
+        }
+    }
+
+    fn process_external_entity_file(
+        file_path: String,
+        name: &Name,
+        config: Config,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+    ) -> Result<(), CustomError> {
+        match File::open(file_path) {
+            Ok(mut file) => {
+                match parse_external_entity_file(&mut file, &config, entity_references.clone())
+                    .as_deref()
+                {
+                    Ok([entity]) => {
+                        entity_references
+                            .borrow_mut()
+                            .insert((name.clone(), EntitySource::External), entity.clone());
+                        Ok(())
+                    }
+                    _ => Err(nom::Err::Error(nom::error::Error::new(
+                        "Failed to match [entity] from `parse_external_entity_file`",
+                        nom::error::ErrorKind::Fail,
+                    ))
+                    .into()),
+                }
+            }
+            Err(e) => Err(CustomError::from(e)),
+        }
+    }
+    fn get_external_entity(
+        entity_declaration: EntityDecl,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        config: Config,
+    ) -> Result<(), CustomError> {
+        if let Config {
+            external_parse_config:
+                ExternalEntityParseConfig {
+                    allow_ext_parse: true,
+                    base_directory,
+                    ..
+                },
+        } = &config
+        {
+            if let EntityDecl::Parameter(EntityDeclaration {
+                name,
+                entity_def:
+                    EntityDefinition::External {
+                        id: ExternalID::System(ent_file),
+                        ..
+                    },
+            })
+            | EntityDecl::General(EntityDeclaration {
+                name,
+                entity_def:
+                    EntityDefinition::External {
+                        id: ExternalID::System(ent_file),
+                        ..
+                    },
+            }) = &entity_declaration
+            {
+                let file_path = match base_directory {
+                    Some(base) => format!("{}/{}", base, ent_file),
+                    None => ent_file.clone(),
+                };
+                Self::process_external_entity_file(file_path, name, config, entity_references)
+            } else if let EntityDecl::General(EntityDeclaration {
+                name,
+                entity_def:
+                    EntityDefinition::External {
+                        id:
+                            ExternalID::Public {
+                                system_identifier, ..
+                            },
+                        ..
+                    },
+            }) = entity_declaration
+            {
+                if let ExternalID::System(system_identifier) = *system_identifier {
+                    let file_path = match base_directory {
+                        Some(base) => format!("{}/{}", base, system_identifier),
+                        None => system_identifier.clone(),
+                    };
+                    Document::process_external_entity_file(
+                        file_path,
+                        &name,
+                        config,
+                        entity_references,
+                    )
+                } else {
+                    Err(nom::Err::Error(nom::error::Error::new(
+                        "Failed to match *system_identifier",
+                        nom::error::ErrorKind::Fail,
+                    ))
+                    .into())
+                }
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new(
+                    "Failed to match ExternalID::Public",
+                    nom::error::ErrorKind::Fail,
+                ))
+                .into())
+            }
+        } else {
+            Err(nom::Err::Error(nom::error::Error::new(
+                "Failed to match &entity_declaration",
+                nom::error::ErrorKind::Fail,
+            ))
+            .into())
         }
     }
 }
