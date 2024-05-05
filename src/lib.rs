@@ -36,7 +36,7 @@ use io::parse_external_entity_file;
 use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till},
+    bytes::complete::{tag, take_till, take_until},
     combinator::{cut, map, map_res, not, opt, value},
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
@@ -366,7 +366,44 @@ impl Document {
 
         Ok((input, doc))
     }
-
+    // [39] element	::= EmptyElemTag | STag content ETag
+pub fn parse_element_by_tag_name<'a>(
+    input: &'a str,
+    tag_name: &str,
+    entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+) -> IResult<&'a str, Document> {
+    let (input, _) =take_until(format!("<{}", tag_name).as_str())(input)?;
+    
+    let (input, doc) = alt((
+        preceded(
+            Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+            map(
+                |i: &'a str| {
+                    Tag::parse_empty_element_tag_by_name(
+                        i,
+                    &tag_name,
+                    &entity_references,
+                        EntitySource::None,
+                    )
+                },
+                Document::EmptyTag,
+            ),
+        ),
+        map(
+            tuple((
+                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                |i| Tag::parse_start_tag_by_name(i, tag_name,&entity_references, EntitySource::Internal),
+                //|i| Self::parse_content(i,&refs_clone_3, EntitySource::Internal),
+                |i| Tag::parse_end_tag_by_name(i, tag_name),
+                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
+            )),
+            |(_whitespace1, start_tag, end_tag, _whitespace2)| {
+                Document::Element(start_tag, Box::new(Document::Content(Some("content".to_string()))), end_tag)
+            },
+        ),
+    ))(input)?;
+    Ok((input, doc))
+}
     fn collect_entity_references(
         doc_type: &DocType,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
@@ -685,7 +722,7 @@ impl Document {
             Err(e) => Err(CustomError::from(e)),
         }
     }
-    fn get_external_entity(
+    fn get_external_entity_from_declaration(
         entity_declaration: EntityDecl,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
