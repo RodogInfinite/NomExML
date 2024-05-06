@@ -2,10 +2,13 @@ use crate::{
     namespaces::ParseNamespace,
     parse::Parse,
     prolog::subset::{
-        entity::entity_declaration::EntityDecl, entity::entity_definition::EntityDefinition,
-        entity::entity_value::EntityValue, Subset,
+        entity::{
+            entity_declaration::EntityDecl, entity_definition::EntityDefinition,
+            entity_value::EntityValue,
+        },
+        Subset,
     },
-    Config, Name,
+    Config, Document, Name,
 };
 use nom::{
     bytes::complete::tag,
@@ -36,6 +39,7 @@ impl<'a> Parse<'a> for DocType {
     type Output = IResult<&'a str, Self>;
 
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+        let (entity_references, config) = args;
         let (input, (_open_tag, _whitespace1, name, external_id, _whitespace2)) = tuple((
             tag("<!DOCTYPE"),
             Self::parse_multispace1,
@@ -45,20 +49,34 @@ impl<'a> Parse<'a> for DocType {
             })),
             Self::parse_multispace0,
         ))(input)?;
-
+        dbg!(&external_id);
         if let Some(external_id) = external_id {
-            let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) = tuple((
-                opt(delimited(
-                    pair(tag("["), Self::parse_multispace0),
-                    |i| Subset::parse(i, (args.0.clone(), args.1.clone(), EntitySource::External)),
-                    pair(Self::parse_multispace0, tag("]")),
-                )),
-                Self::parse_multispace0,
-                tag(">"),
-                Self::parse_multispace0,
-            ))(
-                input
-            )?;
+            // let _ = external_id.get_external_entity_from_id(
+            //     input,
+            //     entity_references.clone(),
+            //     config.clone(),
+            // );
+
+            let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) =
+                tuple((
+                    opt(delimited(
+                        pair(tag("["), Self::parse_multispace0),
+                        |i| {
+                            Subset::parse(
+                                i,
+                                (
+                                    entity_references.clone(),
+                                    config.clone(),
+                                    EntitySource::External,
+                                ),
+                            )
+                        },
+                        pair(Self::parse_multispace0, tag("]")),
+                    )),
+                    Self::parse_multispace0,
+                    tag(">"),
+                    Self::parse_multispace0,
+                ))(input)?;
 
             if let Some(subset) = &mut subset {
                 subset.iter_mut().for_each(|subset| {
@@ -73,7 +91,7 @@ impl<'a> Parse<'a> for DocType {
                             if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
                                 &mut entity_decl.entity_def
                             {
-                                ref_val.normalize_entity(args.0.clone());
+                                ref_val.normalize_entity(entity_references.clone());
                             }
                         }
 
@@ -90,18 +108,26 @@ impl<'a> Parse<'a> for DocType {
                 },
             ))
         } else {
-            let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) = tuple((
-                opt(delimited(
-                    pair(tag("["), Self::parse_multispace0),
-                    |i| Subset::parse(i, (args.0.clone(), args.1.clone(), EntitySource::Internal)),
-                    pair(Self::parse_multispace0, tag("]")),
-                )),
-                Self::parse_multispace0,
-                tag(">"),
-                Self::parse_multispace0,
-            ))(
-                input
-            )?;
+            let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) =
+                tuple((
+                    opt(delimited(
+                        pair(tag("["), Self::parse_multispace0),
+                        |i| {
+                            Subset::parse(
+                                i,
+                                (
+                                    entity_references.clone(),
+                                    config.clone(),
+                                    EntitySource::Internal,
+                                ),
+                            )
+                        },
+                        pair(Self::parse_multispace0, tag("]")),
+                    )),
+                    Self::parse_multispace0,
+                    tag(">"),
+                    Self::parse_multispace0,
+                ))(input)?;
             if let Some(subset) = &mut subset {
                 subset.iter_mut().for_each(|subset| {
                     match subset {
@@ -115,7 +141,7 @@ impl<'a> Parse<'a> for DocType {
                             if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
                                 &mut entity_decl.entity_def
                             {
-                                ref_val.normalize_entity(args.0.clone());
+                                ref_val.normalize_entity(entity_references.clone());
                             }
                         }
 
