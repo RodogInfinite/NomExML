@@ -113,7 +113,7 @@ pub fn parse_external_entity_file(
             },
         ),
         map(
-            |i| Document::parse_content(i, external_entity_references.clone(),EntitySource::External),
+            |i| Document::parse_content(i, &external_entity_references,EntitySource::External),
             |doc| {
                 vec![EntityValue::Document(doc)]
             },
