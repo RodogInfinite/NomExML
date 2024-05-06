@@ -97,8 +97,8 @@ impl Tag {
                     .map(|(_whitespace, attr)| attr)
                     .collect();
                 Self {
-                    name: Name::new(None,name),
-                                        attributes: if attributes.is_empty() {
+                    name: Name::new(None, name),
+                    attributes: if attributes.is_empty() {
                         // check doctype here, if within that, add them to the tag else, None
                         None
                     } else {
@@ -131,25 +131,25 @@ impl Tag {
         )(input)
     }
     // [42] ETag ::= '</' Name S? '>'
-// Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
-pub fn parse_end_tag_by_name<'a>(input: &'a str,tag_name:&str) -> IResult<&'a str, Self> {
-    delimited(
-        alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
-        map(
-            tuple((
-                Self::parse_multispace0,
-                tag(tag_name),
-                Self::parse_multispace0,
-            )),
-            |(_open_tag, name, _close_tag)| Self {
-                name: Name::new(None,name),
-                attributes: None, // Attributes are not parsed for end tags
-                state: TagState::End,
-            },
-        ),
-        alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
-    )(input)
-}
+    // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
+    pub fn parse_end_tag_by_name<'a>(input: &'a str, tag_name: &str) -> IResult<&'a str, Self> {
+        delimited(
+            alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
+            map(
+                tuple((
+                    Self::parse_multispace0,
+                    tag(tag_name),
+                    Self::parse_multispace0,
+                )),
+                |(_open_tag, name, _close_tag)| Self {
+                    name: Name::new(None, name),
+                    attributes: None, // Attributes are not parsed for end tags
+                    state: TagState::End,
+                },
+            ),
+            alt((tag("&#62;"), tag("&#x3E;"), tag(">"))),
+        )(input)
+    }
 
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
@@ -188,15 +188,15 @@ pub fn parse_end_tag_by_name<'a>(input: &'a str,tag_name:&str) -> IResult<&'a st
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
-tag(tag_name)     ,
-           opt(many1(pair(Self::parse_multispace1, |i| {
+                tag(tag_name),
+                opt(many1(pair(Self::parse_multispace1, |i| {
                     Attribute::parse(i, (entity_references.clone(), entity_source.clone()))
                 }))),
                 Self::parse_multispace0,
                 alt((tag("/&#62;"), tag("/&#x3E;"), tag("/>"))),
             )),
             |(_open_tag, name, attributes, _whitespace, _close_tag)| Self {
-                name: Name::new(None,name),
+                name: Name::new(None, name),
                 attributes: attributes
                     .map(|attr| attr.into_iter().map(|(_whitespace, attr)| attr).collect()),
                 state: TagState::Empty,
