@@ -87,7 +87,7 @@ impl<'a> Parse<'a> for Subset {
         let mut consolidated: Vec<Subset> = vec![];
         for mut subset in parsed {
             if let Some(Subset::MarkupDecl(MarkupDeclaration::Entity(entity))) = subset.clone() {
-                let _ = Document::get_external_entity(
+                let _ = Document::get_external_entity_from_declaration(
                     entity.clone(),
                     entity_references.clone(),
                     config.clone(),
