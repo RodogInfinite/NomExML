@@ -1,4 +1,4 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, QualifiedName};
+use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, Name};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -10,7 +10,7 @@ use nom::{
 
 use super::content_particle::ContentParticle;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum DeclarationContent {
     Mixed(Mixed),
     Children(ContentParticle),
@@ -59,10 +59,10 @@ impl DeclarationContent {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Mixed {
     PCDATA,
-    Names(Vec<QualifiedName>),
+    Names(Vec<Name>),
 }
 
 impl<'a> ParseNamespace<'a> for Mixed {}

@@ -9,7 +9,7 @@ use nom::{
 
 use crate::{parse::Parse, tag};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct TextDecl {
     pub version: Option<String>,
     pub encoding: String,

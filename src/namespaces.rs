@@ -1,4 +1,4 @@
-use crate::{parse::Parse, Name, QualifiedName};
+use crate::{parse::Parse, Name};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -23,10 +23,10 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [2] PrefixedAttName ::=  'xmlns:' NCName
-    fn parse_prefixed_attribute_name(input: &str) -> IResult<&str, QualifiedName> {
+    fn parse_prefixed_attribute_name(input: &str) -> IResult<&str, Name> {
         map(
             preceded(tag("xmlns:"), Self::parse_non_colonized_name),
-            |local_part| QualifiedName {
+            |local_part| Name {
                 prefix: Some("xmlns".into()),
                 local_part,
             },
@@ -61,10 +61,10 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [7] QName ::= PrefixedName | UnprefixedName
-    fn parse_qualified_name(input: &str) -> IResult<&str, QualifiedName> {
+    fn parse_qualified_name(input: &str) -> IResult<&str, Name> {
         alt((
             Self::parse_prefixed_name,
-            map(Self::parse_non_colonized_name, |local_part| QualifiedName {
+            map(Self::parse_non_colonized_name, |local_part| Name {
                 prefix: None,
                 local_part,
             }),
@@ -73,14 +73,14 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
-    fn parse_prefixed_name(input: &str) -> IResult<&str, QualifiedName> {
+    fn parse_prefixed_name(input: &str) -> IResult<&str, Name> {
         map(
             tuple((
                 Self::parse_non_colonized_name,
                 char(':'),
                 Self::parse_non_colonized_name,
             )),
-            |(prefix, _colon_literal, local_part)| QualifiedName {
+            |(prefix, _colon_literal, local_part)| Name {
                 prefix: Some(prefix),
                 local_part,
             },

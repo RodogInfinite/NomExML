@@ -1,4 +1,9 @@
-use crate::parse::Parse;
+use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
+
+use crate::{
+    error::CustomError, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset,
+    Config, ExternalEntityParseConfig, Name,
+};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
@@ -7,9 +12,12 @@ use nom::{
     IResult,
 };
 
-use super::id::ID;
+use super::{
+    id::ID,
+    subset::entity::{entity_value::EntityValue, EntitySource},
+};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalID {
     System(String),
     Public {
@@ -66,5 +74,80 @@ impl ExternalID {
             )),
             |s: &str| s.to_string(),
         )(input)
+    }
+
+    pub fn get_external_entity_from_id(
+        &self,
+        input: &str,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        config: Config,
+    ) -> Result<(), CustomError> {
+        if let Config {
+            external_parse_config:
+                ExternalEntityParseConfig {
+                    allow_ext_parse: true,
+                    base_directory,
+                    ..
+                },
+        } = &config
+        {
+            if let ExternalID::System(system_identifier) = self {
+                let file_path = base_directory.as_ref().map_or_else(
+                    || system_identifier.clone(),
+                    |base| format!("{}/{}", base, system_identifier),
+                );
+
+                match File::open(file_path) {
+                    Ok(mut file) => {
+                        match parse_external_entity_file(
+                            &mut file,
+                            &config,
+                            entity_references.clone(),
+                        )
+                        .as_deref()
+                        {
+                            Ok(_entities) => {
+                                let (_input, (subset, _whitespace1, _close_tag, _whitespace2)) =
+                                    tuple((
+                                        |i| {
+                                            Subset::parse(
+                                                i,
+                                                (
+                                                    entity_references.clone(),
+                                                    config.clone(),
+                                                    EntitySource::External,
+                                                ),
+                                            )
+                                        },
+                                        Self::parse_multispace0,
+                                        tag(">"),
+                                        Self::parse_multispace0,
+                                    ))(input)?;
+
+                                Ok(())
+                            }
+                            _ => Err(nom::Err::Error(nom::error::Error::new(
+                                "Failed to match [entity] from `parse_external_entity_file`",
+                                nom::error::ErrorKind::Fail,
+                            ))
+                            .into()),
+                        }
+                    }
+                    Err(e) => Err(CustomError::from(e)),
+                }
+            } else {
+                Err(nom::Err::Error(nom::error::Error::new(
+                    "Only ExternalID::System is supported for direct parsing",
+                    nom::error::ErrorKind::Fail,
+                ))
+                .into())
+            }
+        } else {
+            Err(nom::Err::Error(nom::error::Error::new(
+                "External parsing is disabled in the configuration",
+                nom::error::ErrorKind::Fail,
+            ))
+            .into())
+        }
     }
 }

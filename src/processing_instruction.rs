@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ProcessingInstruction {
     pub target: Name,
     pub data: Option<String>,

@@ -4,7 +4,7 @@ use crate::{
     attribute::AttributeValue,
     parse::Parse,
 
-    prolog::subset::entity_value::EntityValue,
+    prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
     //transcode::{decode_digit, decode_hex},
     transcode::Decode,
     Name,
@@ -19,96 +19,121 @@ use nom::{
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Reference {
     EntityRef(Name),
     CharRef(String),
 }
 
 impl<'a> Parse<'a> for Reference {
-    type Args = Rc<RefCell<HashMap<Name, EntityValue>>>;
+    type Args = EntitySource;
+    //);
     type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
-        alt((Self::parse_entity_ref, Self::parse_char_reference))(input)
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+        alt((
+            move |i| Self::parse_entity_ref(i, args.clone()),
+            Self::parse_char_reference,
+        ))(input)
     }
 }
 impl Reference {
     pub fn normalize_entity(
         &self,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> EntityValue {
         match self {
             Reference::EntityRef(name) => {
                 let refs_map = entity_references.borrow();
-                match refs_map.get(name).cloned() {
-                    Some(EntityValue::Value(val))
-                        if refs_map.contains_key(&Name {
-                            prefix: None,
-                            local_part: val.clone(),
-                        }) =>
-                    {
-                        // This value is another reference
-                        let reference_name = Name {
-                            prefix: None,
-                            local_part: val,
-                        };
-                        Reference::EntityRef(reference_name)
-                            .normalize_entity(entity_references.clone())
-                    }
-                    Some(EntityValue::Reference(Reference::EntityRef(entity))) => {
-                        if let Some(EntityValue::Value(val)) = refs_map.get(&entity).cloned() {
-                            EntityValue::Value(val)
+
+                // Try to find the most appropriate source based on available references
+                let possible_sources = [EntitySource::External, EntitySource::Internal];
+                let entity_value = possible_sources
+                    .iter()
+                    .filter_map(|source| refs_map.get(&(name.clone(), source.clone())).cloned())
+                    .next()
+                    .unwrap_or_else(|| EntityValue::Value(name.local_part.clone())); // Default to just returning the name if no entity is found
+
+                match entity_value {
+                    EntityValue::Value(val) => {
+                        if refs_map.contains_key(&(
+                            Name {
+                                prefix: None,
+                                local_part: val.clone(),
+                            },
+                            EntitySource::Internal,
+                        )) {
+                            // This value is another reference, recurse
+                            let reference_name = Name {
+                                prefix: None,
+                                local_part: val,
+                            };
+                            Reference::EntityRef(reference_name)
+                                .normalize_entity(entity_references.clone())
                         } else {
-                            Reference::EntityRef(entity).normalize_entity(entity_references.clone())
+                            EntityValue::Value(val)
                         }
                     }
-                    Some(EntityValue::Reference(Reference::CharRef(value))) => {
-                        EntityValue::Value(value)
+                    EntityValue::Reference(ref next_ref) => {
+                        // Recursively resolve the next reference
+                        next_ref.normalize_entity(entity_references.clone())
                     }
-                    Some(entity_value) => entity_value,
-                    None => EntityValue::Value(name.local_part.clone()),
+                    _ => entity_value,
                 }
             }
             Reference::CharRef(value) => EntityValue::Value(value.clone()),
         }
     }
+
     pub fn normalize_attribute(
         &self,
-        entity_references: Rc<RefCell<HashMap<Name, EntityValue>>>,
+        entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        entity_source: EntitySource,
     ) -> AttributeValue {
         match self {
             Reference::EntityRef(name) => {
                 let refs_map = entity_references.borrow();
-                match refs_map.get(name).cloned() {
+                match refs_map
+                    .get(&(name.clone(), entity_source.clone()))
+                    .cloned()
+                {
                     Some(EntityValue::Value(val))
-                        if refs_map.contains_key(&Name {
-                            prefix: None,
-                            local_part: val.clone(),
-                        }) =>
+                        if refs_map.contains_key(&(
+                            Name {
+                                prefix: None,
+                                local_part: val.clone(),
+                            },
+                            entity_source.clone(),
+                        )) =>
                     {
                         let reference_name = Name {
                             prefix: None,
                             local_part: val,
                         };
                         Reference::EntityRef(reference_name)
-                            .normalize_attribute(entity_references.clone())
+                            .normalize_attribute(entity_references.clone(), entity_source.clone())
                     }
                     Some(EntityValue::Reference(Reference::EntityRef(entity))) => {
-                        if let Some(EntityValue::Value(val)) = refs_map.get(&entity).cloned() {
+                        if let Some(EntityValue::Value(val)) = refs_map
+                            .get(&(entity.clone(), EntitySource::Internal))
+                            .cloned()
+                        {
                             AttributeValue::Value(val)
                         } else {
-                            Reference::EntityRef(entity.clone())
-                                .normalize_attribute(entity_references.clone())
+                            Reference::EntityRef(entity.clone()).normalize_attribute(
+                                entity_references.clone(),
+                                EntitySource::External, //TODO COME BACK TO THIS
+                            )
                         }
                     }
                     Some(entity_value) => {
                         // Convert EntityValue to AttributeValue
                         match entity_value {
                             EntityValue::Value(val) => AttributeValue::Value(val),
-                            EntityValue::Reference(reference) => {
-                                reference.normalize_attribute(entity_references.clone())
-                            }
+                            EntityValue::Reference(reference) => reference.normalize_attribute(
+                                entity_references.clone(),
+                                entity_source.clone(),
+                            ),
                             _ => panic!("Unexpected EntityValue variant"),
                         }
                     }
@@ -132,7 +157,7 @@ impl Decode for Reference {
 
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
-    fn parse_entity_ref(input: &str) -> IResult<&str, Reference> {
+    fn parse_entity_ref(input: &str, entity_source: EntitySource) -> IResult<&str, Reference> {
         let (input, reference) = map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),

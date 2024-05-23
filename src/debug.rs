@@ -10,17 +10,19 @@ use crate::{
         external_id::ExternalID,
         id::ID,
         subset::{
-            entity_declaration::{EntityDecl, EntityDeclaration},
-            entity_definition::EntityDefinition,
-            entity_value::EntityValue,
-            internal::InternalSubset,
+            entity::{
+                entity_declaration::{EntityDecl, EntityDeclaration},
+                entity_definition::EntityDefinition,
+                entity_value::EntityValue,
+            },
             markup_declaration::MarkupDeclaration,
+            Subset,
         },
         textdecl::TextDecl,
         xmldecl::{Standalone, XmlDecl},
     },
     reference::Reference,
-    Document, QualifiedName, Tag,
+    Document, Name, Tag,
 };
 use std::fmt::{self, Formatter};
 
@@ -70,18 +72,18 @@ impl Tag {
     }
 }
 
-impl fmt::Debug for QualifiedName {
+impl fmt::Debug for Name {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.fmt_qualified_name(0))
     }
 }
 
-impl QualifiedName {
+impl Name {
     fn fmt_qualified_name(&self, indent: usize) -> String {
-        let QualifiedName { prefix, local_part } = self;
+        let Name { prefix, local_part } = self;
         let mut f = String::new();
 
-        fmt_indented(&mut f, indent, "QualifiedName {\n");
+        fmt_indented(&mut f, indent, "Name {\n");
 
         match prefix {
             Some(p) => {
@@ -370,7 +372,7 @@ impl std::fmt::Debug for DocType {
         f.debug_struct("DocType")
             .field("name", &self.name)
             .field("external_id", &self.external_id)
-            .field("int_subset", &self.int_subset)
+            .field("subset", &self.subset)
             .finish()
     }
 }
@@ -388,8 +390,8 @@ impl DocType {
             indent + 4,
             &format!("external_id: {:?},\n", self.external_id),
         );
-        fmt_indented(f, indent + 4, "int_subset: Some([\n");
-        for element in self.int_subset.as_ref().unwrap_or(&Vec::new()).iter() {
+        fmt_indented(f, indent + 4, "subset: Some([\n");
+        for element in self.subset.as_ref().unwrap_or(&Vec::new()).iter() {
             element.fmt_internal_subset(f, indent + 8);
         }
         fmt_indented(f, indent + 4, "]),\n");
@@ -416,6 +418,18 @@ impl ExternalID {
     }
 }
 
+// impl Subset {
+//     fn fmt_subset(&self, f: &mut String, indent: usize) {
+//         match self {
+//             Subset::Internal(internal_subset) => {
+//                 internal_subset.fmt_internal_subset(f, indent)
+//             }
+//             Subset::External(external_subset) => {
+//                 external_subset.fmt_external_subset(f, indent)
+//             }
+//         }
+//     }
+// }
 impl std::fmt::Debug for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -439,8 +453,14 @@ impl ID {
         }
     }
 }
-
-impl fmt::Debug for InternalSubset {
+// impl fmt::Debug for Subset {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         let mut s = String::new();
+//         self.fmt_subset(&mut s, 0);
+//         write!(f, "{}", s)
+//     }
+// }
+impl fmt::Debug for Subset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
         self.fmt_internal_subset(&mut s, 0);
@@ -448,16 +468,16 @@ impl fmt::Debug for InternalSubset {
     }
 }
 
-impl InternalSubset {
+impl Subset {
     fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
         match self {
-            InternalSubset::MarkupDecl(markup_declaration) => {
+            Subset::MarkupDecl(markup_declaration) => {
                 markup_declaration.fmt_markup_decl(f, indent);
             }
             // InternalSubset::MarkupDecl(None) => {
             //     fmt_indented(f, indent, "None");
             // }
-            InternalSubset::DeclSep {
+            Subset::DeclSep {
                 reference,
                 expansion,
             } => {
@@ -474,7 +494,7 @@ impl InternalSubset {
                 }
                 fmt_indented(f, indent, "},\n");
             }
-            InternalSubset::None => {
+            Subset::None => {
                 fmt_indented(f, indent, "None");
             }
         }
@@ -641,6 +661,7 @@ impl Attribute {
                 name,
                 att_type,
                 default_decl,
+                source,
             } => {
                 fmt_indented(f, indent, "Definition {\n");
                 fmt_indented(
@@ -654,6 +675,7 @@ impl Attribute {
                     indent + 4,
                     &format!("default_decl: {:?},\n", default_decl),
                 );
+                fmt_indented(f, indent + 4, &format!("source: {:?},\n", source));
                 fmt_indented(f, indent, "},\n");
             }
             Attribute::Reference(reference) => {
@@ -701,13 +723,11 @@ impl fmt::Debug for Prefix {
 impl fmt::Debug for Reference {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Reference::EntityRef(entity) => f
+            Reference::EntityRef(name) => f
                 .debug_struct("EntityRef")
-                .field(
-                    "entity",
-                    &format_args!("\n{}", entity.fmt_qualified_name(12)),
-                )
+                .field("name", &format_args!("\n{}", name.fmt_qualified_name(12)))
                 .finish(),
+
             Reference::CharRef(value) => f.debug_struct("CharRef").field("value", value).finish(),
         }
     }

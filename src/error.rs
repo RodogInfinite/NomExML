@@ -4,6 +4,13 @@ use std::{
     io::Error as IoError,
 };
 
+#[macro_export]
+macro_rules! warnln {
+    ($($arg:tt)*) => ({
+        eprintln!("\x1B[33mWARNING:\x1B[0m {}", format!($($arg)*));
+    });
+}
+
 #[derive(Debug)]
 pub enum CustomError {
     NomError(String, String), // Error message and input string
