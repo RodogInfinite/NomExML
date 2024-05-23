@@ -8,7 +8,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ContentParticle {
     Name(Name, ConditionalState),
     Choice(Vec<ContentParticle>, ConditionalState),

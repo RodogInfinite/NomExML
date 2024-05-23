@@ -5,7 +5,7 @@ use crate::{
 
 use super::entity_value::EntityValue;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum EntityDefinition {
     EntityValue(EntityValue),
     External {

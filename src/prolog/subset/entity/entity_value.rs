@@ -4,7 +4,7 @@ use crate::{
     prolog::subset::markup_declaration::MarkupDeclaration, reference::Reference, Document,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum EntityValue {
     Document(Document),
     Value(String),

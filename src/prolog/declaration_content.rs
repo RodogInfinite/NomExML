@@ -10,7 +10,7 @@ use nom::{
 
 use super::content_particle::ContentParticle;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum DeclarationContent {
     Mixed(Mixed),
     Children(ContentParticle),
@@ -59,7 +59,7 @@ impl DeclarationContent {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Mixed {
     PCDATA,
     Names(Vec<Name>),

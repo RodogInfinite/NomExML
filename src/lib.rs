@@ -1,6 +1,7 @@
 pub mod attribute;
+pub mod config;
 mod debug;
-mod error;
+pub mod error;
 pub mod io;
 pub mod misc;
 pub mod namespaces;
@@ -44,14 +45,7 @@ use nom::{
 };
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
-use std::{
-    cell::RefCell,
-    collections::{BTreeMap, HashMap},
-    error::Error,
-    fs::File,
-    io::Write,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, error::Error, fmt, fs::File, io::Write, rc::Rc};
 
 #[derive(Clone, Default, Debug)]
 pub struct ExternalEntityParseConfig {
@@ -65,7 +59,7 @@ pub struct Config {
     pub external_parse_config: ExternalEntityParseConfig,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Document {
     Prolog {
         xml_decl: Option<XmlDecl>,
@@ -80,12 +74,6 @@ pub enum Document {
     ProcessingInstruction(ProcessingInstruction),
     Comment(String),
     CDATA(String),
-}
-
-macro_rules! warnln {
-    ($($arg:tt)*) => ({
-        eprintln!("\x1B[33mWARNING:\x1B[0m {}", format!($($arg)*));
-    });
 }
 
 fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
@@ -409,9 +397,8 @@ impl Document {
         move |references| {
             let mut contents: Vec<String> = Vec::new();
             for reference in references.into_iter() {
-                match reference.normalize_entity(entity_references.clone())//, EntitySource::Internal)
-                {
-                    EntityValue::Document(doc) => return doc, // If we encounter a Document, return it immediately.
+                match reference.normalize_entity(entity_references.clone()) {
+                    EntityValue::Document(doc) => return doc,
                     EntityValue::Value(val) => contents.push(val),
                     _ => {}
                 }
@@ -479,7 +466,6 @@ impl Document {
         ))(input)?;
 
         // Check if maybe_chardata contains a comma
-
         let mut content = elements
             .into_iter()
             .flat_map(|(doc, maybe_chardata)| {
@@ -811,7 +797,7 @@ impl Document {
                     }
                 }
             }
-            _ => {} // Handle other Document variants if needed
+            _ => {}
         }
 
         if documents.is_empty() {
@@ -854,91 +840,6 @@ impl Document {
 
         results
     }
-
-    pub fn extract_enumerated_subtags(
-        &self,
-        outer_tag: &str,
-        inner_tag: &str,
-    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
-        let extracted = self.extract(&Name {
-            prefix: None,
-            local_part: outer_tag.to_string(),
-        })?;
-
-        if let Document::Element(_, inner_doc, _) = &extracted {
-            if let Document::Nested(inner_docs) = &**inner_doc {
-                let indexed_map = inner_docs.as_indexed_map(inner_tag)?;
-                Ok(indexed_map)
-            } else {
-                Err(Box::new(DocumentError::ExpectedNestedDocument))
-            }
-        } else if let Document::Nested(inner_docs) = &extracted {
-            let indexed_map = inner_docs.as_indexed_map(inner_tag)?;
-            Ok(indexed_map)
-        } else {
-            Err(Box::new(DocumentError::ExpectedNestedDocument))
-        }
-    }
-
-    pub fn extract_subtags_using_inner_val_as_key(
-        &self,
-        outer_tag: &str,
-        inner_tag: &str,
-        inner_tag_subtag_key: &str,
-    ) -> Result<BTreeMap<String, BTreeMap<String, String>>, Box<dyn Error>> {
-        let extracted = self.extract(&Name {
-            prefix: None,
-            local_part: outer_tag.to_string(),
-        })?;
-
-        if let Document::Element(_, inner_doc, _) = &extracted {
-            if let Document::Nested(inner_docs) = &**inner_doc {
-                let map_with_subtag_key =
-                    inner_docs.as_map_with_subtag_value_key(inner_tag, inner_tag_subtag_key)?;
-                Ok(map_with_subtag_key)
-            } else {
-                Err(Box::new(DocumentError::ExpectedNestedDocument))
-            }
-        } else if let Document::Nested(inner_docs) = &extracted {
-            let map_with_subtag_key =
-                inner_docs.as_map_with_subtag_value_key(inner_tag, inner_tag_subtag_key)?;
-            Ok(map_with_subtag_key)
-        } else {
-            Err(Box::new(DocumentError::ExpectedNestedDocument))
-        }
-    }
-
-    //TODO FIX THIS
-    // pub fn get_attributes(&self) -> HashMap<String, String> {
-    //     let mut results = HashMap::new();
-
-    //     if let Document::Element(tag, inner_doc, _) = self {
-    //         if let Some(attributes) = &tag.attributes {
-    //             for attribute in attributes {
-    //                 if let Attribute::Instance { name, value } = attribute {
-    //                     let attr_name = name.local_part.to_string();
-
-    //                     let attr_value = value.to_string();
-    //                     results.insert(attr_name, attr_value);
-    //                 }
-    //             }
-    //         }
-
-    //         if let Document::Nested(docs) = &**inner_doc {
-    //             for doc in docs {
-    //                 let mut inner_results = doc.get_attributes();
-    //                 results.extend(inner_results.drain());
-    //             }
-    //         }
-    //     } else if let Document::Nested(docs) = self {
-    //         for doc in docs {
-    //             let mut inner_results = doc.get_attributes();
-    //             results.extend(inner_results.drain());
-    //         }
-    //     }
-
-    //     results
-    // }
 }
 
 impl Document {
@@ -953,6 +854,7 @@ impl Document {
 
         many1(|i| Self::parse_element_by_tag_name(i, tag_name, entity_references))(input)
     }
+
     pub fn parse_element_from_pattern<'a>(
         input: &'a str,
         tag_name: &str,
@@ -960,10 +862,9 @@ impl Document {
         strict: bool,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
-        let (_, pattern_doc) = Self::parse_element(pattern.xml, entity_references.clone())?;
+        let (_, _pattern_doc) = Self::parse_element(pattern.xml, entity_references.clone())?;
 
         let pattern = pattern.parse(entity_references)?;
-        //let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
         let (input, doc) =
             peek(|input| Self::parse_element_by_tag_name(input, tag_name, entity_references))(
                 input,
@@ -973,39 +874,27 @@ impl Document {
                 Document::Element(_, inner_element, _),
                 Document::Element(_, pattern_inner_element, _),
             ) => {
-                // dbg!(&inner_element);
-                // dbg!(&pattern_inner_element);
                 if let (Document::Nested(inner_docs), Document::Nested(pattern_inner_docs)) =
                     (&**inner_element, &**pattern_inner_element)
                 {
                     let mut doc_matches = vec![false; pattern_inner_docs.len()];
-                    let mut counter = 0;
-                    for pattern_doc in pattern_inner_docs.iter() {
-                        //dbg!(pattern_doc);
 
+                    for (counter, pattern_doc) in pattern_inner_docs.iter().enumerate() {
                         for inner in inner_docs.iter() {
-                            //dbg!(inner);
                             if strict {
                                 if Self::compare_documents(
                                     inner,
                                     pattern.clone(),
                                     ComparisonMethod::Strict,
-                                ) {
-                                    //dbg!("Matched Strict");
-                                    //dbg!(&inner);
-                                }
+                                ) {}
                             } else if Self::compare_documents(
                                 inner,
                                 Pattern::new("", pattern_doc.clone()),
                                 ComparisonMethod::Partial,
                             ) {
-                                // dbg!("Matched Partial");
-                                //dbg!(&inner);
                                 doc_matches[counter] = true;
                             }
                         }
-                        counter += 1;
-                        //dbg!(&doc_matches);
                     }
 
                     if doc_matches.iter().all(|&vals| vals) {
@@ -1106,7 +995,55 @@ impl Document {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+impl Document {
+    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new(self, Some(max_level))
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DocumentIterator<'a> {
+    stack: Vec<(&'a Document, usize)>,
+    max_depth: Option<usize>,
+}
+
+impl<'a> DocumentIterator<'a> {
+    pub fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
+        let stack = vec![(doc, 0)];
+        DocumentIterator { stack, max_depth }
+    }
+}
+impl<'a> Iterator for DocumentIterator<'a> {
+    type Item = &'a Document;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((doc, level)) = self.stack.pop() {
+            if self.max_depth.map_or(true, |max| level < max) {
+                match doc {
+                    Document::Nested(docs) => {
+                        for d in docs.iter().rev() {
+                            self.stack.push((d, level + 1));
+                        }
+
+                        continue;
+                    }
+                    Document::Element(_, inner_doc, _) => {
+                        // Add the inner document of an element
+                        self.stack.push((inner_doc, level + 1));
+
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+
+            return Some(doc);
+        }
+
+        None
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ConditionalState {
     None,
     Optional,
@@ -1125,219 +1062,11 @@ impl<'a> Parse<'a> for ConditionalState {
     }
 }
 
-pub trait AsOrderedMap {
-    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>>;
-    fn as_indexed_map(
-        &self,
-        target_tag_name: &str,
-    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>>;
-    fn as_map_with_subtag_value_key(
-        &self,
-        target_tag_name: &str,
-        subtag_key: &str,
-    ) -> Result<BTreeMap<String, BTreeMap<String, String>>, Box<dyn Error>>;
-    fn as_map_with_excluded_key(
-        &self,
-        excluded_key: &str,
-    ) -> Result<(String, BTreeMap<String, String>), Box<dyn Error>>;
-}
-
-impl AsOrderedMap for Document {
-    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-
-        let content = self.get_content();
-        for (key, value) in content {
-            if map.contains_key(&key) {
-                return Err(format!("Duplicate key: {}", key).into());
-            }
-
-            map.insert(key, value);
-        }
-
-        Ok(map)
-    }
-    fn as_map_with_excluded_key(
-        &self,
-        excluded_key: &str,
-    ) -> Result<(String, BTreeMap<String, String>), Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-        let mut excluded_value: Option<String> = None;
-
-        let content = self.get_content();
-        for (key, value) in content {
-            if key == excluded_key {
-                excluded_value = Some(value);
-                continue;
-            }
-
-            map.insert(key, value);
-        }
-
-        if let Some(ev) = excluded_value {
-            Ok((ev, map))
-        } else {
-            Err(format!("Key '{}' not found.", excluded_key).into())
-        }
-    }
-
-    fn as_indexed_map(
-        &self,
-        _target_tag_name: &str,
-    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
-        Err("Not applicable for non-nested Document. Try `as_map`".into())
-    }
-    fn as_map_with_subtag_value_key(
-        &self,
-        _target_tag_name: &str,
-        _subtag_key: &str,
-    ) -> Result<BTreeMap<String, BTreeMap<String, String>>, Box<dyn Error>> {
-        Err("Not applicable for non-nested Document. Try `as_map`".into())
-    }
-}
-
-impl AsOrderedMap for Result<Vec<Document>, Box<dyn Error>> {
-    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
-        Err("Not applicable for Result<Vec<Document>, Box<dyn Error>>. Try `as_indexed_map`".into())
-    }
-    fn as_map_with_excluded_key(
-        &self,
-        _excluded_key: &str,
-    ) -> Result<(String, BTreeMap<String, String>), Box<dyn Error>> {
-        Err("Not applicable for Result<Vec<Document>, Box<dyn Error>>.".into())
-    }
-
-    fn as_indexed_map(
-        &self,
-        target_tag_name: &str,
-    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-        let mut tag_index = 0; // to keep the current index for the given tag_name
-
-        if let Ok(docs) = self {
-            for doc in docs.iter() {
-                if let Document::Element(tag, _content, _) = doc {
-                    let current_tag_name = tag.name.local_part.to_string();
-
-                    if current_tag_name == target_tag_name {
-                        let content_map = doc.as_map()?;
-
-                        map.insert((current_tag_name.clone(), tag_index), content_map);
-
-                        // Increment the index for this tag_name only
-                        tag_index += 1;
-                    }
-                }
-            }
-
-            Ok(map)
-        } else {
-            Err("An error occurred while processing the documents.".into())
-        }
-    }
-
-    fn as_map_with_subtag_value_key(
-        &self,
-        target_tag_name: &str,
-        subtag_key: &str,
-    ) -> Result<BTreeMap<String, BTreeMap<String, String>>, Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-
-        if let Ok(docs) = self {
-            for doc in docs.iter() {
-                if let Document::Element(tag, _content, _) = doc {
-                    let current_tag_name = tag.name.local_part.to_string();
-
-                    if current_tag_name == target_tag_name {
-                        let (key_value, content_map) = doc.as_map_with_excluded_key(subtag_key)?;
-
-                        if map.insert(key_value.clone(), content_map).is_some() {
-                            warnln!(
-                                "`as_map_with_subtag_value_key(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
-                            );
-                        }
-                    }
-                }
-            }
-
-            Ok(map)
-        } else {
-            Err("An error occurred while processing the documents.".into())
-        }
-    }
-}
-
-impl AsOrderedMap for Vec<Document> {
-    fn as_map(&self) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
-        Err("Not applicable for Vec<Document>. Try `as_indexed_map`".into())
-    }
-    fn as_map_with_excluded_key(
-        &self,
-        _excluded_key: &str,
-    ) -> Result<(String, BTreeMap<String, String>), Box<dyn Error>> {
-        Err("Not applicable for Vec<Document>.".into())
-    }
-    fn as_indexed_map(
-        &self,
-        target_tag_name: &str,
-    ) -> Result<BTreeMap<(String, usize), BTreeMap<String, String>>, Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-        let mut tag_index = 0; // track the current index for the given tag_name
-
-        for doc in self.iter() {
-            if let Document::Element(tag, _content, _) = doc {
-                let current_tag_name = tag.name.local_part.to_string();
-
-                // Only process elements with the provided tag name
-                if current_tag_name == target_tag_name {
-                    let content_map = doc.as_map()?;
-
-                    map.insert((current_tag_name, tag_index), content_map);
-
-                    // increment the index for this tag_name
-                    tag_index += 1;
-                }
-            }
-        }
-
-        Ok(map)
-    }
-    fn as_map_with_subtag_value_key(
-        &self,
-        target_tag_name: &str,
-        subtag_key: &str,
-    ) -> Result<BTreeMap<String, BTreeMap<String, String>>, Box<dyn Error>> {
-        let mut map = BTreeMap::new();
-
-        for doc in self.iter() {
-            if let Document::Element(tag, _content, _) = doc {
-                let current_tag_name = tag.name.local_part.to_string();
-
-                if current_tag_name == target_tag_name {
-                    let (key_value, content_map) = doc.as_map_with_excluded_key(subtag_key)?;
-
-                    // No need to extract the subtag's value for the key anymore
-                    // because we get it directly from the updated function
-                    if map.insert(key_value.clone(), content_map).is_some() {
-                        warnln!(
-                            "`as_map_with_subtag_value_key(\"{target_tag_name}\",\"{subtag_key}\")` Duplicate key found: \"{subtag_key}\":\"{key_value}\"'. Overwriting previous value.\n",
-                        );
-                    }
-                }
-            }
-        }
-
-        Ok(map)
-    }
-}
-
-use std::fmt;
-
 // TODO: migrate this to error.rs possibly combine with CustomError
 #[derive(Debug)]
 pub enum DocumentError {
     NoMatchingDocuments,
-    ExpectedNestedDocument, // Other error variants can be added as needed
+    ExpectedNestedDocument,
 }
 
 impl fmt::Display for DocumentError {
@@ -1348,13 +1077,13 @@ impl fmt::Display for DocumentError {
             }
             DocumentError::ExpectedNestedDocument => {
                 write!(f, "Expected a nested document, but found another variant")
-            } // Handle other error variants here as needed
+            }
         }
     }
 }
 
 impl std::error::Error for DocumentError {}
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pattern<'a> {
     pub xml: &'a str,
     pub doc: Document,
@@ -1378,7 +1107,7 @@ pub trait PartialEqCustom {
 
 impl PartialEqCustom for Document {
     fn partial_eq(&self, pattern: Pattern) -> bool {
-        //dbg!(&pattern.doc);
+        
         match (self, &pattern.doc) {
             (
                 Document::Prolog {

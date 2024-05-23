@@ -15,7 +15,7 @@ use nom::{
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 
 pub enum TagState {
     Start,
@@ -23,7 +23,7 @@ pub enum TagState {
     Empty,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Tag {
     pub name: Name,
     pub attributes: Option<Vec<Attribute>>, // Attribute::Instance

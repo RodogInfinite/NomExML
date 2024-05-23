@@ -2,13 +2,13 @@
 use crate::{parse::Parse, processing_instruction::ProcessingInstruction, Document};
 use nom::{branch::alt, combinator::map, IResult};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum MiscState {
     BeforeDoctype,
     AfterDoctype,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Misc {
     pub content: Box<Document>, // Document::Comment | Document::ProcessingInstruction>
     pub state: MiscState,

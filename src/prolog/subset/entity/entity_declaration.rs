@@ -2,13 +2,13 @@ use crate::Name;
 
 use super::entity_definition::EntityDefinition;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EntityDecl {
     General(GeneralEntityDeclaration),
     Parameter(ParameterEntityDeclaration),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct EntityDeclaration {
     pub name: Name,
     pub entity_def: EntityDefinition,

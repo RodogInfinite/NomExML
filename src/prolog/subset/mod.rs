@@ -22,7 +22,7 @@ use crate::{
 };
 
 //TODO handle circular references in all entity replacements
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Subset {
     MarkupDecl(MarkupDeclaration),
     DeclSep {

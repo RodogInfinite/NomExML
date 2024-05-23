@@ -23,7 +23,7 @@ use super::{
     subset::{entity::EntitySource, markup_declaration::MarkupDeclaration},
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct DocType {
     pub name: Name,
     pub external_id: Option<ExternalID>,
@@ -49,7 +49,7 @@ impl<'a> Parse<'a> for DocType {
             })),
             Self::parse_multispace0,
         ))(input)?;
-        dbg!(&external_id);
+
         if let Some(external_id) = external_id {
             // let _ = external_id.get_external_entity_from_id(
             //     input,

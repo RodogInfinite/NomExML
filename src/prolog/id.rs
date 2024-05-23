@@ -12,7 +12,7 @@ use crate::parse::Parse;
 
 use super::external_id::ExternalID;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ID {
     ExternalID(ExternalID),
     PublicID(String),

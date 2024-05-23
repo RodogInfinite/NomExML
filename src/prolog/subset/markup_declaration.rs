@@ -27,7 +27,7 @@ use super::entity::{
     EntitySource,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum MarkupDeclaration {
     Element {
         name: Name,

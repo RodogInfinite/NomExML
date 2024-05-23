@@ -16,19 +16,19 @@ use nom::{
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Prefix {
     Default,
     Prefix(String),
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum AttributeValue {
     Value(String),
     Values(Vec<AttributeValue>),
     Reference(Reference),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Attribute {
     Definition {
         name: Name,
@@ -242,7 +242,7 @@ impl Attribute {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenizedType {
     ID,
     IDREF,
@@ -268,7 +268,7 @@ impl TokenizedType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AttType {
     CDATA,
     Tokenized(TokenizedType),
@@ -348,7 +348,7 @@ impl AttType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DefaultDecl {
     Required,
     Implied,

@@ -11,7 +11,7 @@ use nom::{
 };
 use std::str::FromStr;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Standalone {
     Yes,
     No,
@@ -29,7 +29,7 @@ impl FromStr for Standalone {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct XmlDecl {
     pub version: String,
     pub encoding: Option<String>,

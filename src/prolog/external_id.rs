@@ -2,14 +2,14 @@ use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
 
 use crate::{
     error::CustomError, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset,
-    Config, Document, ExternalEntityParseConfig, Name,
+    Config, ExternalEntityParseConfig, Name,
 };
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     combinator::map,
     sequence::{delimited, tuple},
-    Err, IResult,
+    IResult,
 };
 
 use super::{
@@ -17,7 +17,7 @@ use super::{
     subset::entity::{entity_value::EntityValue, EntitySource},
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExternalID {
     System(String),
     Public {
@@ -82,7 +82,6 @@ impl ExternalID {
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
     ) -> Result<(), CustomError> {
-        // Check if external parsing is allowed and if a base directory is provided
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -92,18 +91,14 @@ impl ExternalID {
                 },
         } = &config
         {
-            // Process only if ExternalID is of type System
             if let ExternalID::System(system_identifier) = self {
-                // Construct the file path based on base_directory
                 let file_path = base_directory.as_ref().map_or_else(
                     || system_identifier.clone(),
                     |base| format!("{}/{}", base, system_identifier),
                 );
-                dbg!(&file_path);
-                // Attempt to open the file at the constructed path
+
                 match File::open(file_path) {
                     Ok(mut file) => {
-                        // Parse the external entity file
                         match parse_external_entity_file(
                             &mut file,
                             &config,
@@ -111,10 +106,8 @@ impl ExternalID {
                         )
                         .as_deref()
                         {
-                            Ok(entities) => {
-                                dbg!(&entities);
-                                dbg!(&input);
-                                let (input, (subset, _whitespace1, _close_tag, _whitespace2)) =
+                            Ok(_entities) => {
+                                let (_input, (subset, _whitespace1, _close_tag, _whitespace2)) =
                                     tuple((
                                         |i| {
                                             Subset::parse(
@@ -130,7 +123,7 @@ impl ExternalID {
                                         tag(">"),
                                         Self::parse_multispace0,
                                     ))(input)?;
-                                dbg!(&subset);
+
                                 Ok(())
                             }
                             _ => Err(nom::Err::Error(nom::error::Error::new(

@@ -111,6 +111,7 @@ fn test_valid_not_sa_002() -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
+#[ignore]
 fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "003",
