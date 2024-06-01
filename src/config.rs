@@ -25,7 +25,7 @@ pub struct TargetedParsingConfig {
     pub parse_multiple: bool, // True to parse multiple elements, false for a single element
 }
 
-pub fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
+pub fn check_config(config: &Config) -> Result<(), nom::Err<&str>> {
     match config {
         Config {
             external_parse_config:

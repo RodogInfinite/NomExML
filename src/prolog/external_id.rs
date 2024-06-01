@@ -1,15 +1,14 @@
 use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
 
 use crate::{
-    error::CustomError, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset,
-    Config, ExternalEntityParseConfig, Name,
+    error::Error, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset, Config,
+    ExternalEntityParseConfig, IResult, Name, Result,
 };
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     combinator::map,
     sequence::{delimited, tuple},
-    IResult,
 };
 
 use super::{
@@ -26,17 +25,17 @@ pub enum ExternalID {
     },
 }
 
-impl<'a> Parse<'a> for ExternalID {
+impl<'a: 'static> Parse<'a> for ExternalID {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[75] ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
         alt((Self::parse_system, Self::parse_public))(input)
     }
 }
 
 impl ExternalID {
-    fn parse_system(input: &str) -> IResult<&str, ExternalID> {
+    fn parse_system(input: &'static str) -> IResult<&'static str, ExternalID> {
         map(
             tuple((
                 tag("SYSTEM"),
@@ -47,7 +46,7 @@ impl ExternalID {
         )(input)
     }
 
-    fn parse_public(input: &str) -> IResult<&str, ExternalID> {
+    fn parse_public(input: &'static str) -> IResult<&'static str, ExternalID> {
         map(
             tuple((
                 tag("PUBLIC"),
@@ -66,7 +65,7 @@ impl ExternalID {
     }
 
     // [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
-    fn parse_system_literal(input: &str) -> IResult<&str, String> {
+    fn parse_system_literal(input: &'static str) -> IResult<&'static str, String> {
         map(
             alt((
                 delimited(tag("\""), is_not("\""), tag("\"")),
@@ -78,10 +77,10 @@ impl ExternalID {
 
     pub fn get_external_entity_from_id(
         &self,
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -126,14 +125,14 @@ impl ExternalID {
 
                                 Ok(())
                             }
-                            _ => Err(nom::Err::Error(nom::error::Error::new(
+                            _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                                 "Failed to match [entity] from `parse_external_entity_file`",
                                 nom::error::ErrorKind::Fail,
-                            ))
+                            )))
                             .into()),
                         }
                     }
-                    Err(e) => Err(CustomError::from(e)),
+                    Err(e) => Err(Error::<String>::from(e).into()),
                 }
             } else {
                 Err(nom::Err::Error(nom::error::Error::new(

@@ -5,10 +5,9 @@ use nom::{
     combinator::map,
     multi::many0,
     sequence::{delimited, pair, preceded},
-    IResult,
 };
 
-use crate::parse::Parse;
+use crate::{parse::Parse, IResult};
 
 use super::external_id::ExternalID;
 
@@ -18,11 +17,11 @@ pub enum ID {
     PublicID(String),
 }
 
-impl<'a> Parse<'a> for ID {
+impl<'a: 'static> Parse<'a> for ID {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [83] PublicID ::= 'PUBLIC' S PubidLiteral
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
         alt((
             map(
                 preceded(
@@ -38,7 +37,7 @@ impl<'a> Parse<'a> for ID {
 
 impl ID {
     // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
-    pub fn parse_public_id_literal(input: &str) -> IResult<&str, String> {
+    pub fn parse_public_id_literal(input: &'static str) -> IResult<&'static str, String> {
         map(
             alt((
                 delimited(
@@ -57,7 +56,10 @@ impl ID {
     }
 
     // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
-    pub fn parse_pubid_char(input: &str, exclude_single_quote: bool) -> IResult<&str, &str> {
+    pub fn parse_pubid_char(
+        input: &'static str,
+        exclude_single_quote: bool,
+    ) -> IResult<&'static str, &str> {
         let chars = if exclude_single_quote {
             " \r\n-()+,./:=?;!*#@$_%"
         } else {

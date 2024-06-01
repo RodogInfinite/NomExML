@@ -8,13 +8,12 @@ use crate::{
         },
         Subset,
     },
-    Config, Document, Name,
+    Config, Document, IResult, Name,
 };
 use nom::{
     bytes::complete::tag,
     combinator::opt,
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -30,7 +29,7 @@ pub struct DocType {
     pub subset: Option<Vec<Subset>>,
 }
 
-impl<'a> Parse<'a> for DocType {
+impl<'a: 'static> Parse<'a> for DocType {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         Config,
@@ -38,7 +37,7 @@ impl<'a> Parse<'a> for DocType {
 
     type Output = IResult<&'a str, Self>;
 
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         let (entity_references, config) = args;
         let (input, (_open_tag, _whitespace1, name, external_id, _whitespace2)) = tuple((
             tag("<!DOCTYPE"),
@@ -185,9 +184,9 @@ impl DocType {
     }
     //TODO: figure out how to integrate this or remove
     // fn _parse_qualified_doctype(
-    //     input: &str,
+    //     input: &'static str,
     //     entity_references: Rc<RefCell<HashMap<(Name,EntityType), EntityValue>>>,
-    // ) -> IResult<&str, DocType> {
+    // ) -> IResult<&'static str, DocType> {
     //     let (input, _) = tag("<!DOCTYPE")(input)?;
     //     let (input, _) = Self::parse_multispace1(input)?;
     //     let (input, name) = Self::parse_qualified_name(input)?;
@@ -219,4 +218,4 @@ impl DocType {
     // }
 }
 
-impl<'a> ParseNamespace<'a> for DocType {}
+impl<'a: 'static> ParseNamespace<'a> for DocType {}

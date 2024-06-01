@@ -8,7 +8,7 @@ use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
 use crate::Config;
 
-use crate::{error::CustomError, Document};
+use crate::{error::Error, Document, Result};
 use encoding_rs::*;
 use nom::branch::alt;
 use nom::combinator::{map, map_res, opt};
@@ -41,11 +41,11 @@ pub fn read_file(file: &mut File) -> std::io::Result<String> {
     Ok(decoded_str.into_owned())
 }
 
-pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomError> {
+pub fn parse_file(file: &mut File, config: Config) -> Result<Document> {
     let mut data = read_file(file)?;
     data = data.replace("\r\n", "\n").replace('\r', "\n");
 
-    let parse_result = Document::parse(&data, config);
+    let parse_result = Document::parse(&'static data, config);
     match parse_result {
         Ok((_, document)) => {
             // Successfully parsed document, return it
@@ -53,14 +53,20 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document, CustomErr
         }
         Err(nom::Err::Error(e) | nom::Err::Failure(e)) => {
             // Handle Nom parsing errors
-            let custom_error = CustomError::NomError(format!("{:?}", e.code), e.input.to_string());
-            Err(custom_error)
+            Err(Error::NomError(nom::error::Error::new(
+                e.to_string(),
+                nom::error::ErrorKind::Fail,
+            ))
+            .into())
         }
         Err(nom::Err::Incomplete(_)) => {
             // Handle incomplete parsing errors
-            let custom_error =
-                CustomError::NomError("parse_file: Incomplete parsing".to_string(), data);
-            Err(custom_error)
+            // let custom_error = Error::NomError("parse_file: Incomplete parsing".to_string(), data);
+            Err(Error::NomError(nom::error::Error::new(
+                "parse_file: Incomplete parsing".to_string(),
+                nom::error::ErrorKind::Fail,
+            ))
+            .into())
         }
     }
 }
@@ -69,7 +75,7 @@ pub fn parse_external_entity_file(
     file: &mut File,
     config: &Config,
     external_entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-) -> Result<Vec<EntityValue>, CustomError> {
+) -> Result<Vec<EntityValue>> {
     let mut data = read_file(file)?;
     data = data.replace("\r\n", "\n").replace('\r', "\n");
     let (input, _text_decl) = opt(|i| TextDecl::parse(i, ()))(data.as_str())?;
@@ -81,7 +87,7 @@ pub fn parse_external_entity_file(
                 if let Some(doc) = doc_option {
                     Ok(vec![EntityValue::Document(doc)])
                 } else {
-                    Err(CustomError::NomError(
+                    Err(Error::NomError(
                         "parse_external_ent_file: Expected a Document, but found None. Prolog not parsed.".to_string(), input.to_string()
                     ))
                 }
@@ -106,7 +112,7 @@ pub fn parse_external_entity_file(
                                 .collect::<Vec<_>>()
                         )
                 } else {
-                    Err(CustomError::NomError(
+                    Err(Error::NomError(
                         "parse_external_ent_file: Failed to parse MarkupDeclaration"
                             .to_string(), input.to_string()
                     ))
@@ -122,17 +128,14 @@ pub fn parse_external_entity_file(
     ))(input)
     .map_err(|err| match err {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
-            CustomError::NomError(format!("{:?}", e.code), e.input.to_string())
+            Error::NomError(format!("{:?}", e.code), e.input.to_string())
         }
-        nom::Err::Incomplete(_) => CustomError::NomError("parse_external_ent_file: Incomplete parsing".to_string(),input.to_string()),
+        nom::Err::Incomplete(_) => Error::NomError("parse_external_ent_file: Incomplete parsing".to_string(),input.to_string()),
     })?;
     Ok(entity_values)
 }
 
-pub fn parse_directory(
-    path: &Path,
-    config: Config,
-) -> Result<Vec<Result<Document, CustomError>>, CustomError> {
+pub fn parse_directory(path: &Path, config: Config) -> Result<Vec<Result<Document>>> {
     let entries = fs::read_dir(path)?;
     let results = entries
         .par_bridge()

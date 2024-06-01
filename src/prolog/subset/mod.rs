@@ -1,8 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use nom::IResult;
-
-use crate::{reference::Reference, Document, Name};
+use crate::{
+    error::{convert_nom_err, convert_nom_err_string},
+    reference::Reference,
+    Document, IResult, Name,
+};
 
 use self::{
     entity::entity_declaration::{EntityDecl, EntityDeclaration},
@@ -44,9 +46,9 @@ impl Subset {
     }
 }
 
-impl<'a> ParseNamespace<'a> for Subset {}
+impl<'a: 'static> ParseNamespace<'a> for Subset {}
 
-impl<'a> Parse<'a> for Subset {
+impl<'a: 'static> Parse<'a> for Subset {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         Config,
@@ -55,7 +57,7 @@ impl<'a> Parse<'a> for Subset {
     type Output = IResult<&'a str, Vec<Subset>>;
 
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         let (entity_references, config, entity_source) = args;
 
         let (input, parsed) = many0(alt((
@@ -193,10 +195,10 @@ impl ParseDeclSep for Subset {
 
     // [28a] DeclSep ::=  PEReference | S
     fn parse_decl_sep(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, Self::Output> {
+    ) -> IResult<&'static str, Self::Output> {
         let (input, decl_sep) = alt((
             map(Reference::parse_parameter_reference, |reference| {
                 let expansion =
@@ -222,10 +224,10 @@ pub trait ParseDeclSep {
     type Output;
     // [28a] DeclSep ::=  PEReference | S
     fn parse_decl_sep(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, Self::Output>;
+    ) -> IResult<&'static str, Self::Output>;
     fn expand_entity(
         reference: &Reference,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,

@@ -7,6 +7,7 @@ use crate::{
     prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
     //transcode::{decode_digit, decode_hex},
     transcode::Decode,
+    IResult,
     Name,
 };
 use nom::{
@@ -15,7 +16,6 @@ use nom::{
     character::complete::{char, digit1, hex_digit1},
     combinator::map,
     sequence::tuple,
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -25,12 +25,12 @@ pub enum Reference {
     CharRef(String),
 }
 
-impl<'a> Parse<'a> for Reference {
+impl<'a: 'static> Parse<'a> for Reference {
     type Args = EntitySource;
     //);
     type Output = IResult<&'a str, Self>;
     //[67] Reference ::= EntityRef | CharRef
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         alt((
             move |i| Self::parse_entity_ref(i, args.clone()),
             Self::parse_char_reference,
@@ -145,7 +145,7 @@ impl Reference {
     }
 }
 
-impl<'a> ParseReference<'a> for Reference {}
+impl<'a: 'static> ParseReference<'a> for Reference {}
 impl Decode for Reference {
     fn as_str(&self) -> &str {
         match self {
@@ -157,7 +157,10 @@ impl Decode for Reference {
 
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
-    fn parse_entity_ref(input: &str, entity_source: EntitySource) -> IResult<&str, Reference> {
+    fn parse_entity_ref(
+        input: &'static str,
+        entity_source: EntitySource,
+    ) -> IResult<&'static str, Reference> {
         let (input, reference) = map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
@@ -166,7 +169,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     }
 
     //[69] PEReference ::= '%' Name ';'
-    fn parse_parameter_reference(input: &str) -> IResult<&str, Reference> {
+    fn parse_parameter_reference(input: &'static str) -> IResult<&'static str, Reference> {
         let (input, output) = map(
             tuple((char('%'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),
@@ -175,7 +178,7 @@ pub trait ParseReference<'a>: Parse<'a> + Decode {
     }
 
     //[66] CharRef ::= '&#' [0-9]+ ';' | '&#x' [0-9a-fA-F]+ ';'
-    fn parse_char_reference(input: &str) -> IResult<&str, Reference> {
+    fn parse_char_reference(input: &'static str) -> IResult<&'static str, Reference> {
         //TODO: remove reconstruction if possible
         alt((
             map(

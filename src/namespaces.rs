@@ -1,11 +1,10 @@
-use crate::parse::Parse;
+use crate::{error::Error, parse::Parse, IResult};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{anychar, char},
     combinator::{map, verify},
     sequence::{pair, preceded, tuple},
-    IResult,
 };
 
 #[derive(Clone, Hash, Eq, PartialEq)]
@@ -25,20 +24,20 @@ impl Name {
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName
-    fn parse_namespace_attribute_name(input: &str) -> IResult<&str, Name> {
+    fn parse_namespace_attribute_name(input: &'static str) -> IResult<&'static str, Name> {
         let (input, name) = alt((Self::parse_name, Self::parse_prefixed_attribute_name))(input)?;
         if name.prefix.is_none() && name.local_part != "xmlns" {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                input,
+            return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                input.into(),
                 nom::error::ErrorKind::Verify,
-            )));
+            ))));
         }
 
         Ok((input, name))
     }
 
     // [2] PrefixedAttName ::=  'xmlns:' NCName
-    fn parse_prefixed_attribute_name(input: &str) -> IResult<&str, Name> {
+    fn parse_prefixed_attribute_name(input: &'static str) -> IResult<&'static str, Name> {
         map(
             preceded(tag("xmlns:"), Self::parse_non_colonized_name),
             |local_part| Name {
@@ -49,7 +48,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [4] NCName ::= Name - (Char* ':' Char*)  /* An XML Name, minus the ":" */
-    fn parse_non_colonized_name(input: &str) -> IResult<&str, String> {
+    fn parse_non_colonized_name(input: &'static str) -> IResult<&'static str, String> {
         map(
             pair(
                 Self::parse_name_start_char,
@@ -64,17 +63,17 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [5] NCNameChar ::= NameChar - ':' /* An XML NameChar, minus the ":" */
-    fn parse_non_colonized_name_char(input: &str) -> IResult<&str, char> {
+    fn parse_non_colonized_name_char(input: &'static str) -> IResult<&'static str, char> {
         verify(Self::parse_name_char, |c| *c != ':')(input)
     }
 
     // [6] NCNameStartChar ::= NCName - ( Char Char Char* ) /* The first letter of an NCName */
-    fn parse_non_colonized_name_start_char(input: &str) -> IResult<&str, char> {
+    fn parse_non_colonized_name_start_char(input: &'static str) -> IResult<&'static str, char> {
         verify(anychar, |c| *c != ':')(input)
     }
 
     // [7] QName ::= PrefixedName | UnprefixedName
-    fn parse_qualified_name(input: &str) -> IResult<&str, Name> {
+    fn parse_qualified_name(input: &'static str) -> IResult<&'static str, Name> {
         alt((
             Self::parse_prefixed_name,
             map(Self::parse_non_colonized_name, |local_part| Name {
@@ -86,7 +85,7 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     }
 
     // [8] PrefixedName	::= Prefix ':' LocalPart
-    fn parse_prefixed_name(input: &str) -> IResult<&str, Name> {
+    fn parse_prefixed_name(input: &'static str) -> IResult<&'static str, Name> {
         map(
             tuple((
                 Self::parse_non_colonized_name,

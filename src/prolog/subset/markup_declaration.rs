@@ -7,17 +7,17 @@ use nom::{
     combinator::{map, map_res, opt},
     multi::{fold_many1, many0, many1},
     sequence::tuple,
-    IResult,
 };
 
 use crate::{
     attribute::Attribute,
+    error,
     namespaces::ParseNamespace,
     parse::Parse,
     processing_instruction::ProcessingInstruction,
     prolog::{declaration_content::DeclarationContent, external_id::ExternalID, id::ID},
     reference::Reference,
-    Document, Name,
+    Document, IResult, Name,
 };
 
 use super::entity::{
@@ -45,16 +45,16 @@ pub enum MarkupDeclaration {
     ProcessingInstruction(ProcessingInstruction),
     Comment(Document),
 }
-impl<'a> ParseNamespace<'a> for MarkupDeclaration {}
+impl<'a: 'static> ParseNamespace<'a> for MarkupDeclaration {}
 
-impl<'a> Parse<'a> for MarkupDeclaration {
+impl<'a: 'static> Parse<'a> for MarkupDeclaration {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         EntitySource,
     );
     type Output = IResult<&'a str, Option<MarkupDeclaration>>;
     // [29] markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         let (entity_references, entity_source) = args;
 
         let (input, res) = opt(alt((
@@ -74,7 +74,7 @@ impl<'a> Parse<'a> for MarkupDeclaration {
 impl MarkupDeclaration {
     // [45] elementdecl	::= '<!ELEMENT' S Name S contentspec S? '>'
     // Namespaces (Third Edition) [17] elementdecl	::= '<!ELEMENT' S QName S contentspec S? '>'
-    fn parse_element_declaration(input: &str) -> IResult<&str, MarkupDeclaration> {
+    fn parse_element_declaration(input: &'static str) -> IResult<&'static str, MarkupDeclaration> {
         let (
             input,
             (_element, _whitespace1, name, _whitespace2, content_spec, _whitespace, _close),
@@ -98,7 +98,7 @@ impl MarkupDeclaration {
     }
 
     // [82] NotationDecl ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'	[VC: Unique Notation Name]
-    fn parse_notation(input: &str) -> IResult<&str, MarkupDeclaration> {
+    fn parse_notation(input: &'static str) -> IResult<&'static str, MarkupDeclaration> {
         let (input, (_notation, _whitespace1, name, _whitespace2, id, _whitespace3, _close)) =
             tuple((
                 tag("<!NOTATION"),
@@ -113,7 +113,9 @@ impl MarkupDeclaration {
         Ok((input, MarkupDeclaration::Notation { name, id }))
     }
 
-    fn parse_processing_instruction(input: &str) -> IResult<&str, MarkupDeclaration> {
+    fn parse_processing_instruction(
+        input: &'static str,
+    ) -> IResult<&'static str, MarkupDeclaration> {
         let (input, processing_instruction) = ProcessingInstruction::parse(input, ())?;
         Ok((
             input,
@@ -123,10 +125,10 @@ impl MarkupDeclaration {
     // [52] AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>'
     // Namespaces (Third Edition) [20] AttlistDecl ::= '<!ATTLIST' S QName AttDef* S? '>'
     pub fn parse_attlist_declaration(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, MarkupDeclaration> {
+    ) -> IResult<&'static str, MarkupDeclaration> {
         let (input, (_start, _whitespace1, name, att_defs, _whitespace2, _close)) =
             tuple((
                 tag("<!ATTLIST"),
@@ -149,10 +151,10 @@ impl MarkupDeclaration {
 
     // [70] EntityDecl ::= GEDecl | PEDecl
     fn parse_entity(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, MarkupDeclaration> {
+    ) -> IResult<&'static str, MarkupDeclaration> {
         alt((
             |i| {
                 Self::parse_general_entity_declaration(
@@ -173,10 +175,10 @@ impl MarkupDeclaration {
 
     // [71] GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>'
     fn parse_general_entity_declaration(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, MarkupDeclaration> {
+    ) -> IResult<&'static str, MarkupDeclaration> {
         let (input, (_start, _whitespace1, name, _whitespace2)) = tuple((
             tag("<!ENTITY"),
             Self::parse_multispace1,
@@ -207,10 +209,10 @@ impl MarkupDeclaration {
 
     // [72]    PEDecl ::=    '<!ENTITY' S '%' S Name S PEDef S? '>'
     fn parse_parameter_entity_declaration(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, MarkupDeclaration> {
+    ) -> IResult<&'static str, MarkupDeclaration> {
         let (input, (_start, _whitespace1, _percent, _whitespace2, name, _whitespace3)) =
             tuple((
                 tag("<!ENTITY"),
@@ -245,11 +247,11 @@ impl MarkupDeclaration {
 
     // [74] PEDef ::= EntityValue | ExternalID
     fn parse_parameter_definition(
-        input: &str,
+        input: &'static str,
         name: Name,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, EntityDefinition> {
+    ) -> IResult<&'static str, EntityDefinition> {
         alt((
             map(
                 |i| {
@@ -275,11 +277,11 @@ impl MarkupDeclaration {
 
     // [73] EntityDef ::= EntityValue | (ExternalID NDataDecl?)
     fn parse_entity_definition(
-        input: &str,
+        input: &'static str,
         name: Name,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, EntityDefinition> {
+    ) -> IResult<&'static str, EntityDefinition> {
         alt((
             map(
                 |i| {
@@ -307,7 +309,7 @@ impl MarkupDeclaration {
     }
 
     // [76] NDataDecl ::= S 'NDATA' S Name
-    fn parse_ndata_declaration(input: &str) -> IResult<&str, Name> {
+    fn parse_ndata_declaration(input: &'static str) -> IResult<&'static str, Name> {
         let (input, _) = Self::parse_multispace1(input)?;
         let (input, _) = tag("NDATA")(input)?;
         let (input, _) = Self::parse_multispace1(input)?;
@@ -317,19 +319,19 @@ impl MarkupDeclaration {
     }
     // [9] EntityValue	::= '"' ([^%&"] | PEReference | Reference)* '"'|  "'" ([^%&'] | PEReference | Reference)* "'"
     pub fn parse_entity_value(
-        input: &str,
+        input: &'static str,
         name: Name,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, EntityValue> {
+    ) -> IResult<&'static str, EntityValue> {
         //TODO: I hate this. Refactor is possible
         let cloned_references = entity_references.clone();
         let cloned_references2 = entity_references.clone();
 
         let cloned_entity_source = entity_source.clone();
         let cloned_entity_source2 = entity_source.clone();
-
-        alt((alt((
+        // TODO: removed alt((alt(()))) need to test if functionality is the same
+        alt((
             map(
                 tuple((
                     alt((char('\"'), char('\''))),
@@ -463,19 +465,25 @@ impl MarkupDeclaration {
                     EntityValue::Value(buffer)
                 },
             ),
-        )),))(input)
+        ))(input)
     }
-    fn parse_comment(input: &str) -> IResult<&str, MarkupDeclaration> {
+
+    fn parse_comment(input: &'static str) -> IResult<&'static str, MarkupDeclaration> {
         let (remaining, doc) = Document::parse_comment(input)?;
         match doc {
             Document::Comment(comment) => Ok((
                 remaining,
                 MarkupDeclaration::Comment(Document::Comment(comment)),
             )),
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            ))),
+            e => {
+                eprintln!("{e:?}");
+                Err(nom::Err::Error(error::Error::NomError(
+                    nom::error::Error::new(
+                        "parse_comment` unexpected Document",
+                        nom::error::ErrorKind::Verify,
+                    ),
+                )))
+            }
         }
     }
     fn get_reference_value(reference: Reference) -> String {

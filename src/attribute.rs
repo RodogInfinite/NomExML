@@ -3,6 +3,7 @@ use crate::{
     parse::Parse,
     prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
     reference::Reference,
+    IResult,
 };
 use nom::{
     branch::alt,
@@ -11,7 +12,6 @@ use nom::{
     combinator::{map, map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{delimited, pair, tuple},
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -48,7 +48,7 @@ pub enum Attribute {
     },
 }
 
-impl<'a> Parse<'a> for Attribute {
+impl<'a: 'static> Parse<'a> for Attribute {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         EntitySource,
@@ -69,14 +69,14 @@ impl<'a> Parse<'a> for Attribute {
     }
 }
 
-impl<'a> ParseNamespace<'a> for Attribute {}
+impl<'a: 'static> ParseNamespace<'a> for Attribute {}
 impl Attribute {
     // [53] AttDef ::= S Name S AttType S DefaultDecl
     pub fn parse_definition(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, Attribute> {
+    ) -> IResult<&'static str, Attribute> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -99,10 +99,10 @@ impl Attribute {
 
     // Namespaces (Third Edition) [21] AttDef ::= S (QName | NSAttName) S AttType S DefaultDecl
     pub fn parse_qualified_definition(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, Attribute> {
+    ) -> IResult<&'static str, Attribute> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -128,10 +128,10 @@ impl Attribute {
 
     // [10] AttValue ::= '"' ([^<&"] | Reference)* '"'|  "'" ([^<&'] | Reference)* "'"
     pub fn parse_attvalue(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, AttributeValue> {
+    ) -> IResult<&'static str, AttributeValue> {
         map(
             alt((
                 delimited(
@@ -203,10 +203,10 @@ impl Attribute {
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
     pub fn parse_attribute(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&str, Attribute> {
+    ) -> IResult<&'static str, Attribute> {
         map(
             alt((
                 tuple((Self::parse_namespace_attribute_name, Self::parse_eq, |i| {
@@ -254,7 +254,7 @@ pub enum TokenizedType {
 
 impl TokenizedType {
     // [56] TokenizedType ::= 'ID' | 'IDRef' | 'IDREFS | 'ENTITY' | 'ENTITIES' | 'NMTOKEN' | 'NMTOKENS'
-    fn parse(input: &str) -> IResult<&str, TokenizedType> {
+    fn parse(input: &'static str) -> IResult<&'static str, TokenizedType> {
         alt((
             value(TokenizedType::IDREFS, tag("IDREFS")),
             value(TokenizedType::IDREF, tag("IDREF")),
@@ -277,11 +277,11 @@ pub enum AttType {
     },
 }
 
-impl<'a> Parse<'a> for AttType {
+impl<'a: 'static> Parse<'a> for AttType {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[54] AttType ::=  StringType | TokenizedType | EnumeratedType
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
         let (input, att_type) = map(
             alt((
                 // [55] StringType ::= 'CDATA'
@@ -298,12 +298,12 @@ impl<'a> Parse<'a> for AttType {
 }
 impl AttType {
     // [57] EnumeratedType ::= NotationType | Enumeration
-    fn parse_enumerated_type(input: &str) -> IResult<&str, AttType> {
+    fn parse_enumerated_type(input: &'static str) -> IResult<&'static str, AttType> {
         alt((Self::parse_notation_type, Self::parse_enumeration))(input)
     }
 
     // [58] NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
-    fn parse_notation_type(input: &str) -> IResult<&str, AttType> {
+    fn parse_notation_type(input: &'static str) -> IResult<&'static str, AttType> {
         map(
             tuple((
                 tag("NOTATION"),
@@ -329,7 +329,7 @@ impl AttType {
     }
 
     // [59] Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
-    fn parse_enumeration(input: &str) -> IResult<&str, AttType> {
+    fn parse_enumeration(input: &'static str) -> IResult<&'static str, AttType> {
         map(
             delimited(
                 char('('),
@@ -355,7 +355,7 @@ pub enum DefaultDecl {
     Value(String),
 }
 
-impl<'a> Parse<'a> for DefaultDecl {
+impl<'a: 'static> Parse<'a> for DefaultDecl {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         EntitySource,

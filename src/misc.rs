@@ -1,6 +1,8 @@
 // misc.rs
-use crate::{parse::Parse, processing_instruction::ProcessingInstruction, Document};
-use nom::{branch::alt, combinator::map, IResult};
+use crate::{
+    parse::Parse, processing_instruction::ProcessingInstruction, Document, Error, IResult,
+};
+use nom::{branch::alt, combinator::map};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum MiscState {
@@ -14,12 +16,12 @@ pub struct Misc {
     pub state: MiscState,
 }
 
-impl<'a> Parse<'a> for Misc {
+impl<'a: 'static> Parse<'a> for Misc {
     type Args = MiscState;
     type Output = IResult<&'a str, Self>;
 
     //[27] Misc ::= Comment | PI | S
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document> = vec![];
         loop {
@@ -45,10 +47,10 @@ impl<'a> Parse<'a> for Misc {
                     if !content_vec.is_empty() {
                         break;
                     } else {
-                        return Err(nom::Err::Error(nom::error::Error::new(
+                        return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                             input,
                             nom::error::ErrorKind::Many0,
-                        )));
+                        ))));
                     }
                 }
             }

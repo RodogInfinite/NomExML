@@ -4,21 +4,20 @@ use nom::{
     combinator::{map, opt},
     multi::many0,
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
 };
 
-use crate::{parse::Parse, tag};
+use crate::{parse::Parse, tag, IResult};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct TextDecl {
     pub version: Option<String>,
     pub encoding: String,
 }
-impl<'a> Parse<'a> for TextDecl {
+impl<'a: 'static> Parse<'a> for TextDecl {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[77] TextDecl ::='<?xml' VersionInfo? EncodingDecl S? '?>'
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
         map(
             tuple((
                 tag("<?xml"),
@@ -34,7 +33,7 @@ impl<'a> Parse<'a> for TextDecl {
 
 impl TextDecl {
     // [24] VersionInfo	::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
-    fn parse_version_info(input: &str) -> IResult<&str, String> {
+    fn parse_version_info(input: &'static str) -> IResult<&'static str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -50,13 +49,13 @@ impl TextDecl {
     }
 
     // [26] VersionNum	::= '1.' [0-9]+
-    fn parse_version_num(input: &str) -> IResult<&str, String> {
+    fn parse_version_num(input: &'static str) -> IResult<&'static str, String> {
         map(preceded(tag("1."), digit1), |version| {
             format!("1.{}", version)
         })(input)
     }
     // [80] EncodingDecl	::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
-    fn parse_encoding_decl(input: &str) -> IResult<&str, String> {
+    fn parse_encoding_decl(input: &'static str) -> IResult<&'static str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -72,7 +71,7 @@ impl TextDecl {
     }
 
     // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
-    fn parse_enc_name(input: &str) -> IResult<&str, String> {
+    fn parse_enc_name(input: &'static str) -> IResult<&'static str, String> {
         map(
             pair(
                 alt((alpha1, tag("-"))),

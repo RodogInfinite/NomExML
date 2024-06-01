@@ -32,7 +32,7 @@ use crate::{
     tag::Tag,
 };
 
-use error::CustomError;
+use error::{convert_nom_err, convert_nom_err_string, Error};
 use io::parse_external_entity_file;
 use namespaces::{Name, ParseNamespace};
 use nom::{
@@ -41,11 +41,13 @@ use nom::{
     combinator::{cut, map, map_res, not, opt, peek, value},
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
-    IResult,
 };
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
-use std::{cell::RefCell, collections::HashMap, error::Error, fmt, fs::File, io::Write, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc};
+
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+type IResult<I, O> = nom::IResult<I, O, Error<&'static str>>;
 
 #[derive(Clone, Default, Debug)]
 pub struct ExternalEntityParseConfig {
@@ -76,7 +78,7 @@ pub enum Document {
     CDATA(String),
 }
 
-fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
+fn check_config(config: &Config) -> Result<()> {
     match config {
         Config {
             external_parse_config:
@@ -100,7 +102,8 @@ fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                     "n" | "N" | "no" => {
                         return Err(nom::Err::Error(
                             "User decided to stop due to potential XXE attack",
-                        ));
+                        )
+                        .into());
                     }
                     _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
                 }
@@ -121,10 +124,10 @@ fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
     Ok(())
 }
 
-impl<'a> Parse<'a> for Document {
+impl<'a: 'static> Parse<'a> for Document {
     type Args = Config;
     type Output = IResult<&'a str, Self>;
-    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
                 let entity_references = Rc::new(RefCell::new(HashMap::new()));
@@ -207,15 +210,7 @@ impl<'a> Parse<'a> for Document {
                 let (input, documents) = Self::construct_document(input, prolog, documents)?;
                 Ok((input, documents))
             }
-            Err(nom::Err::Error(err_msg)) => Err(nom::Err::Error(nom::error::Error {
-                input: err_msg,
-                code: nom::error::ErrorKind::Fail,
-            })),
-            Err(nom::Err::Incomplete(needed)) => Err(nom::Err::Incomplete(needed)),
-            Err(nom::Err::Failure(err_msg)) => Err(nom::Err::Failure(nom::error::Error {
-                input: err_msg,
-                code: nom::error::ErrorKind::Fail,
-            })),
+            Err(e) => Err(nom::Err::Failure(Error::from(e))),
         }
     }
 }
@@ -244,7 +239,7 @@ impl Document {
 
     //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
     pub fn parse_prolog(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
     ) -> IResult<
@@ -285,7 +280,7 @@ impl Document {
     }
 
     // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
-    fn parse_char_data(input: &str) -> IResult<&str, String> {
+    fn parse_char_data(input: &'static str) -> IResult<&'static str, String> {
         map(
             tuple((
                 take_till(|c: char| c == '<' || c == '&'),
@@ -296,7 +291,7 @@ impl Document {
     }
 
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
-    fn parse_cdata(input: &str) -> IResult<&str, String> {
+    fn parse_cdata(input: &'static str) -> IResult<&'static str, String> {
         map(
             cut(|i| {
                 let original_input = i;
@@ -312,7 +307,7 @@ impl Document {
     // [18] CDSect ::= CDStart CData CDEnd
     // [19] CDStart ::= '<![CDATA['
     //[21] CDEnd ::= ']]>'
-    fn parse_cdata_section(input: &str) -> IResult<&str, Document> {
+    fn parse_cdata_section(input: &'static str) -> IResult<&'static str, Document> {
         map(
             preceded(tag("<![CDATA["), Self::parse_cdata),
             Document::CDATA,
@@ -321,9 +316,9 @@ impl Document {
 
     // [39] element	::= EmptyElemTag | STag content ETag
     pub fn parse_element(
-        input: &str,
+        input: &'static str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&str, Document> {
+    ) -> IResult<&'static str, Document> {
         let (input, doc) = alt((
             preceded(
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
@@ -410,11 +405,11 @@ impl Document {
 
     // TODO: add validation for elements using the ConditionalState in the ContentParticle from the prolog
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
-    fn parse_content<'a>(
-        input: &'a str,
+    fn parse_content(
+        input: &'static str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'a str, Document> {
+    ) -> IResult<&'static str, Document> {
         let (input, ((_whitespace, maybe_chardata), elements)) = tuple((
             pair(
                 Self::parse_multispace0, // this is not strictly adhering to the standard; however, it prevents the first Nested element from being Nested([Content(" ")])
@@ -519,7 +514,7 @@ impl Document {
     }
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
-    pub fn parse_comment(input: &str) -> IResult<&str, Document> {
+    pub fn parse_comment(input: &'static str) -> IResult<&'static str, Document> {
         map_res(
             pair(tag("<!--"), many_till(Self::parse_char, tag("-->"))),
             |(_open_comment, (comment_content, _close_comment))| {
@@ -537,19 +532,19 @@ impl Document {
     }
 
     fn construct_document_element(
-        input: &str,
+        input: &'static str,
         start_tag: Option<Tag>,
         content: Document,
         end_tag: Option<Tag>,
         empty_tag: Option<Tag>,
-    ) -> IResult<&str, Document> {
+    ) -> IResult<&'static str, Document> {
         match (start_tag, end_tag, content, empty_tag) {
             (Some(start), Some(end), content, None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, Box::new(content), end);
@@ -558,10 +553,10 @@ impl Document {
             }
             (Some(start), Some(end), _, Some(empty_tag)) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document =
@@ -571,10 +566,10 @@ impl Document {
             }
             (Some(_), None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, inner_content, end);
@@ -583,10 +578,10 @@ impl Document {
             }
             (None, None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, inner_content, end);
@@ -609,23 +604,27 @@ impl Document {
 
                 Ok((input, document))
             }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            ))),
+            _ => {
+                return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Verify,
+                ))))
+            }
         }
     }
 
     fn construct_document(
-        input: &str,
+        input: &'static str,
         prolog: Option<Document>,
         documents: Vec<Document>,
-    ) -> IResult<&str, Document> {
+    ) -> IResult<&'static str, Document> {
         match documents.len() {
-            0 => Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            ))),
+            0 => {
+                return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Verify,
+                ))));
+            }
             1 => match prolog {
                 Some(prolog) => Ok((
                     input,
@@ -649,7 +648,7 @@ impl Document {
         name: &Name,
         config: Config,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         match File::open(file_path) {
             Ok(mut file) => {
                 match parse_external_entity_file(&mut file, &config, entity_references.clone())
@@ -661,14 +660,14 @@ impl Document {
                             .insert((name.clone(), EntitySource::External), entity.clone());
                         Ok(())
                     }
-                    _ => Err(nom::Err::Error(nom::error::Error::new(
+                    _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         "Failed to match [entity] from `parse_external_entity_file`",
                         nom::error::ErrorKind::Fail,
-                    ))
+                    )))
                     .into()),
                 }
             }
-            Err(e) => Err(CustomError::from(e)),
+            Err(e) => Err(Error::<String>::from(e).into()),
         }
     }
 
@@ -676,7 +675,7 @@ impl Document {
         entity_declaration: EntityDecl,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -755,10 +754,10 @@ impl Document {
     }
 }
 
-impl<'a> ParseNamespace<'a> for Document {}
+impl<'a: 'static> ParseNamespace<'a> for Document {}
 
 impl Document {
-    pub fn extract(&self, tag: &Name) -> Result<Document, Box<dyn Error>> {
+    pub fn extract(&self, tag: &Name) -> Result<Document> {
         let mut documents: Vec<Document> = Vec::new();
 
         match self {
@@ -829,27 +828,29 @@ impl Document {
 
 impl Document {
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
-    pub fn parse_elements_by_tag_name<'a>(
-        input: &'a str,
+    pub fn parse_elements_by_tag_name(
+        input: &'static str,
         tag_name: &str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Vec<Document>, nom::error::Error<&'a str>> {
+    ) -> IResult<&'static str, Vec<Document>> {
         warnln!("parse_elements_by_tag_name will parse all elements with the tag name `{tag_name}` no matter the nesting level", );
         warnln!("parse_element_by_tag_name currently only parses start tags without attributes, in this case`<{tag_name}>`");
 
         many1(|i| Self::parse_element_by_tag_name(i, tag_name, entity_references))(input)
     }
 
-    pub fn parse_element_from_pattern<'a>(
-        input: &'a str,
+    pub fn parse_element_from_pattern(
+        input: &'static str,
         tag_name: &str,
-        pattern: &'a Pattern,
+        pattern: &'static Pattern,
         strict: bool,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
+    ) -> IResult<&'static str, Document> {
         let (_, _pattern_doc) = Self::parse_element(pattern.xml, entity_references.clone())?;
 
-        let pattern = pattern.parse(entity_references)?;
+        let pattern = pattern
+            .parse(entity_references)
+            .map_err(|e| nom::Err::Error(Error::from(e)))?;
         let (input, doc) =
             peek(|input| Self::parse_element_by_tag_name(input, tag_name, entity_references))(
                 input,
@@ -887,22 +888,22 @@ impl Document {
                             Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
                         Ok((input, doc))
                     } else {
-                        return Err(nom::Err::Error(nom::error::Error::new(
+                        Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                             input,
                             nom::error::ErrorKind::Verify,
-                        )));
+                        ))))
                     }
                 } else {
-                    return Err(nom::Err::Error(nom::error::Error::new(
+                    Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))))
                 }
             }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
+            _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Verify,
-            ))),
+            )))),
         }
     }
     fn compare_documents(doc1: &Document, pattern: Pattern, method: ComparisonMethod) -> bool {
@@ -910,42 +911,42 @@ impl Document {
     }
 
     pub fn parse_inner_elements_from_tag<'a>(
-        input: &'a str,
+        input: &'static str,
         tag_name: &str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
+    ) -> IResult<&'static str, Document> {
         let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
 
         if let Document::Element(_, inner_doc, _) = doc {
             if let Document::Nested(inner_doc) = *inner_doc {
                 Ok((input, Document::Nested(inner_doc)))
             } else {
-                Err(nom::Err::Error(nom::error::Error::new(
+                Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                     input,
                     nom::error::ErrorKind::Verify,
-                )))
+                ))))
             }
         } else {
-            Err(nom::Err::Error(nom::error::Error::new(
+            Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                 input,
                 nom::error::ErrorKind::Verify,
-            )))
+            ))))
         }
     }
 
     // [39] element	::= EmptyElemTag | STag content ETag
-    pub fn parse_element_by_tag_name<'a>(
-        input: &'a str,
+    pub fn parse_element_by_tag_name(
+        input: &'static str,
         tag_name: &str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
+    ) -> IResult<&'static str, Document> {
         let (input, _) = take_until(format!("<{}>", tag_name).as_str())(input)?;
 
         let (input, doc) = alt((
             preceded(
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
                 map(
-                    |i: &'a str| {
+                    |i| {
                         Tag::parse_empty_element_tag_by_name(
                             i,
                             tag_name,
@@ -981,7 +982,7 @@ impl Document {
 }
 
 impl Document {
-    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+    pub fn iter_with_depth(&'static self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
 }
@@ -991,13 +992,13 @@ pub struct DocumentIterator<'a> {
     max_depth: Option<usize>,
 }
 
-impl<'a> DocumentIterator<'a> {
+impl<'a: 'static> DocumentIterator<'a> {
     pub fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
         let stack = vec![(doc, 0)];
         DocumentIterator { stack, max_depth }
     }
 }
-impl<'a> Iterator for DocumentIterator<'a> {
+impl<'a: 'static> Iterator for DocumentIterator<'a> {
     type Item = &'a Document;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1035,10 +1036,10 @@ pub enum ConditionalState {
     ZeroOrMore,
     OneOrMore,
 }
-impl<'a> Parse<'a> for ConditionalState {
+impl<'a: 'static> Parse<'a> for ConditionalState {
     type Args = ();
     type Output = IResult<&'a str, Self>;
-    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
         alt((
             value(ConditionalState::Optional, tag("?")),
             value(ConditionalState::ZeroOrMore, tag("*")),
@@ -1069,18 +1070,18 @@ impl fmt::Display for DocumentError {
 
 impl std::error::Error for DocumentError {}
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Pattern<'a> {
-    pub xml: &'a str,
+pub struct Pattern {
+    pub xml: &'static str,
     pub doc: Document,
 }
-impl<'a> Pattern<'a> {
-    pub fn new(xml: &'a str, doc: Document) -> Self {
+impl Pattern {
+    pub fn new(xml: &'static str, doc: Document) -> Self {
         Self { xml, doc }
     }
     pub fn parse(
         &self,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<Pattern<'a>, nom::Err<nom::error::Error<&'a str>>> {
+    ) -> Result<Pattern> {
         let (_, doc) = Document::parse_element(self.xml, entity_references.clone())?;
 
         Ok(Self { xml: self.xml, doc })
