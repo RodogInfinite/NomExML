@@ -1,4 +1,4 @@
-use crate::{parse::Parse, Name};
+use crate::parse::Parse;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -7,6 +7,21 @@ use nom::{
     sequence::{pair, preceded, tuple},
     IResult,
 };
+
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct Name {
+    pub prefix: Option<String>,
+    pub local_part: String,
+}
+
+impl Name {
+    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
+        Self {
+            prefix: prefix.map(|p| p.to_string()),
+            local_part: local_part.to_string(),
+        }
+    }
+}
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName
@@ -50,14 +65,12 @@ pub trait ParseNamespace<'a>: Parse<'a> + Sized {
 
     // [5] NCNameChar ::= NameChar - ':' /* An XML NameChar, minus the ":" */
     fn parse_non_colonized_name_char(input: &str) -> IResult<&str, char> {
-        let (input, valid_char) = verify(Self::parse_name_char, |c| *c != ':')(input)?;
-        Ok((input, valid_char))
+        verify(Self::parse_name_char, |c| *c != ':')(input)
     }
 
     // [6] NCNameStartChar ::= NCName - ( Char Char Char* ) /* The first letter of an NCName */
     fn parse_non_colonized_name_start_char(input: &str) -> IResult<&str, char> {
-        let (input, valid_char) = verify(anychar, |c| *c != ':')(input)?;
-        Ok((input, valid_char))
+        verify(anychar, |c| *c != ':')(input)
     }
 
     // [7] QName ::= PrefixedName | UnprefixedName

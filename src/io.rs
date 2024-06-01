@@ -1,3 +1,4 @@
+use crate::namespaces::Name;
 use crate::parse::Parse;
 use crate::prolog::subset::entity::entity_value::EntityValue;
 
@@ -5,7 +6,7 @@ use crate::prolog::subset::entity::EntitySource;
 use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
-use crate::{Config, Name};
+use crate::Config;
 
 use crate::{error::CustomError, Document};
 use encoding_rs::*;

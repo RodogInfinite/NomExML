@@ -34,7 +34,7 @@ use crate::{
 
 use error::CustomError;
 use io::parse_external_entity_file;
-use namespaces::ParseNamespace;
+use namespaces::{Name, ParseNamespace};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
@@ -755,21 +755,6 @@ impl Document {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
-pub struct Name {
-    pub prefix: Option<String>,
-    pub local_part: String,
-}
-
-impl Name {
-    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
-        Self {
-            prefix: prefix.map(|p| p.to_string()),
-            local_part: local_part.to_string(),
-        }
-    }
-}
-
 impl<'a> ParseNamespace<'a> for Document {}
 
 impl Document {
@@ -1107,7 +1092,6 @@ pub trait PartialEqCustom {
 
 impl PartialEqCustom for Document {
     fn partial_eq(&self, pattern: Pattern) -> bool {
-        
         match (self, &pattern.doc) {
             (
                 Document::Prolog {

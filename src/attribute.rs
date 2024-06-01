@@ -1,9 +1,8 @@
 use crate::{
-    namespaces::ParseNamespace,
+    namespaces::{Name, ParseNamespace},
     parse::Parse,
     prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
     reference::Reference,
-    Name,
 };
 use nom::{
     branch::alt,

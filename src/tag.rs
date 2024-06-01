@@ -49,7 +49,7 @@ impl Tag {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
-                alt((Self::parse_name, Self::parse_qualified_name)),
+                alt((Self::parse_qualified_name, Self::parse_name)),
                 many0(pair(Self::parse_multispace1, |i| {
                     Attribute::parse_attribute(i, entity_references.clone(), entity_source.clone())
                 })),
@@ -118,7 +118,7 @@ impl Tag {
             map(
                 tuple((
                     Self::parse_multispace0,
-                    alt((Self::parse_name, Self::parse_qualified_name)),
+                    alt((Self::parse_qualified_name, Self::parse_name)),
                     Self::parse_multispace0,
                 )),
                 |(_open_tag, name, _close_tag)| Self {
@@ -161,7 +161,7 @@ impl Tag {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
-                alt((Self::parse_name, Self::parse_qualified_name)),
+                alt((Self::parse_qualified_name, Self::parse_name)),
                 opt(many1(pair(Self::parse_multispace1, |i| {
                     Attribute::parse(i, (entity_references.clone(), entity_source.clone()))
                 }))),

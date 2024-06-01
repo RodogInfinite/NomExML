@@ -1,5 +1,5 @@
 use crate::prolog::subset::entity::entity_value::EntityValue;
-use crate::{warnln, Name};
+use crate::warnln;
 
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};

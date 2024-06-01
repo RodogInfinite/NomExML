@@ -1,6 +1,7 @@
 use nom_xml::{
     attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
     io::parse_file,
+    namespaces::Name,
     prolog::{
         content_particle::ContentParticle,
         declaration_content::{DeclarationContent, Mixed},
@@ -19,7 +20,7 @@ use nom_xml::{
     },
     reference::Reference,
     tag::{Tag, TagState},
-    ConditionalState, Config, Document, ExternalEntityParseConfig, Name,
+    ConditionalState, Config, Document, ExternalEntityParseConfig,
 };
 use std::{error::Error, fs::File};
 fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {

@@ -1,6 +1,7 @@
 use nom_xml::{
     attribute::{AttType, Attribute, DefaultDecl},
     io::parse_file,
+    namespaces::Name,
     prolog::{
         declaration_content::DeclarationContent,
         doctype::DocType,
@@ -8,7 +9,7 @@ use nom_xml::{
         subset::{entity::EntitySource, markup_declaration::MarkupDeclaration, Subset},
     },
     tag::{Tag, TagState},
-    Config, Document, ExternalEntityParseConfig, Name,
+    Config, Document, ExternalEntityParseConfig,
 };
 use std::{error::Error, fs::File};
 fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
