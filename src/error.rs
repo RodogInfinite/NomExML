@@ -10,6 +10,7 @@ macro_rules! warnln {
 #[derive(Debug)]
 pub enum Error {
     NomError(nom::error::Error<String>),
+    NomErrorFast(nom::error::ErrorKind),
     IoError(std::io::Error),
     UserAbort(String),
 }
@@ -18,6 +19,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::NomError(e) => write!(f, "NomError: {}", e),
+            Error::NomErrorFast(kind) => write!(f, "NomErrorFast: {:?}", kind),
             Error::IoError(e) => write!(f, "IoError: {}", e),
             Error::UserAbort(e) => write!(f, "UserAbort: {}", e),
         }
@@ -27,7 +29,8 @@ impl Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Error::NomError(e) => Some(e),
+            Error::NomError(_) => None,
+            Error::NomErrorFast(_) => None,
             Error::IoError(e) => Some(e),
             Error::UserAbort(_) => None,
         }
@@ -42,8 +45,7 @@ impl From<std::io::Error> for Error {
 
 impl From<nom::error::Error<&str>> for Error {
     fn from(error: nom::error::Error<&str>) -> Self {
-        let converted_error = nom::error::Error::new(error.input.to_string(), error.code);
-        Error::NomError(converted_error)
+        Error::NomError(nom::error::Error::new(error.input.into(), error.code))
     }
 }
 
@@ -70,21 +72,33 @@ impl From<Box<dyn std::error::Error>> for Error {
 
 impl<I> nom::error::ParseError<I> for Error
 where
-    I: Debug,
+    I: Debug + ToString,
 {
     fn from_error_kind(input: I, kind: nom::error::ErrorKind) -> Self {
-        Error::NomError(nom::error::Error::new(format!("{:?}", input), kind))
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
+        }
     }
 
     fn append(input: I, kind: nom::error::ErrorKind, _other: Self) -> Self {
-        Error::NomError(nom::error::Error::new(format!("{:?}", input), kind))
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
+        }
     }
 
     fn from_char(input: I, _: char) -> Self {
-        Error::NomError(nom::error::Error::new(
-            format!("{:?}", input),
-            nom::error::ErrorKind::Char,
-        ))
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(
+                input.to_string(),
+                nom::error::ErrorKind::Char,
+            ))
+        } else {
+            Error::NomErrorFast(nom::error::ErrorKind::Char)
+        }
     }
 
     fn or(self, _other: Self) -> Self {
@@ -94,10 +108,45 @@ where
 
 impl<I, E> nom::error::FromExternalError<I, E> for Error
 where
-    I: Debug,
+    I: Debug + ToString,
     E: Debug + Display,
 {
     fn from_external_error(input: I, kind: nom::error::ErrorKind, _e: E) -> Self {
-        Error::NomError(nom::error::Error::new(format!("{:?}", input), kind))
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
+        }
+    }
+}
+
+pub trait ConvertNomError<E> {
+    fn convert_nom_error(self) -> nom::Err<Error>;
+}
+
+impl<E> ConvertNomError<nom::error::Error<E>> for nom::Err<nom::error::Error<E>>
+where
+    E: Debug + ToString,
+{
+    fn convert_nom_error(self) -> nom::Err<Error> {
+        match self {
+            nom::Err::Error(e) => {
+                let nom::error::Error { input, code } = e;
+                nom::Err::Error(if cfg!(debug_assertions) {
+                    Error::NomError(nom::error::Error::new(input.to_string(), code))
+                } else {
+                    Error::NomErrorFast(code)
+                })
+            }
+            nom::Err::Failure(e) => {
+                let nom::error::Error { input, code } = e;
+                nom::Err::Failure(if cfg!(debug_assertions) {
+                    Error::NomError(nom::error::Error::new(input.to_string(), code))
+                } else {
+                    Error::NomErrorFast(code)
+                })
+            }
+            nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
+        }
     }
 }

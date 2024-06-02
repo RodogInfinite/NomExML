@@ -32,7 +32,7 @@ use crate::{
     tag::Tag,
 };
 
-use error::Error;
+use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
 use namespaces::{Name, ParseNamespace};
 use nom::{
@@ -284,10 +284,11 @@ impl Document {
         map(
             tuple((
                 take_till(|c: char| c == '<' || c == '&'),
-                not(tag::<_, &str, _>("]]>")),
+                not(tag::<&str, &str, nom::error::Error<&str>>("]]>")),
             )),
             |(data, _)| data.to_string(),
         )(input)
+        .map_err(|e| e.convert_nom_error())
     }
 
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
@@ -838,7 +839,7 @@ impl Document {
     pub fn parse_element_from_pattern<'a>(
         input: &'a str,
         tag_name: &'a str,
-        pattern: &'static Pattern,
+        pattern: &'a Pattern,
         strict: bool,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
@@ -978,7 +979,7 @@ impl Document {
 }
 
 impl Document {
-    pub fn iter_with_depth(&'static self, max_level: usize) -> DocumentIterator {
+    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
 }
@@ -1066,12 +1067,12 @@ impl fmt::Display for DocumentError {
 
 impl std::error::Error for DocumentError {}
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Pattern {
-    pub xml: &'static str,
+pub struct Pattern<'a> {
+    pub xml: &'a str,
     pub doc: Document,
 }
-impl Pattern {
-    pub fn new(xml: &'static str, doc: Document) -> Self {
+impl<'a> Pattern<'a> {
+    pub fn new(xml: &'a str, doc: Document) -> Self {
         Self { xml, doc }
     }
     pub fn parse(
