@@ -1,3 +1,70 @@
+//! `nom-xml` is a library for parsing XML documents using the `nom` parser combinator library.
+//!
+//! # Key Data Structure:
+//! -[Document]: the main data structure used to parse XML documents.
+//!
+//! # Key Methods:
+//! -[Document::parse]: the main way to parse an ***entire*** XML document.
+//!   ## Example
+//! ```rust
+//! use nom_xml::{parse::Parse, Config, Document};
+//!
+//! fn main() {
+//!     let xml = "<root><child>Content</child></root>";
+//!     let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+//!     println!("{doc:?}");
+//! }
+//! ```
+//!
+//! ## Output:
+//! ```text
+//! Element(
+//!    Tag {
+//!        name:
+//!            Name {
+//!                prefix: None,
+//!                local_part: "root",
+//!            },
+//!        attributes: None,
+//!        state: Start,
+//!    },
+//!    Nested([
+//!        Element(
+//!            Tag {
+//!                name:
+//!                    Name {
+//!                        prefix: None,
+//!                        local_part: "child",
+//!                    },
+//!                attributes: None,
+//!                state: Start,
+//!            },
+//!            Content("Content"),
+//!            Tag {
+//!                name:
+//!                    Name {
+//!                        prefix: None,
+//!                        local_part: "child",
+//!                    },
+//!                attributes: None,
+//!                state: End,
+//!            },
+//!        ),
+//!    ]),
+//!    Tag {
+//!        name:
+//!            Name {
+//!                prefix: None,
+//!                local_part: "root",
+//!            },
+//!        attributes: None,
+//!        state: End,
+//!    },
+//!)
+//! ```
+//!
+//!
+
 pub mod attribute;
 pub mod config;
 mod debug;
@@ -61,6 +128,9 @@ pub struct Config {
     pub external_parse_config: ExternalEntityParseConfig,
 }
 
+/// Main entry point for parsing XML documents
+///
+///
 #[derive(Clone, PartialEq, Eq)]
 pub enum Document {
     Prolog {
@@ -127,6 +197,7 @@ fn check_config(config: &Config) -> Result<()> {
 impl<'a> Parse<'a> for Document {
     type Args = Config;
     type Output = IResult<&'a str, Self>;
+
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
@@ -836,6 +907,7 @@ impl Document {
         many1(|i| Self::parse_element_by_tag_name(i, tag_name, entity_references))(input)
     }
 
+    #[cfg(feature = "experimental")]
     pub fn parse_element_from_pattern<'a>(
         input: &'a str,
         tag_name: &'a str,
@@ -937,7 +1009,7 @@ impl Document {
         tag_name: &'a str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
-        let (input, _) = take_until(format!("<{}>", tag_name).as_str())(input)?;
+        let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
 
         let (input, doc) = alt((
             preceded(
