@@ -9,7 +9,7 @@ macro_rules! warnln {
 
 #[derive(Debug)]
 pub enum Error {
-    NomError(nom::error::Error<String>), // Error message and input string
+    NomError(nom::error::Error<String>),
     IoError(std::io::Error),
     UserAbort(String),
 }
