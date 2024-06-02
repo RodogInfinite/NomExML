@@ -15,16 +15,12 @@ use nom::combinator::{map, map_res, opt};
 
 use nom::multi::many1;
 
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::BufReader;
-use std::path::Path;
+
 use std::rc::Rc;
-use std::{
-    fs::{self, File},
-    io::Read,
-};
+use std::{fs::File, io::Read};
 
 pub fn read_file(file: &mut File) -> std::io::Result<String> {
     let mut reader = BufReader::new(file);
@@ -45,7 +41,7 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document> {
     let mut data = read_file(file)?;
     data = data.replace("\r\n", "\n").replace('\r', "\n");
 
-    let parse_result = Document::parse(&'static data, config);
+    let parse_result = Document::parse(&data, config);
     match parse_result {
         Ok((_, document)) => {
             // Successfully parsed document, return it
@@ -87,9 +83,9 @@ pub fn parse_external_entity_file(
                 if let Some(doc) = doc_option {
                     Ok(vec![EntityValue::Document(doc)])
                 } else {
-                    Err(Error::NomError(
-                        "parse_external_ent_file: Expected a Document, but found None. Prolog not parsed.".to_string(), input.to_string()
-                    ))
+                    Err(Error::NomError(nom::error::Error::new(
+                        "parse_external_ent_file: Expected a Document, but found None. Prolog not parsed.".to_string(), nom::error::ErrorKind::Fail,
+                    )))
                 }
             },
         ),
@@ -112,10 +108,9 @@ pub fn parse_external_entity_file(
                                 .collect::<Vec<_>>()
                         )
                 } else {
-                    Err(Error::NomError(
-                        "parse_external_ent_file: Failed to parse MarkupDeclaration"
-                            .to_string(), input.to_string()
-                    ))
+                    Err(Error::NomError(nom::error::Error::new(
+                        "parse_external_ent_file: Expected a MarkupDeclaration, but found None.".to_string(), nom::error::ErrorKind::Fail,
+                    )))
                 }
             },
         ),
@@ -127,24 +122,28 @@ pub fn parse_external_entity_file(
         ),
     ))(input)
     .map_err(|err| match err {
-        nom::Err::Error(e) | nom::Err::Failure(e) => {
-            Error::NomError(format!("{:?}", e.code), e.input.to_string())
-        }
-        nom::Err::Incomplete(_) => Error::NomError("parse_external_ent_file: Incomplete parsing".to_string(),input.to_string()),
+        nom::Err::Error(_e) | nom::Err::Failure(_e) => Box::new(Error::NomError(nom::error::Error::new(
+            input.to_string(), nom::error::ErrorKind::Fail,
+        ))),        nom::Err::Incomplete(_) => Box::new(Error::NomError(nom::error::Error::new(
+            "parse_external_ent_file: Incomplete input.".to_string(), nom::error::ErrorKind::Fail,
+        ))),
     })?;
     Ok(entity_values)
 }
 
-pub fn parse_directory(path: &Path, config: Config) -> Result<Vec<Result<Document>>> {
-    let entries = fs::read_dir(path)?;
-    let results = entries
-        .par_bridge()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml"))
-        .map(|entry| {
-            let mut file = File::open(entry.path())?;
-            parse_file(&mut file, config.clone())
-        })
-        .collect::<Vec<_>>();
-    Ok(results)
-}
+// pub fn parse_directory(
+//     path: &Path,
+//     config: Config,
+// ) -> Result<Vec<Result<Document, Error>>, IoError> {
+//     let entries = fs::read_dir(path)?;
+//     let results = entries
+//         .par_bridge()
+//         .filter_map(|entry_result| entry_result.ok()) // Handle entry_result as std::io::Result
+//         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml"))
+//         .map(|entry| {
+//             let mut file = File::open(entry.path())?;
+//             parse_file(&mut file, config.clone())
+//         })
+//         .collect::<Vec<_>>();
+//     Ok(results)
+// }

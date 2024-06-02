@@ -13,7 +13,7 @@ use nom::{
 pub trait Parse<'a>: Sized {
     type Args;
     type Output; //TODO: refactor this to have default values when associated type defaults are stabalized
-    fn parse(_input: &'static str, _args: Self::Args) -> Self::Output {
+    fn parse(_input: &'a str, _args: Self::Args) -> Self::Output {
         unimplemented!()
     }
 
@@ -23,7 +23,7 @@ pub trait Parse<'a>: Sized {
         matches!(c, '\u{9}' | '\u{A}' | '\u{D}' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}')
     }
 
-    fn parse_char(input: &'static str) -> IResult<&'static str, char> {
+    fn parse_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_char)(input)
     }
 
@@ -33,12 +33,12 @@ pub trait Parse<'a>: Sized {
         matches!(c, ' ' | '\t' | '\r' | '\n')
     }
 
-    fn parse_multispace1(input: &'static str) -> IResult<&'static str, ()> {
+    fn parse_multispace1(input: &str) -> IResult<&str, ()> {
         let (input, _) = many1(satisfy(Self::is_whitespace))(input)?;
         Ok((input, ()))
     }
 
-    fn parse_multispace0(input: &'static str) -> IResult<&'static str, ()> {
+    fn parse_multispace0(input: &str) -> IResult<&str, ()> {
         let (input, _) = many0(satisfy(Self::is_whitespace))(input)?;
         Ok((input, ()))
     }
@@ -70,27 +70,27 @@ pub trait Parse<'a>: Sized {
             '\u{0300}'..='\u{036F}' | '\u{203F}'..='\u{2040}')
     }
 
-    fn parse_name_char(input: &'static str) -> IResult<&'static str, char> {
+    fn parse_name_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_name_char)(input)
     }
 
-    fn parse_name_start_char(input: &'static str) -> IResult<&'static str, char> {
+    fn parse_name_start_char(input: &str) -> IResult<&str, char> {
         satisfy(Self::is_name_start_char)(input)
     }
 
     // [7] Nmtoken ::= (NameChar)+
-    fn parse_nmtoken(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_nmtoken(input: &str) -> IResult<&str, String> {
         let (input, result) = recognize(many1(Self::parse_name_char))(input)?;
         Ok((input, result.to_string()))
     }
 
     // [8] Nmtokens ::= Nmtoken (#x20 Nmtoken)*
-    fn parse_nmtokens(input: &'static str) -> IResult<&'static str, Vec<String>> {
+    fn parse_nmtokens(input: &str) -> IResult<&str, Vec<String>> {
         separated_list1(char(' '), Self::parse_nmtoken)(input)
     }
 
     // [5] Name ::= NameStartChar (NameChar)*
-    fn parse_name(input: &'static str) -> IResult<&'static str, Name> {
+    fn parse_name(input: &str) -> IResult<&str, Name> {
         map(
             tuple((Self::parse_name_start_char, opt(Self::parse_nmtoken))),
             |(start_char, rest_chars)| {
@@ -114,12 +114,12 @@ pub trait Parse<'a>: Sized {
     }
 
     // [6] Names ::= Name (#x20 Name)*
-    fn parse_names(input: &'static str) -> IResult<&'static str, Vec<Name>> {
+    fn parse_names(input: &str) -> IResult<&str, Vec<Name>> {
         separated_list1(char(' '), Self::parse_name)(input)
     }
 
     //[25] Eq ::=  S? '=' S?
-    fn parse_eq(input: &'static str) -> IResult<&'static str, ()> {
+    fn parse_eq(input: &str) -> IResult<&str, ()> {
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, _) = tag("=")(input)?;
         let (input, _) = Self::parse_multispace0(input)?;

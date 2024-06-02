@@ -1,10 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{
-    error::{convert_nom_err, convert_nom_err_string},
-    reference::Reference,
-    Document, IResult, Name,
-};
+use crate::{reference::Reference, Document, IResult, Name};
 
 use self::{
     entity::entity_declaration::{EntityDecl, EntityDeclaration},
@@ -46,9 +42,9 @@ impl Subset {
     }
 }
 
-impl<'a: 'static> ParseNamespace<'a> for Subset {}
+impl<'a> ParseNamespace<'a> for Subset {}
 
-impl<'a: 'static> Parse<'a> for Subset {
+impl<'a> Parse<'a> for Subset {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         Config,
@@ -57,7 +53,7 @@ impl<'a: 'static> Parse<'a> for Subset {
     type Output = IResult<&'a str, Vec<Subset>>;
 
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
-    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (entity_references, config, entity_source) = args;
 
         let (input, parsed) = many0(alt((
@@ -107,15 +103,13 @@ impl<'a: 'static> Parse<'a> for Subset {
                     let mut modified_inner_expansion = *inner_expansion.clone();
 
                     if let MarkupDeclaration::AttList {
-                        ref mut att_defs, ..
+                        att_defs: Some(ref mut defs),
+                        ..
                     } = modified_inner_expansion
                     {
-                        if let Some(ref mut defs) = att_defs {
-                            // Iterate over each attribute definition in att_defs and modify the source to EntitySource::External.
-                            for attribute in defs {
-                                if let Attribute::Definition { ref mut source, .. } = attribute {
-                                    *source = EntitySource::Internal;
-                                }
+                        for attribute in defs {
+                            if let Attribute::Definition { ref mut source, .. } = attribute {
+                                *source = EntitySource::Internal;
                             }
                         }
                     }
@@ -124,6 +118,7 @@ impl<'a: 'static> Parse<'a> for Subset {
                         modified_inner_expansion.clone(),
                     )));
                 }
+
                 if let Some(EntityValue::MarkupDecl(inner_expansion)) = entity_references
                     .borrow()
                     .get(&(name.clone(), EntitySource::External))
@@ -131,15 +126,13 @@ impl<'a: 'static> Parse<'a> for Subset {
                     let mut modified_inner_expansion = *inner_expansion.clone();
 
                     if let MarkupDeclaration::AttList {
-                        ref mut att_defs, ..
+                        att_defs: Some(ref mut defs),
+                        ..
                     } = modified_inner_expansion
                     {
-                        if let Some(ref mut defs) = att_defs {
-                            // Iterate over each attribute definition in att_defs and modify the source to EntitySource::External.
-                            for attribute in defs {
-                                if let Attribute::Definition { ref mut source, .. } = attribute {
-                                    *source = EntitySource::External;
-                                }
+                        for attribute in defs {
+                            if let Attribute::Definition { ref mut source, .. } = attribute {
+                                *source = EntitySource::External;
                             }
                         }
                     }
@@ -195,10 +188,10 @@ impl ParseDeclSep for Subset {
 
     // [28a] DeclSep ::=  PEReference | S
     fn parse_decl_sep(
-        input: &'static str,
+        input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'static str, Self::Output> {
+    ) -> IResult<&str, Self::Output> {
         let (input, decl_sep) = alt((
             map(Reference::parse_parameter_reference, |reference| {
                 let expansion =
@@ -224,10 +217,10 @@ pub trait ParseDeclSep {
     type Output;
     // [28a] DeclSep ::=  PEReference | S
     fn parse_decl_sep(
-        input: &'static str,
+        input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'static str, Self::Output>;
+    ) -> IResult<&str, Self::Output>;
     fn expand_entity(
         reference: &Reference,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,

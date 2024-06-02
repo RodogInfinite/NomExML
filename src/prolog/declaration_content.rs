@@ -17,11 +17,11 @@ pub enum DeclarationContent {
     Any,
 }
 
-impl<'a: 'static> Parse<'a> for DeclarationContent {
+impl<'a> Parse<'a> for DeclarationContent {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [46] contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
-    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         alt((
             map(tag("EMPTY"), |_| Self::Empty),
             map(tag("ANY"), |_| Self::Any),
@@ -30,10 +30,10 @@ impl<'a: 'static> Parse<'a> for DeclarationContent {
         ))(input)
     }
 }
-impl<'a: 'static> ParseNamespace<'a> for DeclarationContent {}
+impl<'a> ParseNamespace<'a> for DeclarationContent {}
 impl DeclarationContent {
     // [47] children ::= (choice | seq) ('?' | '*' | '+')?
-    fn parse_children(input: &'static str) -> IResult<&'static str, ContentParticle> {
+    fn parse_children(input: &str) -> IResult<&str, ContentParticle> {
         let (input, particle) = alt((
             map(
                 tuple((
@@ -64,14 +64,14 @@ pub enum Mixed {
     Names(Vec<Name>),
 }
 
-impl<'a: 'static> ParseNamespace<'a> for Mixed {}
-impl<'a: 'static> Parse<'a> for Mixed {
+impl<'a> ParseNamespace<'a> for Mixed {}
+impl<'a> Parse<'a> for Mixed {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [51] Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
     // Namespaces (Third Edition) [19] Mixed ::= '(' S? '#PCDATA' (S? '|' S? QName)* S? ')*' | '(' S? '#PCDATA' S? ')'
 
-    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((
             map(
                 tuple((

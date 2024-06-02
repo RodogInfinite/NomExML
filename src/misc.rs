@@ -16,12 +16,12 @@ pub struct Misc {
     pub state: MiscState,
 }
 
-impl<'a: 'static> Parse<'a> for Misc {
+impl<'a> Parse<'a> for Misc {
     type Args = MiscState;
     type Output = IResult<&'a str, Self>;
 
     //[27] Misc ::= Comment | PI | S
-    fn parse(input: &'static str, args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let mut input_remaining = input;
         let mut content_vec: Vec<Document> = vec![];
         loop {
@@ -48,7 +48,7 @@ impl<'a: 'static> Parse<'a> for Misc {
                         break;
                     } else {
                         return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                            input,
+                            input.to_string(),
                             nom::error::ErrorKind::Many0,
                         ))));
                     }

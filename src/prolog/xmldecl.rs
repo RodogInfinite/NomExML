@@ -34,11 +34,11 @@ pub struct XmlDecl {
     pub encoding: Option<String>,
     pub standalone: Option<Standalone>,
 }
-impl<'a: 'static> Parse<'a> for XmlDecl {
+impl<'a> Parse<'a> for XmlDecl {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [23] XMLDecl	::=  '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
-    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         map(
             tuple((
                 tag("<?xml"),
@@ -59,7 +59,7 @@ impl<'a: 'static> Parse<'a> for XmlDecl {
 
 impl XmlDecl {
     // [24] VersionInfo	::= S 'version' Eq ("'" VersionNum "'" | '"' VersionNum '"')
-    fn parse_version_info(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_version_info(input: &str) -> IResult<&str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -75,13 +75,13 @@ impl XmlDecl {
     }
 
     // [26] VersionNum	::= '1.' [0-9]+
-    fn parse_version_num(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_version_num(input: &str) -> IResult<&str, String> {
         map(preceded(tag("1."), digit1), |version| {
             format!("1.{}", version)
         })(input)
     }
     // [80] EncodingDecl	::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'" )
-    fn parse_encoding_decl(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_encoding_decl(input: &str) -> IResult<&str, String> {
         map(
             tuple((
                 Self::parse_multispace1,
@@ -97,7 +97,7 @@ impl XmlDecl {
     }
 
     // [81] EncName	::= [A-Za-z] ([A-Za-z0-9._] | '-')*
-    fn parse_enc_name(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_enc_name(input: &str) -> IResult<&str, String> {
         map(
             pair(
                 alt((alpha1, tag("-"))),
@@ -108,7 +108,7 @@ impl XmlDecl {
     }
 
     // [32] SDDecl	::= S 'standalone' Eq (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
-    fn parse_sd_decl(input: &'static str) -> IResult<&'static str, Standalone> {
+    fn parse_sd_decl(input: &str) -> IResult<&str, Standalone> {
         map(
             tuple((
                 Self::parse_multispace1,

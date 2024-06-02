@@ -30,11 +30,11 @@ pub struct Tag {
     pub state: TagState,
 }
 
-impl<'a: 'static> Parse<'a> for Tag {
+impl<'a> Parse<'a> for Tag {
     type Args = ();
     type Output = IResult<&'a str, Self>;
 }
-impl<'a: 'static> ParseNamespace<'a> for Tag {}
+impl<'a> ParseNamespace<'a> for Tag {}
 
 // TODO: Investigate. The hardcoded bracket codes is kind of a hack to get reference element parsing to work. Unsure of how this is going to impact invalid XML.
 // Tried to use decode, but having some lifetime issues
@@ -42,10 +42,10 @@ impl Tag {
     // [40] STag ::= '<' Name (S Attribute)* S? '>'
     // Namespaces (Third Edition) [12] STag ::= '<' QName (S Attribute)* S? '>'
     pub fn parse_start_tag(
-        input: &'static str,
+        input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'static str, Self> {
+    ) -> IResult<&str, Self> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
@@ -75,12 +75,12 @@ impl Tag {
         )(input)
     }
 
-    pub fn parse_start_tag_by_name(
-        input: &'static str,
-        tag_name: &str,
+    pub fn parse_start_tag_by_name<'a>(
+        input: &'a str,
+        tag_name: &'a str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'static str, Self> {
+    ) -> IResult<&'a str, Self> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
@@ -112,7 +112,7 @@ impl Tag {
 
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
-    pub fn parse_end_tag(input: &'static str) -> IResult<&'static str, Self> {
+    pub fn parse_end_tag(input: &str) -> IResult<&str, Self> {
         delimited(
             alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
             map(
@@ -132,10 +132,7 @@ impl Tag {
     }
     // [42] ETag ::= '</' Name S? '>'
     // Namespaces (Third Edition) [13] ETag ::= '</' QName S? '>'
-    pub fn parse_end_tag_by_name<'a>(
-        input: &'static str,
-        tag_name: &str,
-    ) -> IResult<&'a str, Self> {
+    pub fn parse_end_tag_by_name<'a>(input: &'a str, tag_name: &'a str) -> IResult<&'a str, Self> {
         delimited(
             alt((tag("&#60;/"), tag("&#x3C;/"), tag("</"))),
             map(
@@ -157,10 +154,10 @@ impl Tag {
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
     pub fn parse_empty_element_tag(
-        input: &'static str,
+        input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
-    ) -> IResult<&'static str, Self> {
+    ) -> IResult<&str, Self> {
         map(
             tuple((
                 alt((tag("&#60;"), tag("&#x3C;"), tag("<"))),
@@ -183,8 +180,8 @@ impl Tag {
     // [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
     // Namespaces (Third Edition) [14] EmptyElemTag ::= '<' QName (S Attribute)* S? '/>'
     pub fn parse_empty_element_tag_by_name<'a>(
-        input: &'static str,
-        tag_name: &str,
+        input: &'a str,
+        tag_name: &'a str,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
     ) -> IResult<&'a str, Self> {

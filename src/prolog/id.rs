@@ -17,11 +17,11 @@ pub enum ID {
     PublicID(String),
 }
 
-impl<'a: 'static> Parse<'a> for ID {
+impl<'a> Parse<'a> for ID {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     // [83] PublicID ::= 'PUBLIC' S PubidLiteral
-    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((
             map(
                 preceded(
@@ -37,7 +37,7 @@ impl<'a: 'static> Parse<'a> for ID {
 
 impl ID {
     // [12] PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
-    pub fn parse_public_id_literal(input: &'static str) -> IResult<&'static str, String> {
+    pub fn parse_public_id_literal(input: &str) -> IResult<&str, String> {
         map(
             alt((
                 delimited(
@@ -56,10 +56,7 @@ impl ID {
     }
 
     // [13] PubidChar ::= #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
-    pub fn parse_pubid_char(
-        input: &'static str,
-        exclude_single_quote: bool,
-    ) -> IResult<&'static str, &str> {
+    pub fn parse_pubid_char(input: &str, exclude_single_quote: bool) -> IResult<&str, &str> {
         let chars = if exclude_single_quote {
             " \r\n-()+,./:=?;!*#@$_%"
         } else {

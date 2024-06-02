@@ -25,17 +25,17 @@ pub enum ExternalID {
     },
 }
 
-impl<'a: 'static> Parse<'a> for ExternalID {
+impl<'a> Parse<'a> for ExternalID {
     type Args = ();
     type Output = IResult<&'a str, Self>;
     //[75] ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
-    fn parse(input: &'static str, _args: Self::Args) -> Self::Output {
+    fn parse(input: &'a str, _args: Self::Args) -> Self::Output {
         alt((Self::parse_system, Self::parse_public))(input)
     }
 }
 
 impl ExternalID {
-    fn parse_system(input: &'static str) -> IResult<&'static str, ExternalID> {
+    fn parse_system(input: &str) -> IResult<&str, ExternalID> {
         map(
             tuple((
                 tag("SYSTEM"),
@@ -46,7 +46,7 @@ impl ExternalID {
         )(input)
     }
 
-    fn parse_public(input: &'static str) -> IResult<&'static str, ExternalID> {
+    fn parse_public(input: &str) -> IResult<&str, ExternalID> {
         map(
             tuple((
                 tag("PUBLIC"),
@@ -65,7 +65,7 @@ impl ExternalID {
     }
 
     // [11] SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
-    fn parse_system_literal(input: &'static str) -> IResult<&'static str, String> {
+    fn parse_system_literal(input: &str) -> IResult<&str, String> {
         map(
             alt((
                 delimited(tag("\""), is_not("\""), tag("\"")),
@@ -77,7 +77,7 @@ impl ExternalID {
 
     pub fn get_external_entity_from_id(
         &self,
-        input: &'static str,
+        input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
     ) -> Result<()> {
@@ -106,7 +106,7 @@ impl ExternalID {
                         .as_deref()
                         {
                             Ok(_entities) => {
-                                let (_input, (subset, _whitespace1, _close_tag, _whitespace2)) =
+                                let (_input, (_subset, _whitespace1, _close_tag, _whitespace2)) =
                                     tuple((
                                         |i| {
                                             Subset::parse(
@@ -126,13 +126,14 @@ impl ExternalID {
                                 Ok(())
                             }
                             _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                                "Failed to match [entity] from `parse_external_entity_file`",
+                                "Failed to match [entity] from `parse_external_entity_file`"
+                                    .to_string(),
                                 nom::error::ErrorKind::Fail,
                             )))
                             .into()),
                         }
                     }
-                    Err(e) => Err(Error::<String>::from(e).into()),
+                    Err(e) => Err(Error::from(e).into()),
                 }
             } else {
                 Err(nom::Err::Error(nom::error::Error::new(
