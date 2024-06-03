@@ -83,13 +83,10 @@ pub fn parse_element_from_file(
         Document::parse_element_by_tag_name(&data, tag_name, attributes, entity_references);
     match parse_result {
         Ok((_, document)) => Ok(document),
-        Err(nom::Err::Error(e) | nom::Err::Failure(e)) => {
-            Err(Error::NomError(nom::error::Error::new(
-                e.to_string(),
-                nom::error::ErrorKind::Fail,
-            ))
-            .into())
-        }
+        Err(nom::Err::Error(e) | nom::Err::Failure(e)) => Err(Error::NomError(
+            nom::error::Error::new(e.to_string(), nom::error::ErrorKind::Fail),
+        )
+        .into()),
         Err(nom::Err::Incomplete(_)) => Err(Error::NomError(nom::error::Error::new(
             "parse_element_from_file: Incomplete parsing".to_string(),
             nom::error::ErrorKind::Fail,
