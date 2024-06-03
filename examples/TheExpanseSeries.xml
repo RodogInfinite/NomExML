@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<catalog>
+    <book isbn="978-0316129084">
+        <author>James S.A. Corey</author>
+        <title>Leviathan Wakes</title>
+        <genre>Science Fiction</genre>
+        <description>The first book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316129060">
+        <author>James S.A. Corey</author>
+        <title>Caliban's War</title>
+        <genre>Science Fiction</genre>
+        <description>The second book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316129077">
+        <author>James S.A. Corey</author>
+        <title>Abaddon's Gate</title>
+        <genre>Science Fiction</genre>
+        <description>The third book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316334686">
+        <author>James S.A. Corey</author>
+        <title>Cibola Burn</title>
+        <genre>Science Fiction</genre>
+        <description>The fourth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316334716">
+        <author>James S.A. Corey</author>
+        <title>Nemesis Games</title>
+        <genre>Science Fiction</genre>
+        <description>The fifth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316334747">
+        <author>James S.A. Corey</author>
+        <title>Babylon's Ashes</title>
+        <genre>Science Fiction</genre>
+        <description>The sixth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332828">
+        <author>James S.A. Corey</author>
+        <title>Persepolis Rising</title>
+        <genre>Science Fiction</genre>
+        <description>The seventh book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332873">
+        <author>James S.A. Corey</author>
+        <title>Tiamat's Wrath</title>
+        <genre>Science Fiction</genre>
+        <description>The eighth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332910">
+        <author>James S.A. Corey</author>
+        <title>Leviathan Falls</title>
+        <genre>Science Fiction</genre>
+        <description>The ninth book in the Expanse series</description>
+    </book>
+</catalog>
