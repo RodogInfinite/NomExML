@@ -1,4 +1,13 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE catalog [
+    <!ELEMENT catalog (book+)>
+    <!ELEMENT book (author, title, genre, description)>
+    <!ATTLIST book isbn CDATA #REQUIRED>
+    <!ELEMENT author (#PCDATA)>
+    <!ELEMENT title (#PCDATA)>
+    <!ELEMENT genre (#PCDATA)>
+    <!ELEMENT description (#PCDATA)>
+]>
 <catalog>
     <book isbn="978-0316129084">
         <author>James S.A. Corey</author>
