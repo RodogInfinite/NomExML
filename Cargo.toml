@@ -11,10 +11,8 @@ readme = "README.md"
 
 [dependencies]
 encoding_rs = "0.8.32"
-nom.workspace = true
+nom = "7.1.3"
 rayon = "1.7.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.96"
 
 [features]
 experimental = []

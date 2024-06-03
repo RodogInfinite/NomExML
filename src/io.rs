@@ -154,20 +154,3 @@ pub(crate) fn parse_external_entity_file(
     })?;
     Ok(entity_values)
 }
-
-// pub fn parse_directory(
-//     path: &Path,
-//     config: Config,
-// ) -> Result<Vec<Result<Document, Error>>, IoError> {
-//     let entries = fs::read_dir(path)?;
-//     let results = entries
-//         .par_bridge()
-//         .filter_map(|entry_result| entry_result.ok()) // Handle entry_result as std::io::Result
-//         .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("xml"))
-//         .map(|entry| {
-//             let mut file = File::open(entry.path())?;
-//             parse_file(&mut file, config.clone())
-//         })
-//         .collect::<Vec<_>>();
-//     Ok(results)
-// }
