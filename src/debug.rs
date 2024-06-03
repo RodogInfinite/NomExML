@@ -52,8 +52,6 @@ impl Tag {
             indent + 4,
             &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
         );
-        // Removed the extra line here
-
         fmt_indented(f, indent + 4, "attributes: ");
 
         match attributes {
@@ -237,22 +235,22 @@ impl DeclarationContent {
     fn fmt_indented_dec_content(&self, f: &mut String, indent: usize) {
         match self {
             DeclarationContent::Mixed(mixed) => {
-                fmt_indented(f, indent, "Mixed(\n");
+                fmt_indented(f, indent, " DeclarationContent::Mixed(\n");
                 mixed.fmt_indented_mixed(f, indent + 4);
                 fmt_indented(f, indent, "),\n");
             }
             DeclarationContent::Children(children) => {
-                fmt_indented(f, indent, "Children {\n");
+                fmt_indented(f, indent, " DeclarationContent::Children (\n");
                 let mut s = String::new();
-                children.fmt_indented_content_particle(&mut s, indent + 4); // Assuming you have this function
-                f.push_str(&format!("[\n{}\n", s));
-                fmt_indented(f, indent, "},\n");
+                children.fmt_indented_content_particle(&mut s, indent);
+                fmt_indented(f, indent, &format!("{}\n", s));
+                fmt_indented(f, indent, "),\n");
             }
             DeclarationContent::Empty => {
-                fmt_indented(f, indent, "Empty,\n");
+                fmt_indented(f, indent, "DeclarationContent::Empty,\n");
             }
             DeclarationContent::Any => {
-                fmt_indented(f, indent, "Any,\n");
+                fmt_indented(f, indent, "DeclarationContent::Any,\n");
             }
         }
     }
@@ -296,8 +294,11 @@ impl ContentParticle {
     fn fmt_indented_content_particle(&self, f: &mut String, indent: usize) {
         match self {
             ContentParticle::Name(name, conditional_state) => {
-                fmt_indented(f, indent, "Name {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?}\n", name));
+                fmt_indented(f, indent, "ContentParticle::Name {\n");
+                fmt_indented(f, indent + 4, "name: \n");
+                let formatted_name = name.fmt_qualified_name(indent + 8);
+                f.push_str(&formatted_name);
+                f.push('\n');
                 fmt_indented(
                     f,
                     indent + 4,
@@ -306,7 +307,7 @@ impl ContentParticle {
                 fmt_indented(f, indent, "},\n");
             }
             ContentParticle::Choice(particles, conditional_state) => {
-                fmt_indented(f, indent, "Choice {\n");
+                fmt_indented(f, indent, "ContentParticle::Choice {\n");
                 fmt_indented(f, indent + 4, "particles: [\n");
                 for item in particles {
                     item.fmt_indented_content_particle(f, indent + 8);
@@ -320,18 +321,18 @@ impl ContentParticle {
                 fmt_indented(f, indent, "},\n");
             }
             ContentParticle::Sequence(particles, conditional_state) => {
-                fmt_indented(f, indent, "Seq {\n");
-                fmt_indented(f, indent + 4, "particles: [\n");
+                fmt_indented(f, 4, "ContentParticle::Sequence {\n");
+                fmt_indented(f, indent + 8, "particles: [\n");
                 for item in particles {
-                    item.fmt_indented_content_particle(f, indent + 8);
+                    item.fmt_indented_content_particle(f, indent + 12);
                 }
-                fmt_indented(f, indent + 4, "],\n");
+                fmt_indented(f, indent + 8, "],\n");
                 fmt_indented(
                     f,
                     indent + 4,
                     &format!("conditional_state: {:?},\n", conditional_state),
                 );
-                fmt_indented(f, indent, "},\n");
+                fmt_indented(f, indent + 4, "},\n");
             }
         }
     }
@@ -419,18 +420,6 @@ impl ExternalID {
     }
 }
 
-// impl Subset {
-//     fn fmt_subset(&self, f: &mut String, indent: usize) {
-//         match self {
-//             Subset::Internal(internal_subset) => {
-//                 internal_subset.fmt_internal_subset(f, indent)
-//             }
-//             Subset::External(external_subset) => {
-//                 external_subset.fmt_external_subset(f, indent)
-//             }
-//         }
-//     }
-// }
 impl std::fmt::Debug for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -454,13 +443,7 @@ impl ID {
         }
     }
 }
-// impl fmt::Debug for Subset {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let mut s = String::new();
-//         self.fmt_subset(&mut s, 0);
-//         write!(f, "{}", s)
-//     }
-// }
+
 impl fmt::Debug for Subset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
@@ -665,11 +648,9 @@ impl Attribute {
                 source,
             } => {
                 fmt_indented(f, indent, "Definition {\n");
-                fmt_indented(
-                    f,
-                    indent + 4,
-                    &format!("name: \n{}\n", name.fmt_qualified_name(indent + 8)),
-                );
+                fmt_indented(f, indent + 4, "name: \n");
+                let formatted_name = name.fmt_qualified_name(indent + 8);
+                f.push_str(&formatted_name);
                 fmt_indented(f, indent + 4, &format!("att_type: {:?},\n", att_type));
                 fmt_indented(
                     f,
@@ -690,8 +671,12 @@ impl Attribute {
             }
             Attribute::Instance { name, value } => {
                 fmt_indented(f, indent, "Instance {\n");
-                fmt_indented(f, indent + 4, &format!("name: {:?}\n", name));
-                value.fmt_indented_attribute_value(f, indent + 4);
+                fmt_indented(f, indent + 4, "name: \n");
+                let formatted_name = name.fmt_qualified_name(indent + 8);
+                f.push_str(&formatted_name);
+                f.push('\n');
+                fmt_indented(f, indent + 4, "value:\n");
+                value.fmt_indented_attribute_value(f, indent + 12);
                 fmt_indented(f, indent, "},\n");
             }
             Attribute::Namespace { prefix, uri } => {
