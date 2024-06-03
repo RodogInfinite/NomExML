@@ -110,6 +110,7 @@ use nom::{
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
 };
+use once_cell::unsync::Lazy;
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
 use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc};
@@ -147,7 +148,6 @@ pub enum Document {
     Comment(String),
     CDATA(String),
 }
-
 impl<'a> Parse<'a> for Document {
     type Args = Config;
     type Output = IResult<&'a str, Self>;
@@ -776,7 +776,7 @@ impl Document {
     }
 
     /// The main interface for exracting content from the Document tree
-    /// See the extract_information.rs example for more information
+    /// See the  [`extract_information`](../extract_information/index.html)example for more information
     pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
@@ -796,10 +796,10 @@ impl Document {
         input: &'a str,
         tag_name: &'a str,
         attributes: &Option<Vec<Attribute>>,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        //entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
         let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
-
+        let entity_references = &Rc::new(RefCell::new(HashMap::new()));
         let (input, doc) = alt((
             preceded(
                 Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
@@ -851,14 +851,11 @@ impl Document {
         input: &'a str,
         tag_name: &'a str,
         attributes: &Option<Vec<Attribute>>,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Vec<Document>> {
         warnln!("parse_elements_by_tag_name will parse all elements with the tag name `{tag_name}` no matter the nesting level", );
         warnln!("parse_element_by_tag_name currently only parses start tags without attributes, in this case`<{tag_name}>`");
 
-        many1(|i| Self::parse_element_by_tag_name(i, tag_name, attributes, entity_references))(
-            input,
-        )
+        many1(|i| Self::parse_element_by_tag_name(i, tag_name, attributes))(input)
     }
 
     #[cfg(feature = "experimental")]
@@ -938,10 +935,9 @@ impl Document {
         input: &'a str,
         tag_name: &'a str,
         attributes: &Option<Vec<Attribute>>,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+        //entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
-        let (input, doc) =
-            Self::parse_element_by_tag_name(input, tag_name, attributes, entity_references)?;
+        let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, attributes)?;
 
         if let Document::Element(_, inner_doc, _) = doc {
             if let Document::Nested(inner_doc) = *inner_doc {

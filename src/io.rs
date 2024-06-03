@@ -79,8 +79,7 @@ pub fn parse_element_from_file(
 ) -> Result<Document> {
     let data = read_file(file)?;
 
-    let parse_result =
-        Document::parse_element_by_tag_name(&data, tag_name, attributes, entity_references);
+    let parse_result = Document::parse_element_by_tag_name(&data, tag_name, attributes);
     match parse_result {
         Ok((_, document)) => Ok(document),
         Err(nom::Err::Error(e) | nom::Err::Failure(e)) => Err(Error::NomError(
