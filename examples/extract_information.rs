@@ -57,7 +57,6 @@
 //!                 "description" => {
 //!                     self.description = value.to_string();
 //!                 }
-//!
 //!                 e => {
 //!                     eprintln!("Unknown field: {}", e);
 //!                 }
@@ -147,7 +146,6 @@ impl Book {
                 "description" => {
                     self.description = value.to_string();
                 }
-
                 e => {
                     eprintln!("Unknown field: {}", e);
                 }
