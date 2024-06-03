@@ -1,6 +1,6 @@
 use nom_xml::{
     attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
-    io::parse_file,
+    io::parse_entire_file,
     misc::{Misc, MiscState},
     namespaces::Name,
     processing_instruction::ProcessingInstruction,
@@ -34,7 +34,7 @@ use std::{error::Error, fs::File};
 fn test_valid_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
 
-    let document = parse_file(&mut file, config)?;
+    let document = parse_entire_file(&mut file, config)?;
     Ok(document)
 }
 
