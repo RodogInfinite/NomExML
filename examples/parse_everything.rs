@@ -8,15 +8,15 @@
 //! ```rust
 //! use std::fs::File;
 //!
-//!use nom_xml::{io::parse_entire_file, Config, Result};
+//! use nom_xml::{io::parse_entire_file, Config, Result};
 //!
-//!fn main() -> Result<()> {
-//!    let mut file = File::open("examples/TheExpanseSeries.xml")?;
-//!    let doc = parse_entire_file(&mut file, Config::default())?;
+//! fn main() -> Result<()> {
+//!     let mut file = File::open("examples/TheExpanseSeries.xml")?;
+//!     let doc = parse_entire_file(&mut file, Config::default())?;
 //!
-//!    println!("{doc:?}");
-//!    Ok(())
-//!}
+//!     println!("{doc:?}");
+//!     Ok(())
+//! }
 //! ```
 
 use std::fs::File;
