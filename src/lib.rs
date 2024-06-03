@@ -875,31 +875,6 @@ impl Document {
     fn compare_documents(doc1: &Document, pattern: Pattern, method: ComparisonMethod) -> bool {
         doc1.equals(pattern, method)
     }
-
-    pub fn parse_inner_elements_from_tag<'a>(
-        input: &'a str,
-        tag_name: &'a str,
-        attributes: &Option<Vec<Attribute>>,
-        //entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document> {
-        let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, attributes)?;
-
-        if let Document::Element(_, inner_doc, _) = doc {
-            if let Document::Nested(inner_doc) = *inner_doc {
-                Ok((input, Document::Nested(inner_doc)))
-            } else {
-                Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                    input.to_string(),
-                    nom::error::ErrorKind::Verify,
-                ))))
-            }
-        } else {
-            Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                input.to_string(),
-                nom::error::ErrorKind::Verify,
-            ))))
-        }
-    }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocumentIterator<'a> {
