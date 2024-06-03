@@ -1,11 +1,13 @@
+use crate::attribute::Attribute;
 use crate::namespaces::Name;
 use crate::parse::Parse;
 use crate::prolog::subset::entity::entity_value::EntityValue;
 
-use crate::prolog::subset::entity::EntitySource;
+use crate::prolog::subset::entity::{self, EntitySource};
 use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
+use crate::tag::Tag;
 use crate::Config;
 
 use crate::{error::Error, Document, Result};
@@ -22,6 +24,7 @@ use std::io::BufReader;
 use std::rc::Rc;
 use std::{fs::File, io::Read};
 
+/// Read the file and decode the contents into a String
 pub fn read_file(file: &mut File) -> std::io::Result<String> {
     let mut reader = BufReader::new(file);
     let mut bytes = vec![];
@@ -34,19 +37,22 @@ pub fn read_file(file: &mut File) -> std::io::Result<String> {
     };
     let (decoded_str, _, _) = encoding.decode(&bytes[bom_length..]);
 
-    Ok(decoded_str.into_owned())
+    let mut data = decoded_str.into_owned();
+
+    data = data.replace("\r\n", "\n").replace('\r', "\n");
+
+    Ok(data)
 }
 
-pub fn parse_file(file: &mut File, config: Config) -> Result<Document> {
-    let mut data = read_file(file)?;
-    data = data.replace("\r\n", "\n").replace('\r', "\n");
+/// Parse the entire file into a Document
+///
+/// Note: Beware using for extremely large files as it will load the entire file into memory
+pub fn parse_entire_file(file: &mut File, config: Config) -> Result<Document> {
+    let data = read_file(file)?;
 
     let parse_result = Document::parse(&data, config);
     match parse_result {
-        Ok((_, document)) => {
-            // Successfully parsed document, return it
-            Ok(document)
-        }
+        Ok((_, document)) => Ok(document),
         Err(nom::Err::Error(e) | nom::Err::Failure(e)) => {
             // Handle Nom parsing errors
             Err(Error::NomError(nom::error::Error::new(
@@ -55,19 +61,45 @@ pub fn parse_file(file: &mut File, config: Config) -> Result<Document> {
             ))
             .into())
         }
-        Err(nom::Err::Incomplete(_)) => {
-            // Handle incomplete parsing errors
-            // let custom_error = Error::NomError("parse_file: Incomplete parsing".to_string(), data);
+        Err(nom::Err::Incomplete(_)) => Err(Error::NomError(nom::error::Error::new(
+            "parse_file: Incomplete parsing".to_string(),
+            nom::error::ErrorKind::Fail,
+        ))
+        .into()),
+    }
+}
+
+// Parse only the first matching element from a file
+pub fn parse_element_from_file(
+    file: &mut File,
+
+    tag_name: &str,
+    attributes: &Option<Vec<Attribute>>,
+    entity_references: &Rc<RefCell<HashMap<(Name, entity::EntitySource), EntityValue>>>,
+) -> Result<Document> {
+    let data = read_file(file)?;
+
+    let parse_result =
+        Document::parse_element_by_tag_name(&data, tag_name, attributes, entity_references);
+    match parse_result {
+        Ok((_, document)) => Ok(document),
+        Err(nom::Err::Error(e) | nom::Err::Failure(e)) => {
             Err(Error::NomError(nom::error::Error::new(
-                "parse_file: Incomplete parsing".to_string(),
+                e.to_string(),
                 nom::error::ErrorKind::Fail,
             ))
             .into())
         }
+        Err(nom::Err::Incomplete(_)) => Err(Error::NomError(nom::error::Error::new(
+            "parse_element_from_file: Incomplete parsing".to_string(),
+            nom::error::ErrorKind::Fail,
+        ))
+        .into()),
     }
 }
 
-pub fn parse_external_entity_file(
+//
+pub(crate) fn parse_external_entity_file(
     file: &mut File,
     config: &Config,
     external_entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
