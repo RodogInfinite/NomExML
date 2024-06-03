@@ -36,6 +36,7 @@ use crate::{
 };
 
 use attribute::Attribute;
+use config::{check_config, Config, ExternalEntityParseConfig};
 use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
 use namespaces::ParseNamespace;
@@ -61,24 +62,22 @@ pub struct Name {
 }
 
 impl Name {
+    /// A more convenient way to create a new Name.
+    ///
+    /// ```rust
+    /// use nom_xml::Name;
+    /// // Create a new Name without a prefix
+    /// let name = Name::new(None, "actual name");
+    ///
+    /// // Create a new Name with a prefix
+    /// let prefixed_name = Name::new(Some("prefix"), "actual name");
+    /// ```
     pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
         Self {
             prefix: prefix.map(|p| p.to_string()),
             local_part: local_part.to_string(),
         }
     }
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct ExternalEntityParseConfig {
-    pub allow_ext_parse: bool,
-    pub ignore_ext_parse_warning: bool,
-    pub base_directory: Option<String>,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct Config {
-    pub external_parse_config: ExternalEntityParseConfig,
 }
 
 /// Main entry point for parsing XML documents
@@ -1079,50 +1078,4 @@ impl DynamicEquality for Document {
             ComparisonMethod::Strict => self.strict_eq(pattern),
         }
     }
-}
-
-fn check_config(config: &Config) -> Result<()> {
-    match config {
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    ignore_ext_parse_warning: false,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
-
-            loop {
-                print!("Do you wish to proceed? [y/n]: ");
-                std::io::stdout().flush().unwrap();
-
-                let mut decision = String::new();
-                std::io::stdin().read_line(&mut decision).unwrap();
-
-                match decision.trim().to_lowercase().as_str() {
-                    "y" | "Y" | "yes" => break,
-                    "n" | "N" | "no" => {
-                        return Err(nom::Err::Error(
-                            "User decided to stop due to potential XXE attack",
-                        )
-                        .into());
-                    }
-                    _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
-                }
-            }
-        }
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: false,
-                    ignore_ext_parse_warning: true,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
-        }
-        _ => (),
-    }
-    Ok(())
 }
