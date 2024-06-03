@@ -13,7 +13,7 @@ Things are likely to change and break often until testing has been completed.
 
 `nom-xml` is a crate for parsing XML documents using the [`nom`](https://github.com/rust-bakery/nom) parser combinator crate.
 
-This crate was initially created to be able to parse the following XML pattern which was troublesome in other Rust XML parsers explored at the time:
+This crate was initially created to be able to parse the following XML pattern which was troublesome in other Rust XML parsers explored at the time due to the limitations of the Serde crate:
 
 ```xml
 <root>
@@ -36,7 +36,7 @@ This crate was initially created to be able to parse the following XML pattern w
 </root>
 ```
 
-It eventually evolved into implementing the ['XML 1.0 Specification - Fifth Edition'](https://www.w3.org/TR/2008/REC-xml-20081126/) as closely as possible.
+It eventually evolved into implementing the [XML 1.0 Specification - Fifth Edition](https://www.w3.org/TR/2008/REC-xml-20081126/) as closely as possible.
 Nom was chosen specifically for its combinator parsing style which allowed for the implementation of the XML specification rules from their lowest level up to parsing the full document step-by-step.
 There is still a decent way to go to get to full compliance but the ultimate goal is to be able to parse any XML document, validate on schema, and write compliant XML documents.
 Unless complicated external entities are involved, this crate should already be able to parse most XML documents.
