@@ -16,6 +16,7 @@ pub mod tag;
 pub mod transcode;
 
 use crate::{
+    config::{check_config, Config, ExternalEntityParseConfig},
     misc::{Misc, MiscState},
     parse::Parse,
     processing_instruction::ProcessingInstruction,
@@ -36,7 +37,7 @@ use crate::{
 };
 
 use attribute::Attribute;
-use config::{check_config, Config, ExternalEntityParseConfig};
+
 use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
 use namespaces::ParseNamespace;
@@ -72,6 +73,7 @@ impl Name {
     /// // Create a new Name with a prefix
     /// let prefixed_name = Name::new(Some("prefix"), "actual name");
     /// ```
+    ///
     pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
         Self {
             prefix: prefix.map(|p| p.to_string()),
@@ -104,13 +106,11 @@ impl<'a> Parse<'a> for Document {
     type Output = IResult<&'a str, Self>;
 
     /// ```rust
-    /// use nom_xml::{parse::Parse, Config, Document};
+    /// use nom_xml::{parse::Parse, config::Config, Document};
     ///
-
-    ///     let xml = "<root><child>Content</child></root>";
-    ///     let (_, doc) = Document::parse(xml, Config::default()).unwrap();
-    ///     println!("{doc:?}");
-
+    /// let xml = "<root><child>Content</child></root>";
+    /// let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    /// println!("{doc:?}");
     /// ```
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {

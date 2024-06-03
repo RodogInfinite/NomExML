@@ -8,7 +8,7 @@
 //! ```rust
 //! use std::fs::File;
 //!
-//! use nom_xml::{io::parse_entire_file, Config, Result};
+//! use nom_xml::{io::parse_entire_file, config::Config, Result};
 //!
 //! fn main() -> Result<()> {
 //!     let mut file = File::open("examples/TheExpanseSeries.xml")?;
@@ -21,7 +21,7 @@
 
 use std::fs::File;
 
-use nom_xml::{io::parse_entire_file, Config, Result};
+use nom_xml::{config::Config, io::parse_entire_file, Result};
 
 fn main() -> Result<()> {
     let mut file = File::open("examples/TheExpanseSeries.xml")?;

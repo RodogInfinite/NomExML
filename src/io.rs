@@ -3,12 +3,12 @@ use crate::parse::Parse;
 use crate::prolog::subset::entity::entity_value::EntityValue;
 use crate::Name;
 
+use crate::config::Config;
 use crate::prolog::subset::entity::{self, EntitySource};
 use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
 use crate::tag::Tag;
-use crate::Config;
 
 use crate::{error::Error, Document, Result};
 use encoding_rs::*;

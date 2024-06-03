@@ -63,7 +63,7 @@ The main way to parse an ***entire*** XML &str.
 
 ### Example:
 ```rust
-use nom_xml::{parse::Parse, Config, Document};
+use nom_xml::{parse::Parse, config::Config, Document};
 
 fn main() {
     let xml = "<root><child>Content</child></root>";

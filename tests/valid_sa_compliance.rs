@@ -1,5 +1,6 @@
 use nom_xml::{
     attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
+    config::{Config, ExternalEntityParseConfig},
     io::parse_entire_file,
     misc::{Misc, MiscState},
     processing_instruction::ProcessingInstruction,
@@ -26,7 +27,7 @@ use nom_xml::{
     },
     reference::Reference,
     tag::{Tag, TagState},
-    ConditionalState, Config, Document, ExternalEntityParseConfig, Name,
+    ConditionalState, Document, Name,
 };
 use std::{error::Error, fs::File};
 

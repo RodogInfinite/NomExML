@@ -1,9 +1,9 @@
-//! Config is currently for setting up the parser to allow or prevent external entity parsing.
-//! It's important for preventing some security risks, but it's has not been thoroughly tested for all XML attacks.
-//! It prevents parsing of external entities by default, warns the user if it's enabled, and asks the user to confirm proceeding with external parsing in the terminal.
 use crate::{warnln, Result};
 
 use std::io::Write;
+/// Config is currently for setting up the parser to allow or prevent external entity parsing.
+/// It's important for preventing some security risks, but it's has not been thoroughly tested for all XML attacks.
+/// It prevents parsing of external entities by default, warns the user if it's enabled, and asks the user to confirm proceeding with external parsing in the terminal.
 
 #[derive(Clone, Default, Debug)]
 pub struct Config {
