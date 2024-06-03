@@ -51,7 +51,7 @@ use nom::{
 
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
-use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, fs::File, rc::Rc};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub type IResult<I, O> = nom::IResult<I, O, Error>;
@@ -81,6 +81,13 @@ impl Name {
         }
     }
 }
+type PrologResult<'a> = IResult<
+    &'a str,
+    (
+        Option<Document>,
+        Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+    ),
+>;
 
 /// Main entry point for parsing XML documents
 ///
@@ -227,13 +234,7 @@ impl Document {
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> IResult<
-        &str,
-        (
-            Option<Document>,
-            Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        ),
-    > {
+    ) -> PrologResult {
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =

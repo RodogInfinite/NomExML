@@ -252,7 +252,7 @@ impl Tag {
     pub fn parse_empty_element_tag_by_name<'a>(
         input: &'a str,
         tag_name: &'a str,
-        attributes: &Option<Vec<Attribute>>,
+        _attributes: &Option<Vec<Attribute>>, //TODO: implement empty tag attribute matching
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
     ) -> IResult<&'a str, Self> {

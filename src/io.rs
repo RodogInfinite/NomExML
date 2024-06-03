@@ -4,12 +4,10 @@ use crate::prolog::subset::entity::entity_value::EntityValue;
 use crate::Name;
 
 use crate::config::Config;
-use crate::prolog::subset::entity::{self, EntitySource};
+use crate::prolog::subset::entity::EntitySource;
 use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
-use crate::tag::Tag;
-
 use crate::{error::Error, Document, Result};
 use encoding_rs::*;
 use nom::branch::alt;
@@ -72,10 +70,8 @@ pub fn parse_entire_file(file: &mut File, config: Config) -> Result<Document> {
 // Parse only the first matching element from a file
 pub fn parse_element_from_file(
     file: &mut File,
-
     tag_name: &str,
     attributes: &Option<Vec<Attribute>>,
-    entity_references: &Rc<RefCell<HashMap<(Name, entity::EntitySource), EntityValue>>>,
 ) -> Result<Document> {
     let data = read_file(file)?;
 
