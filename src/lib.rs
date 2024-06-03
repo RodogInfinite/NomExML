@@ -737,18 +737,18 @@ impl Document {
     }
 
     /// The main interface for exracting content from the Document tree
-    /// See the  [`extract_information`](../extract_information/index.html) example for more information
+    /// See the  [`extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more information
     pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
 
     /// The main interface for parsing the first element that matches criteria
     ///
-    /// See the [`parse_first_matching_element`](../parse_first_matching_element/index.html) example for more information
+    /// See the [`parse_first_matching_element`](https://github.com/RodogInfinite/NomExML/blob/main/examples/parse_first_matching_element.rs) example for more information
     ///
     /// Run with `cargo run --example parse_first_matching_element`
     ///
-    /// Also see the [`parse_element_with_specific_attribute_value`](../parse_element_with_specific_attribute_value/index.html) example
+    /// Also see the [`parse_element_with_specific_attribute_value`](https://github.com/RodogInfinite/NomExML/blob/main/examples/parse_element_with_specific_attribute_value.rs) example
     ///
     /// Run with `cargo run --example parse_element_with_specific_attribute_value`
     ///
@@ -802,7 +802,7 @@ impl Document {
 
     /// The main interface for parsing many elements with the same tag name
     ///
-    /// See the [`parse_all_of_specific_tag`](../parse_all_of_specific_tag/index.html) example for more information
+    /// See the [`parse_all_of_specific_tag`](https://github.com/RodogInfinite/NomExML/blob/main/examples/parse_all_of_specific_tag.rs) example for more information
     ///
     /// Run with `cargo run --example parse_all_of_specific_tag`
     ///

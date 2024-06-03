@@ -2,13 +2,6 @@
 
 [![Crates.io](https://img.shields.io/crates/v/nom-xml)](https://crates.io/crates/nom-xml)  [![docs.rs](https://img.shields.io/docsrs/nom-xml)](https://docs.rs/nom-xml/latest/nom_xml/) ![Crates.io](https://img.shields.io/crates/l/nom-xml) ![Crates.io (latest)](https://img.shields.io/crates/dv/nom_xml)
 
-:warning: :construction: Under Heavy Development :construction: :warning:
-
-Things are likely to change and break often until testing has been completed.
-
-:rotating_light: The published crate will almost always be behind the GitHub repo until stabilization. Use that. :rotating_light:
-
-
 ---
 
 `nom-xml` is a crate for parsing XML documents using the [`nom`](https://github.com/rust-bakery/nom) parser combinator crate.
@@ -138,7 +131,7 @@ Element(
 
 ## Document::iter_with_depth
 
-A method for iterating to a specific depth of an XML tree. See the ['extract_information`](examples/extract_information.rs) example for more details
+A method for iterating to a specific depth of an XML tree. See the ['extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more details
 
 
 
