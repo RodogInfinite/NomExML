@@ -1,9 +1,9 @@
 use crate::{
-    namespaces::{Name, ParseNamespace},
+    namespaces::ParseNamespace,
     parse::Parse,
     prolog::subset::entity::{entity_value::EntityValue, EntitySource},
     reference::Reference,
-    IResult,
+    IResult, Name,
 };
 use nom::{
     branch::alt,
@@ -71,6 +71,19 @@ impl<'a> Parse<'a> for Attribute {
 
 impl<'a> ParseNamespace<'a> for Attribute {}
 impl Attribute {
+    /// Useful for creating an attribute to match against in parsing specific tags.
+    ///
+    /// See the ['parse_element_with_specific_attribute_value'](../../parse_element_with_specific_attribute_value/index.html) example for more information.
+    ///
+    /// Future use in writing XML files.
+    ///
+    /// Note: this will not create attribute names that have prefixes
+    ///
+    /// ```rust
+    /// use nom_xml::attribute::Attribute;
+    /// let attr = Attribute::new("name","value");
+    /// ```
+    ///
     pub fn new(name: &str, value: &str) -> Self {
         Attribute::Instance {
             name: Name::new(None, name),

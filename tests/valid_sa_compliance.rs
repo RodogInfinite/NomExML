@@ -2,7 +2,6 @@ use nom_xml::{
     attribute::{AttType, Attribute, AttributeValue, DefaultDecl, TokenizedType},
     io::parse_entire_file,
     misc::{Misc, MiscState},
-    namespaces::Name,
     processing_instruction::ProcessingInstruction,
     prolog::{
         content_particle::ContentParticle,
@@ -27,7 +26,7 @@ use nom_xml::{
     },
     reference::Reference,
     tag::{Tag, TagState},
-    ConditionalState, Config, Document, ExternalEntityParseConfig,
+    ConditionalState, Config, Document, ExternalEntityParseConfig, Name,
 };
 use std::{error::Error, fs::File};
 

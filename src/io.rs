@@ -1,7 +1,7 @@
 use crate::attribute::Attribute;
-use crate::namespaces::Name;
 use crate::parse::Parse;
 use crate::prolog::subset::entity::entity_value::EntityValue;
+use crate::Name;
 
 use crate::prolog::subset::entity::{self, EntitySource};
 use crate::prolog::subset::markup_declaration::MarkupDeclaration;

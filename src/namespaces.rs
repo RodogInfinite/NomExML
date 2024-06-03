@@ -1,4 +1,4 @@
-use crate::{error::Error, parse::Parse, IResult};
+use crate::{error::Error, parse::Parse, IResult, Name};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -6,21 +6,6 @@ use nom::{
     combinator::{map, verify},
     sequence::{pair, preceded, tuple},
 };
-
-#[derive(Clone, Hash, Eq, PartialEq)]
-pub struct Name {
-    pub prefix: Option<String>,
-    pub local_part: String,
-}
-
-impl Name {
-    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
-        Self {
-            prefix: prefix.map(|p| p.to_string()),
-            local_part: local_part.to_string(),
-        }
-    }
-}
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName

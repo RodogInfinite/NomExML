@@ -1,13 +1,13 @@
 //!
 #![doc = include_str!("docs/crate_description.md")]
 //!
-
 pub mod attribute;
 pub mod config;
 mod debug;
 pub mod error;
 pub mod io;
 pub mod misc;
+pub mod name;
 pub mod namespaces;
 pub mod parse;
 pub mod processing_instruction;
@@ -39,7 +39,7 @@ use crate::{
 use attribute::Attribute;
 use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
-use namespaces::{Name, ParseNamespace};
+use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
@@ -55,6 +55,21 @@ use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc}
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub type IResult<I, O> = nom::IResult<I, O, Error>;
 
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct Name {
+    pub prefix: Option<String>,
+    pub local_part: String,
+}
+
+impl Name {
+    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
+        Self {
+            prefix: prefix.map(|p| p.to_string()),
+            local_part: local_part.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct ExternalEntityParseConfig {
     pub allow_ext_parse: bool,
@@ -69,6 +84,7 @@ pub struct Config {
 
 /// Main entry point for parsing XML documents
 ///
+/// This enum encapsulates all of the top level types that comprise an XML document. The core variant is the `Element(Tag,Box<Document>,Tag)` type which allows recursive parsing of nested tags and their content.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Document {
     Prolog {
