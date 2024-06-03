@@ -38,7 +38,7 @@ impl<'a> Parse<'a> for Reference {
     }
 }
 impl Reference {
-    pub fn normalize_entity(
+    pub(crate) fn normalize_entity(
         &self,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> EntityValue {
@@ -85,7 +85,7 @@ impl Reference {
         }
     }
 
-    pub fn normalize_attribute(
+    pub(crate) fn normalize_attribute(
         &self,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
