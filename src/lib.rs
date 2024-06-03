@@ -1,10 +1,55 @@
-//! `nom-xml` is a library for parsing XML documents using the `nom` parser combinator library.
+//! `nom-xml` is a crate for parsing XML documents using the [`nom`](https://github.com/rust-bakery/nom) parser combinator crate.
+//!
+//! This crate was initially created to be able to parse the following XML pattern which was troublesome in other Rust XML parsers explored at the time:
+//!
+//! ```xml
+//! <root>
+//!     <header>
+//!         <header_field1>Value1</header_field1>
+//!         <header_field2>Value2</header_field2>
+//!     </header>
+//!     <body>
+//!         <body_field1>BodyValue1</body_field1>
+//!         <body_field2>BodyValue2</body_field2>
+//!     </body>
+//!     <header>
+//!         <header_field1>Value1</header_field1>
+//!         <header_field2>Value2</header_field2>
+//!     </header>
+//!     <body>
+//!         <body_field1>BodyValue1</body_field1>
+//!         <body_field2>BodyValue2</body_field2>
+//!     </body>
+//! </root>
+//! ```
+//! It eventually evolved into implementing the ['XML 1.0 Specification - Fifth Edition'](https://www.w3.org/TR/2008/REC-xml-20081126/) as closely as possible.
+//! Nom was chosen specifically for its combinator parsing style which allowed for the implementation of the XML specification rules from their lowest level up to parsing the full document step-by-step.
+//! There is still a decent way to go to get to full compliance but the ultimate goal is to be able to parse any XML document, validate on schema, and write compliant XML documents.
+//! Unless complicated external entities are involved, this crate should already be able to parse most XML documents.
 //!
 //! # Key Data Structure:
-//! -[Document]: the main data structure used to parse XML documents.
 //!
+//! # [`Document`](enum.Document.html)
+//!
+//! ```rust
+//! pub enum Document {
+//!     Prolog {
+//!         xml_decl: Option<XmlDecl>,
+//!         misc: Option<Vec<Misc>>,
+//!         doc_type: Option<DocType>,
+//!     },
+//!     Element(Tag, Box<Document>, Tag),
+//!     Content(Option<String>),
+//!     Nested(Vec<Document>),
+//!     Empty,
+//!     EmptyTag(Tag),
+//!     ProcessingInstruction(ProcessingInstruction),
+//!     Comment(String),
+//!     CDATA(String),
+//! }
+//!```
 //! # Key Methods:
-//! -[Document::parse]: the main way to parse an ***entire*** XML &str.
+//! [Document::parse]: the main way to parse an ***entire*** XML &str.
 //!   ## Example
 //! ```rust
 //! use nom_xml::{parse::Parse, Config, Document};
@@ -17,7 +62,7 @@
 //! ```
 //!
 //! ## Output:
-//! ```text
+//! ```rust
 //! Element(
 //!    Tag {
 //!        name:
@@ -116,7 +161,7 @@ use prolog::{external_id::ExternalID, subset::entity::entity_declaration::Entity
 use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-type IResult<I, O> = nom::IResult<I, O, Error>;
+pub type IResult<I, O> = nom::IResult<I, O, Error>;
 
 #[derive(Clone, Default, Debug)]
 pub struct ExternalEntityParseConfig {
@@ -152,6 +197,15 @@ impl<'a> Parse<'a> for Document {
     type Args = Config;
     type Output = IResult<&'a str, Self>;
 
+    /// ```rust
+    /// use nom_xml::{parse::Parse, Config, Document};
+    ///
+
+    ///     let xml = "<root><child>Content</child></root>";
+    ///     let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    ///     println!("{doc:?}");
+
+    /// ```
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
@@ -776,7 +830,7 @@ impl Document {
     }
 
     /// The main interface for exracting content from the Document tree
-    /// See the  [`extract_information`](../extract_information/index.html)example for more information
+    /// See the  [`extract_information`](../extract_information/index.html) example for more information
     pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
@@ -1056,7 +1110,7 @@ impl<'a> Pattern<'a> {
         Ok(Self { xml: self.xml, doc })
     }
 }
-pub trait PartialEqCustom {
+pub(crate) trait PartialEqCustom {
     fn partial_eq(&self, pattern: Pattern) -> bool;
 }
 
@@ -1118,7 +1172,7 @@ impl PartialEqCustom for Document {
     }
 }
 impl<'a> ParseNamespace<'a> for Document {}
-pub trait StrictEq {
+pub(crate) trait StrictEq {
     fn strict_eq(&self, pattern: Pattern) -> bool;
 }
 impl StrictEq for Document {
