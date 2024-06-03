@@ -8,13 +8,12 @@ use crate::{
         },
         Subset,
     },
-    Config, Document, Name,
+    Config, IResult, Name,
 };
 use nom::{
     bytes::complete::tag,
     combinator::opt,
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 

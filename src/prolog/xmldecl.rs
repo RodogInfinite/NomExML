@@ -1,4 +1,4 @@
-use crate::parse::Parse;
+use crate::{parse::Parse, IResult};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -7,7 +7,6 @@ use nom::{
     error::ErrorKind,
     multi::many0,
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
 };
 use std::str::FromStr;
 

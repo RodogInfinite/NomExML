@@ -1,11 +1,10 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, Name};
+use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, IResult, Name};
 use nom::{
     branch::alt,
     character::complete::char,
     combinator::{map, opt},
     multi::{many0, many1},
     sequence::{delimited, tuple},
-    IResult,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

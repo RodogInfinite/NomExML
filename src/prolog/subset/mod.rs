@@ -1,8 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use nom::IResult;
-
-use crate::{reference::Reference, Document, Name};
+use crate::{reference::Reference, Document, IResult, Name};
 
 use self::{
     entity::entity_declaration::{EntityDecl, EntityDeclaration},
@@ -105,15 +103,13 @@ impl<'a> Parse<'a> for Subset {
                     let mut modified_inner_expansion = *inner_expansion.clone();
 
                     if let MarkupDeclaration::AttList {
-                        ref mut att_defs, ..
+                        att_defs: Some(ref mut defs),
+                        ..
                     } = modified_inner_expansion
                     {
-                        if let Some(ref mut defs) = att_defs {
-                            // Iterate over each attribute definition in att_defs and modify the source to EntitySource::External.
-                            for attribute in defs {
-                                if let Attribute::Definition { ref mut source, .. } = attribute {
-                                    *source = EntitySource::Internal;
-                                }
+                        for attribute in defs {
+                            if let Attribute::Definition { ref mut source, .. } = attribute {
+                                *source = EntitySource::Internal;
                             }
                         }
                     }
@@ -122,6 +118,7 @@ impl<'a> Parse<'a> for Subset {
                         modified_inner_expansion.clone(),
                     )));
                 }
+
                 if let Some(EntityValue::MarkupDecl(inner_expansion)) = entity_references
                     .borrow()
                     .get(&(name.clone(), EntitySource::External))
@@ -129,15 +126,13 @@ impl<'a> Parse<'a> for Subset {
                     let mut modified_inner_expansion = *inner_expansion.clone();
 
                     if let MarkupDeclaration::AttList {
-                        ref mut att_defs, ..
+                        att_defs: Some(ref mut defs),
+                        ..
                     } = modified_inner_expansion
                     {
-                        if let Some(ref mut defs) = att_defs {
-                            // Iterate over each attribute definition in att_defs and modify the source to EntitySource::External.
-                            for attribute in defs {
-                                if let Attribute::Definition { ref mut source, .. } = attribute {
-                                    *source = EntitySource::External;
-                                }
+                        for attribute in defs {
+                            if let Attribute::Definition { ref mut source, .. } = attribute {
+                                *source = EntitySource::External;
                             }
                         }
                     }

@@ -1,14 +1,15 @@
 //parse.rs
 
-use crate::{transcode::Decode, Name};
+use crate::{transcode::Decode, IResult, Name};
 use nom::{
     bytes::complete::tag,
     character::complete::{char, satisfy},
     combinator::{map, opt, recognize},
     multi::{many0, many1, separated_list1},
     sequence::tuple,
-    IResult, Offset,
+    Offset,
 };
+type CaptureSpan<'a, O> = Box<dyn FnMut(&'a str) -> IResult<&'a str, (&'a str, O)> + 'a>;
 
 pub trait Parse<'a>: Sized {
     type Args;
@@ -126,9 +127,7 @@ pub trait Parse<'a>: Sized {
         Ok((input, ()))
     }
 
-    fn capture_span<O, F>(
-        mut f: F,
-    ) -> Box<dyn FnMut(&'a str) -> IResult<&'a str, (&'a str, O)> + 'a>
+    fn capture_span<O, F>(mut f: F) -> CaptureSpan<'a, O>
     where
         F: FnMut(&'a str) -> IResult<&'a str, O> + 'a,
     {

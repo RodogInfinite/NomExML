@@ -1,15 +1,14 @@
 use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
 
 use crate::{
-    error::CustomError, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset,
-    Config, ExternalEntityParseConfig, Name,
+    error::Error, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset, Config,
+    ExternalEntityParseConfig, IResult, Name, Result,
 };
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     combinator::map,
     sequence::{delimited, tuple},
-    IResult,
 };
 
 use super::{
@@ -81,7 +80,7 @@ impl ExternalID {
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -107,7 +106,7 @@ impl ExternalID {
                         .as_deref()
                         {
                             Ok(_entities) => {
-                                let (_input, (subset, _whitespace1, _close_tag, _whitespace2)) =
+                                let (_input, (_subset, _whitespace1, _close_tag, _whitespace2)) =
                                     tuple((
                                         |i| {
                                             Subset::parse(
@@ -126,14 +125,15 @@ impl ExternalID {
 
                                 Ok(())
                             }
-                            _ => Err(nom::Err::Error(nom::error::Error::new(
-                                "Failed to match [entity] from `parse_external_entity_file`",
+                            _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                                "Failed to match [entity] from `parse_external_entity_file`"
+                                    .to_string(),
                                 nom::error::ErrorKind::Fail,
-                            ))
+                            )))
                             .into()),
                         }
                     }
-                    Err(e) => Err(CustomError::from(e)),
+                    Err(e) => Err(Error::from(e).into()),
                 }
             } else {
                 Err(nom::Err::Error(nom::error::Error::new(

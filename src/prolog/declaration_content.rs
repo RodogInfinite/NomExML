@@ -1,11 +1,10 @@
-use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, Name};
+use crate::{namespaces::ParseNamespace, parse::Parse, ConditionalState, IResult, Name};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{map, opt},
     multi::many1,
     sequence::{preceded, tuple},
-    IResult,
 };
 
 use super::content_particle::ContentParticle;

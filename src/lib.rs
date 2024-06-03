@@ -1,3 +1,6 @@
+//!
+#![doc = include_str!("docs/crate_description.md")]
+//!
 pub mod attribute;
 pub mod config;
 mod debug;
@@ -13,6 +16,7 @@ pub mod tag;
 pub mod transcode;
 
 use crate::{
+    config::{check_config, Config, ExternalEntityParseConfig},
     misc::{Misc, MiscState},
     parse::Parse,
     processing_instruction::ProcessingInstruction,
@@ -32,33 +36,62 @@ use crate::{
     tag::Tag,
 };
 
-use error::CustomError;
+use attribute::Attribute;
+
+use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
-use namespaces::{Name, ParseNamespace};
+use namespaces::ParseNamespace;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
-    combinator::{cut, map, map_res, not, opt, peek, value},
+    combinator::{cut, map, map_res, not, opt, value},
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
-    IResult,
 };
+
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
-use std::{cell::RefCell, collections::HashMap, error::Error, fmt, fs::File, io::Write, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, fs::File, rc::Rc};
 
-#[derive(Clone, Default, Debug)]
-pub struct ExternalEntityParseConfig {
-    pub allow_ext_parse: bool,
-    pub ignore_ext_parse_warning: bool,
-    pub base_directory: Option<String>,
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type IResult<I, O> = nom::IResult<I, O, Error>;
+
+#[derive(Clone, Hash, Eq, PartialEq)]
+pub struct Name {
+    pub prefix: Option<String>,
+    pub local_part: String,
 }
 
-#[derive(Clone, Default, Debug)]
-pub struct Config {
-    pub external_parse_config: ExternalEntityParseConfig,
+impl Name {
+    /// A more convenient way to create a new Name.
+    ///
+    /// ```rust
+    /// use nom_xml::Name;
+    /// // Create a new Name without a prefix
+    /// let name = Name::new(None, "actual name");
+    ///
+    /// // Create a new Name with a prefix
+    /// let prefixed_name = Name::new(Some("prefix"), "actual name");
+    /// ```
+    ///
+    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
+        Self {
+            prefix: prefix.map(|p| p.to_string()),
+            local_part: local_part.to_string(),
+        }
+    }
 }
+type PrologResult<'a> = IResult<
+    &'a str,
+    (
+        Option<Document>,
+        Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+    ),
+>;
 
+/// Main entry point for parsing XML documents
+///
+/// This enum encapsulates all of the top level types that comprise an XML document. The core variant is the `Element(Tag,Box<Document>,Tag)` type which allows recursive parsing of nested tags and their content.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Document {
     Prolog {
@@ -75,55 +108,17 @@ pub enum Document {
     Comment(String),
     CDATA(String),
 }
-
-fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
-    match config {
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    ignore_ext_parse_warning: false,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
-
-            loop {
-                print!("Do you wish to proceed? [y/n]: ");
-                std::io::stdout().flush().unwrap();
-
-                let mut decision = String::new();
-                std::io::stdin().read_line(&mut decision).unwrap();
-
-                match decision.trim().to_lowercase().as_str() {
-                    "y" | "Y" | "yes" => break,
-                    "n" | "N" | "no" => {
-                        return Err(nom::Err::Error(
-                            "User decided to stop due to potential XXE attack",
-                        ));
-                    }
-                    _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
-                }
-            }
-        }
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: false,
-                    ignore_ext_parse_warning: true,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
-        }
-        _ => (),
-    }
-    Ok(())
-}
-
 impl<'a> Parse<'a> for Document {
     type Args = Config;
     type Output = IResult<&'a str, Self>;
+
+    /// ```rust
+    /// use nom_xml::{parse::Parse, config::Config, Document};
+    ///
+    /// let xml = "<root><child>Content</child></root>";
+    /// let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    /// println!("{doc:?}");
+    /// ```
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         match check_config(&args) {
             Ok(_) => {
@@ -207,15 +202,7 @@ impl<'a> Parse<'a> for Document {
                 let (input, documents) = Self::construct_document(input, prolog, documents)?;
                 Ok((input, documents))
             }
-            Err(nom::Err::Error(err_msg)) => Err(nom::Err::Error(nom::error::Error {
-                input: err_msg,
-                code: nom::error::ErrorKind::Fail,
-            })),
-            Err(nom::Err::Incomplete(needed)) => Err(nom::Err::Incomplete(needed)),
-            Err(nom::Err::Failure(err_msg)) => Err(nom::Err::Failure(nom::error::Error {
-                input: err_msg,
-                code: nom::error::ErrorKind::Fail,
-            })),
+            Err(e) => Err(Error::from(e).into()),
         }
     }
 }
@@ -247,13 +234,7 @@ impl Document {
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> IResult<
-        &str,
-        (
-            Option<Document>,
-            Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        ),
-    > {
+    ) -> PrologResult {
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
@@ -289,10 +270,11 @@ impl Document {
         map(
             tuple((
                 take_till(|c: char| c == '<' || c == '&'),
-                not(tag::<_, &str, _>("]]>")),
+                not(tag::<&str, &str, nom::error::Error<&str>>("]]>")),
             )),
             |(data, _)| data.to_string(),
         )(input)
+        .map_err(|e| e.convert_nom_error())
     }
 
     // [20] CData ::= (Char* - (Char* ']]>' Char*))
@@ -320,7 +302,7 @@ impl Document {
     }
 
     // [39] element	::= EmptyElemTag | STag content ETag
-    pub fn parse_element(
+    fn parse_element(
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&str, Document> {
@@ -391,7 +373,7 @@ impl Document {
         }
     }
 
-    pub fn process_references(
+    fn process_references(
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> impl Fn(Vec<Reference>) -> Document {
         move |references| {
@@ -519,7 +501,7 @@ impl Document {
     }
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
-    pub fn parse_comment(input: &str) -> IResult<&str, Document> {
+    fn parse_comment(input: &str) -> IResult<&str, Document> {
         map_res(
             pair(tag("<!--"), many_till(Self::parse_char, tag("-->"))),
             |(_open_comment, (comment_content, _close_comment))| {
@@ -546,10 +528,10 @@ impl Document {
         match (start_tag, end_tag, content, empty_tag) {
             (Some(start), Some(end), content, None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        input.to_string(),
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, Box::new(content), end);
@@ -558,10 +540,10 @@ impl Document {
             }
             (Some(start), Some(end), _, Some(empty_tag)) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        input.to_string(),
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document =
@@ -571,10 +553,10 @@ impl Document {
             }
             (Some(_), None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        input.to_string(),
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, inner_content, end);
@@ -583,10 +565,10 @@ impl Document {
             }
             (None, None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
+                    return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        input.to_string(),
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))));
                 }
 
                 let document = Document::Element(start, inner_content, end);
@@ -609,10 +591,10 @@ impl Document {
 
                 Ok((input, document))
             }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
+            _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                input.to_string(),
                 nom::error::ErrorKind::Verify,
-            ))),
+            )))),
         }
     }
 
@@ -622,10 +604,10 @@ impl Document {
         documents: Vec<Document>,
     ) -> IResult<&str, Document> {
         match documents.len() {
-            0 => Err(nom::Err::Error(nom::error::Error::new(
-                input,
+            0 => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                input.to_string(),
                 nom::error::ErrorKind::Verify,
-            ))),
+            )))),
             1 => match prolog {
                 Some(prolog) => Ok((
                     input,
@@ -649,7 +631,7 @@ impl Document {
         name: &Name,
         config: Config,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         match File::open(file_path) {
             Ok(mut file) => {
                 match parse_external_entity_file(&mut file, &config, entity_references.clone())
@@ -661,14 +643,14 @@ impl Document {
                             .insert((name.clone(), EntitySource::External), entity.clone());
                         Ok(())
                     }
-                    _ => Err(nom::Err::Error(nom::error::Error::new(
-                        "Failed to match [entity] from `parse_external_entity_file`",
+                    _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        "Failed to match [entity] from `parse_external_entity_file`".to_string(),
                         nom::error::ErrorKind::Fail,
-                    ))
+                    )))
                     .into()),
                 }
             }
-            Err(e) => Err(CustomError::from(e)),
+            Err(e) => Err(Error::from(e).into()),
         }
     }
 
@@ -676,7 +658,7 @@ impl Document {
         entity_declaration: EntityDecl,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         config: Config,
-    ) -> Result<(), CustomError> {
+    ) -> Result<()> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -753,103 +735,102 @@ impl Document {
             .into())
         }
     }
-}
 
-impl<'a> ParseNamespace<'a> for Document {}
-
-impl Document {
-    pub fn extract(&self, tag: &Name) -> Result<Document, Box<dyn Error>> {
-        let mut documents: Vec<Document> = Vec::new();
-
-        match self {
-            Document::Element(start_tag, inner_doc, _end_tag) => {
-                if &start_tag.name == tag {
-                    documents.push(self.clone());
-                }
-
-                match inner_doc.extract(tag) {
-                    Ok(Document::Nested(inner_docs)) => documents.extend(inner_docs),
-                    Ok(single_doc) => documents.push(single_doc),
-                    Err(_) => {}
-                }
-            }
-            Document::Nested(docs) => {
-                for doc in docs {
-                    match doc.extract(tag) {
-                        Ok(Document::Nested(inner_docs)) => documents.extend(inner_docs),
-                        Ok(single_doc) => documents.push(single_doc),
-                        Err(_) => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        if documents.is_empty() {
-            return Err(Box::new(DocumentError::NoMatchingDocuments));
-        }
-
-        match documents.as_slice() {
-            [document] => Ok(document.clone()),
-            _ => Ok(Document::Nested(documents)),
-        }
+    /// The main interface for exracting content from the Document tree
+    /// See the  [`extract_information`](../extract_information/index.html) example for more information
+    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new(self, Some(max_level))
     }
 
-    pub fn get_content(&self) -> HashMap<String, String> {
-        let mut results = HashMap::new();
-
-        match self {
-            Document::Element(tag, inner_doc, _) => {
-                let tag_name = tag.name.local_part.to_string();
-                match &**inner_doc {
-                    Document::Content(Some(content)) => {
-                        results.insert(tag_name, content.to_string());
-                    }
-                    Document::Nested(docs) => {
-                        for doc in docs {
-                            let mut inner_results = doc.get_content();
-                            results.extend(inner_results.drain());
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Document::Nested(docs) => {
-                for doc in docs {
-                    let mut inner_results = doc.get_content();
-                    results.extend(inner_results.drain());
-                }
-            }
-            _ => {}
-        }
-
-        results
+    /// The main interface for parsing the first element that matches criteria
+    ///
+    /// See the [`parse_first_matching_element`](../parse_first_matching_element/index.html) example for more information
+    ///
+    /// Run with `cargo run --example parse_first_matching_element`
+    ///
+    /// Also see the [`parse_element_with_specific_attribute_value`](../parse_element_with_specific_attribute_value/index.html) example
+    ///
+    /// Run with `cargo run --example parse_element_with_specific_attribute_value`
+    ///
+    // [39] element	::= EmptyElemTag | STag content ETag
+    pub fn parse_element_by_tag_name<'a>(
+        input: &'a str,
+        tag_name: &'a str,
+        attributes: &Option<Vec<Attribute>>,
+    ) -> IResult<&'a str, Document> {
+        let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
+        let entity_references = &Rc::new(RefCell::new(HashMap::new()));
+        let (input, doc) = alt((
+            preceded(
+                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                map(
+                    |i| {
+                        Tag::parse_empty_element_tag_by_name(
+                            i,
+                            tag_name,
+                            attributes,
+                            entity_references,
+                            EntitySource::None,
+                        )
+                    },
+                    Document::EmptyTag,
+                ),
+            ),
+            map(
+                tuple((
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                    |i| {
+                        Tag::parse_start_tag_by_name(
+                            i,
+                            tag_name,
+                            attributes,
+                            entity_references,
+                            EntitySource::Internal,
+                        )
+                    },
+                    |i| Self::parse_content(i, entity_references, EntitySource::Internal),
+                    |i| Tag::parse_end_tag_by_name(i, tag_name),
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
+                )),
+                |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
+                    Document::Element(start_tag, Box::new(content), end_tag)
+                },
+            ),
+        ))(input)?;
+        Ok((input, doc))
     }
-}
 
-impl Document {
+    /// The main interface for parsing many elements with the same tag name
+    ///
+    /// See the [`parse_all_of_specific_tag`](../parse_all_of_specific_tag/index.html) example for more information
+    ///
+    /// Run with `cargo run --example parse_all_of_specific_tag`
+    ///
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     pub fn parse_elements_by_tag_name<'a>(
         input: &'a str,
-        tag_name: &str,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Vec<Document>, nom::error::Error<&'a str>> {
+        tag_name: &'a str,
+        attributes: &Option<Vec<Attribute>>,
+    ) -> IResult<&'a str, Vec<Document>> {
         warnln!("parse_elements_by_tag_name will parse all elements with the tag name `{tag_name}` no matter the nesting level", );
         warnln!("parse_element_by_tag_name currently only parses start tags without attributes, in this case`<{tag_name}>`");
 
-        many1(|i| Self::parse_element_by_tag_name(i, tag_name, entity_references))(input)
+        many1(|i| Self::parse_element_by_tag_name(i, tag_name, attributes))(input)
     }
 
+    #[cfg(feature = "experimental")]
     pub fn parse_element_from_pattern<'a>(
         input: &'a str,
-        tag_name: &str,
+        tag_name: &'a str,
         pattern: &'a Pattern,
         strict: bool,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
+    ) -> IResult<&'a str, Document> {
         let (_, _pattern_doc) = Self::parse_element(pattern.xml, entity_references.clone())?;
 
-        let pattern = pattern.parse(entity_references)?;
+        let pattern = pattern
+            .parse(entity_references)
+            .map_err(|e| nom::Err::Error(Error::from(e)))?;
         let (input, doc) =
             peek(|input| Self::parse_element_by_tag_name(input, tag_name, entity_references))(
                 input,
@@ -887,102 +868,27 @@ impl Document {
                             Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
                         Ok((input, doc))
                     } else {
-                        return Err(nom::Err::Error(nom::error::Error::new(
-                            input,
+                        Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                            input.to_string(),
                             nom::error::ErrorKind::Verify,
-                        )));
+                        ))))
                     }
                 } else {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
+                    Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                        input.to_string(),
                         nom::error::ErrorKind::Verify,
-                    )));
+                    ))))
                 }
             }
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
+            _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                input.to_string(),
                 nom::error::ErrorKind::Verify,
-            ))),
+            )))),
         }
     }
+    #[cfg(feature = "experimental")]
     fn compare_documents(doc1: &Document, pattern: Pattern, method: ComparisonMethod) -> bool {
         doc1.equals(pattern, method)
-    }
-
-    pub fn parse_inner_elements_from_tag<'a>(
-        input: &'a str,
-        tag_name: &str,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
-        let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
-
-        if let Document::Element(_, inner_doc, _) = doc {
-            if let Document::Nested(inner_doc) = *inner_doc {
-                Ok((input, Document::Nested(inner_doc)))
-            } else {
-                Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Verify,
-                )))
-            }
-        } else {
-            Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            )))
-        }
-    }
-
-    // [39] element	::= EmptyElemTag | STag content ETag
-    pub fn parse_element_by_tag_name<'a>(
-        input: &'a str,
-        tag_name: &str,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document, nom::error::Error<&'a str>> {
-        let (input, _) = take_until(format!("<{}>", tag_name).as_str())(input)?;
-
-        let (input, doc) = alt((
-            preceded(
-                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
-                map(
-                    |i: &'a str| {
-                        Tag::parse_empty_element_tag_by_name(
-                            i,
-                            tag_name,
-                            entity_references,
-                            EntitySource::None,
-                        )
-                    },
-                    Document::EmptyTag,
-                ),
-            ),
-            map(
-                tuple((
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
-                    |i| {
-                        Tag::parse_start_tag_by_name(
-                            i,
-                            tag_name,
-                            entity_references,
-                            EntitySource::Internal,
-                        )
-                    },
-                    |i| Self::parse_content(i, entity_references, EntitySource::Internal),
-                    |i| Tag::parse_end_tag_by_name(i, tag_name),
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
-                )),
-                |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
-                    Document::Element(start_tag, Box::new(content), end_tag)
-                },
-            ),
-        ))(input)?;
-        Ok((input, doc))
-    }
-}
-
-impl Document {
-    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
-        DocumentIterator::new(self, Some(max_level))
     }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -992,7 +898,7 @@ pub struct DocumentIterator<'a> {
 }
 
 impl<'a> DocumentIterator<'a> {
-    pub fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
+    fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
         let stack = vec![(doc, 0)];
         DocumentIterator { stack, max_depth }
     }
@@ -1080,13 +986,13 @@ impl<'a> Pattern<'a> {
     pub fn parse(
         &self,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<Pattern<'a>, nom::Err<nom::error::Error<&'a str>>> {
+    ) -> Result<Pattern> {
         let (_, doc) = Document::parse_element(self.xml, entity_references.clone())?;
 
         Ok(Self { xml: self.xml, doc })
     }
 }
-pub trait PartialEqCustom {
+pub(crate) trait PartialEqCustom {
     fn partial_eq(&self, pattern: Pattern) -> bool;
 }
 
@@ -1147,8 +1053,8 @@ impl PartialEqCustom for Document {
         }
     }
 }
-
-pub trait StrictEq {
+impl<'a> ParseNamespace<'a> for Document {}
+pub(crate) trait StrictEq {
     fn strict_eq(&self, pattern: Pattern) -> bool;
 }
 impl StrictEq for Document {

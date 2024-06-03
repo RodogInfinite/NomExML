@@ -1,37 +1,21 @@
-use crate::parse::Parse;
+use crate::{error::Error, parse::Parse, IResult, Name};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{anychar, char},
     combinator::{map, verify},
     sequence::{pair, preceded, tuple},
-    IResult,
 };
-
-#[derive(Clone, Hash, Eq, PartialEq)]
-pub struct Name {
-    pub prefix: Option<String>,
-    pub local_part: String,
-}
-
-impl Name {
-    pub fn new(prefix: Option<&str>, local_part: &str) -> Self {
-        Self {
-            prefix: prefix.map(|p| p.to_string()),
-            local_part: local_part.to_string(),
-        }
-    }
-}
 
 pub trait ParseNamespace<'a>: Parse<'a> + Sized {
     // [1] NSAttName ::=   	PrefixedAttName | DefaultAttName
     fn parse_namespace_attribute_name(input: &str) -> IResult<&str, Name> {
         let (input, name) = alt((Self::parse_name, Self::parse_prefixed_attribute_name))(input)?;
         if name.prefix.is_none() && name.local_part != "xmlns" {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                input,
+            return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                input.into(),
                 nom::error::ErrorKind::Verify,
-            )));
+            ))));
         }
 
         Ok((input, name))

@@ -1,8 +1,4 @@
-use std::{
-    error::Error,
-    fmt::{self, Display},
-    io::Error as IoError,
-};
+use std::fmt::{self, Debug, Display};
 
 #[macro_export]
 macro_rules! warnln {
@@ -12,96 +8,145 @@ macro_rules! warnln {
 }
 
 #[derive(Debug)]
-pub enum CustomError {
-    NomError(String, String), // Error message and input string
-    IoError(IoError),
+pub enum Error {
+    NomError(nom::error::Error<String>),
+    NomErrorFast(nom::error::ErrorKind),
+    IoError(std::io::Error),
+    UserAbort(String),
 }
 
-impl Display for CustomError {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CustomError::NomError(msg, input) => write!(f, "NomError: {}, input: {}", msg, input),
-            CustomError::IoError(e) => write!(f, "IoError: {}", e),
+            Error::NomError(e) => write!(f, "NomError: {}", e),
+            Error::NomErrorFast(kind) => write!(f, "NomErrorFast: {:?}", kind),
+            Error::IoError(e) => write!(f, "IoError: {}", e),
+            Error::UserAbort(e) => write!(f, "UserAbort: {}", e),
         }
     }
 }
 
-impl Error for CustomError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            CustomError::NomError(_, _) => None,
-            CustomError::IoError(e) => Some(e),
+            Error::NomError(_) => None,
+            Error::NomErrorFast(_) => None,
+            Error::IoError(e) => Some(e),
+            Error::UserAbort(_) => None,
         }
     }
 }
 
-impl From<nom::error::Error<&str>> for CustomError {
-    fn from(error: nom::error::Error<&str>) -> Self {
-        CustomError::NomError(format!("error: {:?}", error.code), error.input.to_string())
-    }
-}
-
-impl From<std::io::Error> for CustomError {
+impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
-        CustomError::IoError(error)
+        Error::IoError(error)
     }
 }
 
-impl From<nom::Err<nom::error::Error<&str>>> for CustomError {
-    fn from(error: nom::Err<nom::error::Error<&str>>) -> Self {
-        match error {
-            nom::Err::Error(err) => CustomError::from(err),
-            nom::Err::Failure(err) => CustomError::from(err),
-            nom::Err::Incomplete(_) => {
-                CustomError::NomError("Incomplete parsing".to_string(), "".to_string())
-            }
+impl From<nom::error::Error<&str>> for Error {
+    fn from(error: nom::error::Error<&str>) -> Self {
+        Error::NomError(nom::error::Error::new(error.input.into(), error.code))
+    }
+}
+
+impl From<nom::error::Error<String>> for Error {
+    fn from(error: nom::error::Error<String>) -> Self {
+        Error::NomError(error)
+    }
+}
+
+impl From<Error> for nom::Err<Error> {
+    fn from(error: Error) -> Self {
+        nom::Err::Failure(error)
+    }
+}
+
+impl From<Box<dyn std::error::Error>> for Error {
+    fn from(error: Box<dyn std::error::Error>) -> Self {
+        Error::NomError(nom::error::Error::new(
+            error.to_string(),
+            nom::error::ErrorKind::Fail,
+        ))
+    }
+}
+
+impl<I> nom::error::ParseError<I> for Error
+where
+    I: Debug + ToString,
+{
+    fn from_error_kind(input: I, kind: nom::error::ErrorKind) -> Self {
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
+        }
+    }
+
+    fn append(input: I, kind: nom::error::ErrorKind, _other: Self) -> Self {
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
+        }
+    }
+
+    fn from_char(input: I, _: char) -> Self {
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(
+                input.to_string(),
+                nom::error::ErrorKind::Char,
+            ))
+        } else {
+            Error::NomErrorFast(nom::error::ErrorKind::Char)
+        }
+    }
+
+    fn or(self, _other: Self) -> Self {
+        self
+    }
+}
+
+impl<I, E> nom::error::FromExternalError<I, E> for Error
+where
+    I: Debug + ToString,
+    E: Debug + Display,
+{
+    fn from_external_error(input: I, kind: nom::error::ErrorKind, _e: E) -> Self {
+        if cfg!(debug_assertions) {
+            Error::NomError(nom::error::Error::new(input.to_string(), kind))
+        } else {
+            Error::NomErrorFast(kind)
         }
     }
 }
 
-impl From<CustomError> for nom::Err<nom::error::Error<String>> {
-    fn from(error: CustomError) -> Self {
-        match error {
-            CustomError::NomError(_msg, input) => {
-                // Pass the owned string directly
-                nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
+pub trait ConvertNomError<E> {
+    fn convert_nom_error(self) -> nom::Err<Error>;
+}
+
+impl<E> ConvertNomError<nom::error::Error<E>> for nom::Err<nom::error::Error<E>>
+where
+    E: Debug + ToString,
+{
+    fn convert_nom_error(self) -> nom::Err<Error> {
+        match self {
+            nom::Err::Error(e) => {
+                let nom::error::Error { input, code } = e;
+                nom::Err::Error(if cfg!(debug_assertions) {
+                    Error::NomError(nom::error::Error::new(input.to_string(), code))
+                } else {
+                    Error::NomErrorFast(code)
+                })
             }
-            CustomError::IoError(_) => {
-                // For IO errors, use a generic message
-                nom::Err::Error(nom::error::Error::new(
-                    "IO error".to_string(),
-                    nom::error::ErrorKind::Fail,
-                ))
+            nom::Err::Failure(e) => {
+                let nom::error::Error { input, code } = e;
+                nom::Err::Failure(if cfg!(debug_assertions) {
+                    Error::NomError(nom::error::Error::new(input.to_string(), code))
+                } else {
+                    Error::NomErrorFast(code)
+                })
             }
+            nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
         }
     }
 }
-
-impl From<CustomError> for nom::Err<CustomError> {
-    fn from(error: CustomError) -> Self {
-        nom::Err::Error(error)
-    }
-}
-
-// impl From<CustomError> for nom::Err<nom::error::Error<String>> {
-//     fn from(error: CustomError) -> Self {
-//         match error {
-//             CustomError::NomError(msg, input) => {
-//                 // Now handling both the error message and the input string
-//                 let combined_message = format!("{}: input {}", msg, input);
-//                 nom::Err::Error(nom::error::Error::new(
-//                     combined_message,
-//                     nom::error::ErrorKind::Fail,
-//                 ))
-//             }
-//             CustomError::IoError(_) => {
-//                 // For IO errors, a generic message is used
-//                 let io_error_message = "IO error".to_string();
-//                 nom::Err::Error(nom::error::Error::new(
-//                     io_error_message,
-//                     nom::error::ErrorKind::Fail,
-//                 ))
-//             }
-//         }
-//     }
-//}

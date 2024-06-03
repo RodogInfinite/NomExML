@@ -7,17 +7,17 @@ use nom::{
     combinator::{map, map_res, opt},
     multi::{fold_many1, many0, many1},
     sequence::tuple,
-    IResult,
 };
 
 use crate::{
     attribute::Attribute,
+    error,
     namespaces::ParseNamespace,
     parse::Parse,
     processing_instruction::ProcessingInstruction,
     prolog::{declaration_content::DeclarationContent, external_id::ExternalID, id::ID},
     reference::Reference,
-    Document, Name,
+    Document, IResult, Name,
 };
 
 use super::entity::{
@@ -328,8 +328,8 @@ impl MarkupDeclaration {
 
         let cloned_entity_source = entity_source.clone();
         let cloned_entity_source2 = entity_source.clone();
-
-        alt((alt((
+        // TODO: removed alt((alt(()))) need to test if functionality is the same
+        alt((
             map(
                 tuple((
                     alt((char('\"'), char('\''))),
@@ -463,8 +463,9 @@ impl MarkupDeclaration {
                     EntityValue::Value(buffer)
                 },
             ),
-        )),))(input)
+        ))(input)
     }
+
     fn parse_comment(input: &str) -> IResult<&str, MarkupDeclaration> {
         let (remaining, doc) = Document::parse_comment(input)?;
         match doc {
@@ -472,10 +473,15 @@ impl MarkupDeclaration {
                 remaining,
                 MarkupDeclaration::Comment(Document::Comment(comment)),
             )),
-            _ => Err(nom::Err::Error(nom::error::Error::new(
-                input,
-                nom::error::ErrorKind::Verify,
-            ))),
+            e => {
+                eprintln!("{e:?}");
+                Err(nom::Err::Error(error::Error::NomError(
+                    nom::error::Error::new(
+                        "parse_comment` unexpected Document".to_string(),
+                        nom::error::ErrorKind::Verify,
+                    ),
+                )))
+            }
         }
     }
     fn get_reference_value(reference: Reference) -> String {

@@ -1,12 +1,11 @@
 // processing_instruction.rs
 
-use crate::{parse::Parse, Name};
+use crate::{parse::Parse, IResult, Name};
 use nom::{
     bytes::complete::tag,
     combinator::{map, map_res, opt, peek},
     multi::many_till,
     sequence::{preceded, tuple},
-    IResult,
 };
 
 #[derive(Clone, PartialEq, Eq)]

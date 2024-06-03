@@ -1,8 +1,9 @@
 use crate::{
-    namespaces::{Name, ParseNamespace},
+    namespaces::ParseNamespace,
     parse::Parse,
-    prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
+    prolog::subset::entity::{entity_value::EntityValue, EntitySource},
     reference::Reference,
+    IResult, Name,
 };
 use nom::{
     branch::alt,
@@ -11,7 +12,6 @@ use nom::{
     combinator::{map, map_res, opt, value},
     multi::{many0, separated_list1},
     sequence::{delimited, pair, tuple},
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -71,6 +71,26 @@ impl<'a> Parse<'a> for Attribute {
 
 impl<'a> ParseNamespace<'a> for Attribute {}
 impl Attribute {
+    /// Useful for creating an attribute to match against in parsing specific tags.
+    ///
+    /// See the ['parse_element_with_specific_attribute_value'](../../parse_element_with_specific_attribute_value/index.html) example for more information.
+    ///
+    /// Future use in writing XML files.
+    ///
+    /// Note: this will not create attribute names that have prefixes
+    ///
+    /// ```rust
+    /// use nom_xml::attribute::Attribute;
+    /// let attr = Attribute::new("name","value");
+    /// ```
+    ///
+    pub fn new(name: &str, value: &str) -> Self {
+        Attribute::Instance {
+            name: Name::new(None, name),
+            value: AttributeValue::Value(value.into()),
+        }
+    }
+
     // [53] AttDef ::= S Name S AttType S DefaultDecl
     pub fn parse_definition(
         input: &str,

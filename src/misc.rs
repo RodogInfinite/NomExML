@@ -1,6 +1,8 @@
 // misc.rs
-use crate::{parse::Parse, processing_instruction::ProcessingInstruction, Document};
-use nom::{branch::alt, combinator::map, IResult};
+use crate::{
+    parse::Parse, processing_instruction::ProcessingInstruction, Document, Error, IResult,
+};
+use nom::{branch::alt, combinator::map};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum MiscState {
@@ -45,10 +47,10 @@ impl<'a> Parse<'a> for Misc {
                     if !content_vec.is_empty() {
                         break;
                     } else {
-                        return Err(nom::Err::Error(nom::error::Error::new(
-                            input,
+                        return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
+                            input.to_string(),
                             nom::error::ErrorKind::Many0,
-                        )));
+                        ))));
                     }
                 }
             }

@@ -1,16 +1,16 @@
-use crate::prolog::subset::entity::entity_value::EntityValue;
-use crate::warnln;
+use crate::{warnln, Result};
 
-use std::collections::HashMap;
-use std::{cell::RefCell, rc::Rc};
-
-use crate::prolog::subset::entity::EntitySource;
-use std::{io::Write, path::Path};
+use std::io::Write;
+/// Config is currently for setting up the parser to allow or prevent external entity parsing.
+/// It's important for preventing some security risks, but it's has not been thoroughly tested for all XML attacks.
+/// It prevents parsing of external entities by default, warns the user if it's enabled, and asks the user to confirm proceeding with external parsing in the terminal.
 
 #[derive(Clone, Default, Debug)]
 pub struct Config {
     pub external_parse_config: ExternalEntityParseConfig,
-    // pub targeted_parsing: Option<TargetedParsingConfig>,
+
+    #[cfg(feature = "experimental")]
+    pub targeted_parsing: Option<TargetedParsingConfig>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -19,13 +19,15 @@ pub struct ExternalEntityParseConfig {
     pub ignore_ext_parse_warning: bool,
     pub base_directory: Option<String>,
 }
+
+#[cfg(feature = "experimental")]
 #[derive(Clone, Debug)]
 pub struct TargetedParsingConfig {
     pub tag_name: String,
     pub parse_multiple: bool, // True to parse multiple elements, false for a single element
 }
 
-pub fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
+pub(crate) fn check_config(config: &Config) -> Result<()> {
     match config {
         Config {
             external_parse_config:
@@ -34,7 +36,6 @@ pub fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                     ignore_ext_parse_warning: false,
                     ..
                 },
-            ..
         } => {
             warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
 
@@ -50,7 +51,8 @@ pub fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                     "n" | "N" | "no" => {
                         return Err(nom::Err::Error(
                             "User decided to stop due to potential XXE attack",
-                        ));
+                        )
+                        .into());
                     }
                     _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
                 }
@@ -63,7 +65,6 @@ pub fn check_config(config: &Config) -> Result<(), nom::Err<&'static str>> {
                     ignore_ext_parse_warning: true,
                     ..
                 },
-            ..
         } => {
             warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
         }

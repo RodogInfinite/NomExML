@@ -4,9 +4,10 @@ use crate::{
     attribute::AttributeValue,
     parse::Parse,
 
-    prolog::subset::entity::{self, entity_value::EntityValue, EntitySource},
+    prolog::subset::entity::{entity_value::EntityValue, EntitySource},
     //transcode::{decode_digit, decode_hex},
     transcode::Decode,
+    IResult,
     Name,
 };
 use nom::{
@@ -15,7 +16,6 @@ use nom::{
     character::complete::{char, digit1, hex_digit1},
     combinator::map,
     sequence::tuple,
-    IResult,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -38,7 +38,7 @@ impl<'a> Parse<'a> for Reference {
     }
 }
 impl Reference {
-    pub fn normalize_entity(
+    pub(crate) fn normalize_entity(
         &self,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> EntityValue {
@@ -85,7 +85,7 @@ impl Reference {
         }
     }
 
-    pub fn normalize_attribute(
+    pub(crate) fn normalize_attribute(
         &self,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
@@ -157,7 +157,7 @@ impl Decode for Reference {
 
 pub trait ParseReference<'a>: Parse<'a> + Decode {
     //[68] EntityRef ::= '&' Name ';'
-    fn parse_entity_ref(input: &str, entity_source: EntitySource) -> IResult<&str, Reference> {
+    fn parse_entity_ref(input: &str, _entity_source: EntitySource) -> IResult<&str, Reference> {
         let (input, reference) = map(
             tuple((char('&'), Self::parse_name, char(';'))),
             |(_, name, _)| Reference::EntityRef(name),

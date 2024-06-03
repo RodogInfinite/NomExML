@@ -4,10 +4,9 @@ use nom::{
     combinator::{map, opt},
     multi::many0,
     sequence::{delimited, pair, preceded, tuple},
-    IResult,
 };
 
-use crate::{parse::Parse, tag};
+use crate::{parse::Parse, tag, IResult};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct TextDecl {

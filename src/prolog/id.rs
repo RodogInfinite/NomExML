@@ -5,10 +5,9 @@ use nom::{
     combinator::map,
     multi::many0,
     sequence::{delimited, pair, preceded},
-    IResult,
 };
 
-use crate::parse::Parse;
+use crate::{parse::Parse, IResult};
 
 use super::external_id::ExternalID;
 

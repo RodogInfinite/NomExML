@@ -1,16 +1,3 @@
-# NomExML
-
-[![Crates.io](https://img.shields.io/crates/v/nom-xml)](https://crates.io/crates/nom-xml)  [![docs.rs](https://img.shields.io/docsrs/nom-xml)](https://docs.rs/nom-xml/latest/nom_xml/) ![Crates.io](https://img.shields.io/crates/l/nom-xml) ![Crates.io (latest)](https://img.shields.io/crates/dv/nom_xml)
-
-:warning: :construction: Under Heavy Development :construction: :warning:
-
-Things are likely to change and break often until testing has been completed.
-
-:rotating_light: The published crate will almost always be behind the GitHub repo until stabilization. Use that. :rotating_light:
-
-
----
-
 `nom-xml` is a crate for parsing XML documents using the [`nom`](https://github.com/rust-bakery/nom) parser combinator crate.
 
 This crate was initially created to be able to parse the following XML pattern which was troublesome in other Rust XML parsers explored at the time due to the limitations of the Serde crate:
@@ -43,11 +30,11 @@ Unless complicated external entities are involved, this crate should already be 
 
 # Key Data Structure:
 
-# `Document`
+# [`Document`]
 
-This enum encapsulates all of the top level types that comprises an XML document. The core variant is the `Element(Tag,Box<Document>,Tag)` type which allows recursive parsing of nested tags and their content.
+This enum encapsulates all of the top level types that comprise an XML document. The core variant is the `Element(Tag,Box<Document>,Tag)` type which allows recursive parsing of nested tags and their content.
 
-```rust
+```rust,ignore
 pub enum Document {
     Prolog {
         xml_decl: Option<XmlDecl>,
@@ -70,10 +57,8 @@ pub enum Document {
 
 # Key Methods:
 
-## Document::parse
+## [Document::parse]
 The main way to parse an ***entire*** XML &str.
-
-
 
 
 ### Example:
@@ -88,7 +73,7 @@ fn main() {
 ```
 
 ### Output:
-```rust
+```rust,ignore
 Element(
     Tag {
         name:
@@ -136,24 +121,6 @@ Element(
 
 ---
 
-## Document::iter_with_depth
+## [Document::iter_with_depth]
 
-A method for iterating to a specific depth of an XML tree. See the ['extract_information`](examples/extract_information.rs) example for more details
-
-
-
-
----
-## TODO
----
-| Task | Priority Level | Status |
-|:----------------------|:----------:|:-----:|
-| Implement full test suite | High | :construction: |
-| Implement all [production rules](src/docs/parser_implementation_tracking.md)  | High | :construction: |
-| Add ability to parse content and children from specific tags | High | ✅ |
-| Add better error handling | High | ✅ |
-| Fix debug output | Medium | :thought_balloon: |
-| Add streaming for parsing large XML documents | Low | ❌ |
-| Implement Display | Low | :thought_balloon: |
-| Investigate [console](https://crates.io/crates/console) for use in Debug and Display output formatting (page interface?) | Low | :thought_balloon: |
-
+A method for iterating to a specific depth of an XML tree. See the ['extract_information`](../extract_information/index.html) example for more details
