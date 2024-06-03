@@ -3,14 +3,14 @@
 //!
 //! ```rust
 //! use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
-//! 
+//!
 //! use nom_xml::{
 //!     attribute::{Attribute, AttributeValue},
 //!     io::read_file,
 //!     tag::Tag,
 //!     Document, Result,
 //! };
-//! 
+//!
 //! #[derive(Debug, Default)]
 //! struct Book {
 //!     isbn: String,
@@ -19,7 +19,7 @@
 //!     genre: String,
 //!     description: String,
 //! }
-//! 
+//!
 //! impl Book {
 //!     fn update_field(&mut self, tag: &Tag, doc: &Document) {
 //!         let field_name = &tag.name.local_part;
@@ -41,9 +41,7 @@
 //!                 } else {
 //!                     eprintln!("Unknown field: {record:#?}");
 //!                 }
-//!                 {
-//!                     dbg!(&record);
-//!                 }
+
 //!             });
 //!         } else if let Document::Content(Some(value)) = &doc {
 //!             match field_name.as_str() {
@@ -59,7 +57,7 @@
 //!                 "description" => {
 //!                     self.description = value.to_string();
 //!                 }
-//! 
+//!
 //!                 e => {
 //!                     eprintln!("Unknown field: {}", e);
 //!                 }
@@ -69,7 +67,7 @@
 //!         }
 //!     }
 //! }
-//! 
+//!
 //! fn main() -> Result<()> {
 //!     let mut file = File::open("examples/TheExpanseSeries.xml")?;
 //!     let data = read_file(&mut file)?;
@@ -92,7 +90,7 @@
 //!     println!("{book:#?}");
 //!     Ok(())
 //! }
-//! 
+//!
 //! ```
 //!
 
@@ -134,9 +132,6 @@ impl Book {
                     self.update_field(tag, inner_doc);
                 } else {
                     eprintln!("Unknown field: {record:#?}");
-                }
-                {
-                    dbg!(&record);
                 }
             });
         } else if let Document::Content(Some(value)) = &doc {
