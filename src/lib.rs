@@ -7,7 +7,6 @@ mod debug;
 pub mod error;
 pub mod io;
 pub mod misc;
-pub mod name;
 pub mod namespaces;
 pub mod parse;
 pub mod processing_instruction;
