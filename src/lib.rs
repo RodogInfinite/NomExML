@@ -4,7 +4,7 @@
 //! -[Document]: the main data structure used to parse XML documents.
 //!
 //! # Key Methods:
-//! -[Document::parse]: the main way to parse an ***entire*** XML document.
+//! -[Document::parse]: the main way to parse an ***entire*** XML &str.
 //!   ## Example
 //! ```rust
 //! use nom_xml::{parse::Parse, Config, Document};
@@ -99,13 +99,14 @@ use crate::{
     tag::Tag,
 };
 
+use attribute::Attribute;
 use error::{ConvertNomError, Error};
 use io::parse_external_entity_file;
 use namespaces::{Name, ParseNamespace};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
-    combinator::{cut, map, map_res, not, opt, peek, value},
+    combinator::{cut, map, map_res, not, opt, value},
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
 };
@@ -130,7 +131,6 @@ pub struct Config {
 
 /// Main entry point for parsing XML documents
 ///
-///
 #[derive(Clone, PartialEq, Eq)]
 pub enum Document {
     Prolog {
@@ -146,52 +146,6 @@ pub enum Document {
     ProcessingInstruction(ProcessingInstruction),
     Comment(String),
     CDATA(String),
-}
-
-fn check_config(config: &Config) -> Result<()> {
-    match config {
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: true,
-                    ignore_ext_parse_warning: false,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
-
-            loop {
-                print!("Do you wish to proceed? [y/n]: ");
-                std::io::stdout().flush().unwrap();
-
-                let mut decision = String::new();
-                std::io::stdin().read_line(&mut decision).unwrap();
-
-                match decision.trim().to_lowercase().as_str() {
-                    "y" | "Y" | "yes" => break,
-                    "n" | "N" | "no" => {
-                        return Err(nom::Err::Error(
-                            "User decided to stop due to potential XXE attack",
-                        )
-                        .into());
-                    }
-                    _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
-                }
-            }
-        }
-        Config {
-            external_parse_config:
-                ExternalEntityParseConfig {
-                    allow_ext_parse: false,
-                    ignore_ext_parse_warning: true,
-                    ..
-                },
-        } => {
-            warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
-        }
-        _ => (),
-    }
-    Ok(())
 }
 
 impl<'a> Parse<'a> for Document {
@@ -387,7 +341,7 @@ impl Document {
     }
 
     // [39] element	::= EmptyElemTag | STag content ETag
-    pub fn parse_element(
+    fn parse_element(
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&str, Document> {
@@ -458,7 +412,7 @@ impl Document {
         }
     }
 
-    pub fn process_references(
+    fn process_references(
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> impl Fn(Vec<Reference>) -> Document {
         move |references| {
@@ -586,7 +540,7 @@ impl Document {
     }
 
     // [15] Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
-    pub fn parse_comment(input: &str) -> IResult<&str, Document> {
+    fn parse_comment(input: &str) -> IResult<&str, Document> {
         map_res(
             pair(tag("<!--"), many_till(Self::parse_char, tag("-->"))),
             |(_open_comment, (comment_content, _close_comment))| {
@@ -820,91 +774,91 @@ impl Document {
             .into())
         }
     }
-}
 
-impl<'a> ParseNamespace<'a> for Document {}
-
-impl Document {
-    pub fn extract(&self, tag: &Name) -> Result<Document> {
-        let mut documents: Vec<Document> = Vec::new();
-
-        match self {
-            Document::Element(start_tag, inner_doc, _end_tag) => {
-                if &start_tag.name == tag {
-                    documents.push(self.clone());
-                }
-
-                match inner_doc.extract(tag) {
-                    Ok(Document::Nested(inner_docs)) => documents.extend(inner_docs),
-                    Ok(single_doc) => documents.push(single_doc),
-                    Err(_) => {}
-                }
-            }
-            Document::Nested(docs) => {
-                for doc in docs {
-                    match doc.extract(tag) {
-                        Ok(Document::Nested(inner_docs)) => documents.extend(inner_docs),
-                        Ok(single_doc) => documents.push(single_doc),
-                        Err(_) => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        if documents.is_empty() {
-            return Err(Box::new(DocumentError::NoMatchingDocuments));
-        }
-
-        match documents.as_slice() {
-            [document] => Ok(document.clone()),
-            _ => Ok(Document::Nested(documents)),
-        }
+    /// The main interface for exracting content from the Document tree
+    /// See the extract_information.rs example for more information
+    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new(self, Some(max_level))
     }
 
-    pub fn get_content(&self) -> HashMap<String, String> {
-        let mut results = HashMap::new();
+    /// The main interface for parsing the first element that matches criteria
+    ///
+    /// See the [`parse_first_matching_element`](../parse_first_matching_element/index.html) example for more information
+    ///
+    /// Run with `cargo run --example parse_first_matching_element`
+    ///
+    /// Also see the [`parse_element_with_specific_attribute_value`](../parse_element_with_specific_attribute_value/index.html) example
+    ///
+    /// Run with `cargo run --example parse_element_with_specific_attribute_value`
+    ///
+    // [39] element	::= EmptyElemTag | STag content ETag
+    pub fn parse_element_by_tag_name<'a>(
+        input: &'a str,
+        tag_name: &'a str,
+        attributes: &Option<Vec<Attribute>>,
+        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
+    ) -> IResult<&'a str, Document> {
+        let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
 
-        match self {
-            Document::Element(tag, inner_doc, _) => {
-                let tag_name = tag.name.local_part.to_string();
-                match &**inner_doc {
-                    Document::Content(Some(content)) => {
-                        results.insert(tag_name, content.to_string());
-                    }
-                    Document::Nested(docs) => {
-                        for doc in docs {
-                            let mut inner_results = doc.get_content();
-                            results.extend(inner_results.drain());
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Document::Nested(docs) => {
-                for doc in docs {
-                    let mut inner_results = doc.get_content();
-                    results.extend(inner_results.drain());
-                }
-            }
-            _ => {}
-        }
-
-        results
+        let (input, doc) = alt((
+            preceded(
+                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                map(
+                    |i| {
+                        Tag::parse_empty_element_tag_by_name(
+                            i,
+                            tag_name,
+                            attributes,
+                            entity_references,
+                            EntitySource::None,
+                        )
+                    },
+                    Document::EmptyTag,
+                ),
+            ),
+            map(
+                tuple((
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
+                    |i| {
+                        Tag::parse_start_tag_by_name(
+                            i,
+                            tag_name,
+                            attributes,
+                            entity_references,
+                            EntitySource::Internal,
+                        )
+                    },
+                    |i| Self::parse_content(i, entity_references, EntitySource::Internal),
+                    |i| Tag::parse_end_tag_by_name(i, tag_name),
+                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
+                )),
+                |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
+                    Document::Element(start_tag, Box::new(content), end_tag)
+                },
+            ),
+        ))(input)?;
+        Ok((input, doc))
     }
-}
 
-impl Document {
+    /// The main interface for parsing many elements with the same tag name
+    ///
+    /// See the [`parse_all_of_specific_tag`](../parse_all_of_specific_tag/index.html) example for more information
+    ///
+    /// Run with `cargo run --example parse_all_of_specific_tag`
+    ///
     // [43] content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
     pub fn parse_elements_by_tag_name<'a>(
         input: &'a str,
         tag_name: &'a str,
+        attributes: &Option<Vec<Attribute>>,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Vec<Document>> {
         warnln!("parse_elements_by_tag_name will parse all elements with the tag name `{tag_name}` no matter the nesting level", );
         warnln!("parse_element_by_tag_name currently only parses start tags without attributes, in this case`<{tag_name}>`");
 
-        many1(|i| Self::parse_element_by_tag_name(i, tag_name, entity_references))(input)
+        many1(|i| Self::parse_element_by_tag_name(i, tag_name, attributes, entity_references))(
+            input,
+        )
     }
 
     #[cfg(feature = "experimental")]
@@ -975,6 +929,7 @@ impl Document {
             )))),
         }
     }
+    #[cfg(feature = "experimental")]
     fn compare_documents(doc1: &Document, pattern: Pattern, method: ComparisonMethod) -> bool {
         doc1.equals(pattern, method)
     }
@@ -982,9 +937,11 @@ impl Document {
     pub fn parse_inner_elements_from_tag<'a>(
         input: &'a str,
         tag_name: &'a str,
+        attributes: &Option<Vec<Attribute>>,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
-        let (input, doc) = Self::parse_element_by_tag_name(input, tag_name, entity_references)?;
+        let (input, doc) =
+            Self::parse_element_by_tag_name(input, tag_name, attributes, entity_references)?;
 
         if let Document::Element(_, inner_doc, _) = doc {
             if let Document::Nested(inner_doc) = *inner_doc {
@@ -1002,58 +959,6 @@ impl Document {
             ))))
         }
     }
-
-    // [39] element	::= EmptyElemTag | STag content ETag
-    pub fn parse_element_by_tag_name<'a>(
-        input: &'a str,
-        tag_name: &'a str,
-        entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> IResult<&'a str, Document> {
-        let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
-
-        let (input, doc) = alt((
-            preceded(
-                Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
-                map(
-                    |i| {
-                        Tag::parse_empty_element_tag_by_name(
-                            i,
-                            tag_name,
-                            entity_references,
-                            EntitySource::None,
-                        )
-                    },
-                    Document::EmptyTag,
-                ),
-            ),
-            map(
-                tuple((
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace before the start tag for human readability
-                    |i| {
-                        Tag::parse_start_tag_by_name(
-                            i,
-                            tag_name,
-                            entity_references,
-                            EntitySource::Internal,
-                        )
-                    },
-                    |i| Self::parse_content(i, entity_references, EntitySource::Internal),
-                    |i| Tag::parse_end_tag_by_name(i, tag_name),
-                    Self::parse_multispace0, // this is not adhering strictly to the spec, but handles the case where there is whitespace after the start tag for human readability
-                )),
-                |(_whitespace1, start_tag, content, end_tag, _whitespace2)| {
-                    Document::Element(start_tag, Box::new(content), end_tag)
-                },
-            ),
-        ))(input)?;
-        Ok((input, doc))
-    }
-}
-
-impl Document {
-    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
-        DocumentIterator::new(self, Some(max_level))
-    }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocumentIterator<'a> {
@@ -1062,7 +967,7 @@ pub struct DocumentIterator<'a> {
 }
 
 impl<'a> DocumentIterator<'a> {
-    pub fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
+    fn new(doc: &'a Document, max_depth: Option<usize>) -> Self {
         let stack = vec![(doc, 0)];
         DocumentIterator { stack, max_depth }
     }
@@ -1217,7 +1122,7 @@ impl PartialEqCustom for Document {
         }
     }
 }
-
+impl<'a> ParseNamespace<'a> for Document {}
 pub trait StrictEq {
     fn strict_eq(&self, pattern: Pattern) -> bool;
 }
@@ -1243,4 +1148,50 @@ impl DynamicEquality for Document {
             ComparisonMethod::Strict => self.strict_eq(pattern),
         }
     }
+}
+
+fn check_config(config: &Config) -> Result<()> {
+    match config {
+        Config {
+            external_parse_config:
+                ExternalEntityParseConfig {
+                    allow_ext_parse: true,
+                    ignore_ext_parse_warning: false,
+                    ..
+                },
+        } => {
+            warnln!("The configuration `{:?}` allows external entity parsing which might expose the system to an XML External Entity (XXE) attack.\nThis crate makes no guarantees for security in this regard so make sure you trust your sources.\nVerification of all `.ent` files is strongly recommended.", config);
+
+            loop {
+                print!("Do you wish to proceed? [y/n]: ");
+                std::io::stdout().flush().unwrap();
+
+                let mut decision = String::new();
+                std::io::stdin().read_line(&mut decision).unwrap();
+
+                match decision.trim().to_lowercase().as_str() {
+                    "y" | "Y" | "yes" => break,
+                    "n" | "N" | "no" => {
+                        return Err(nom::Err::Error(
+                            "User decided to stop due to potential XXE attack",
+                        )
+                        .into());
+                    }
+                    _ => eprintln!("Invalid input. Please type 'y' or 'n'"),
+                }
+            }
+        }
+        Config {
+            external_parse_config:
+                ExternalEntityParseConfig {
+                    allow_ext_parse: false,
+                    ignore_ext_parse_warning: true,
+                    ..
+                },
+        } => {
+            warnln!("The configuration `{:?}` may allow for unexpected parsing if `allow_ext_parse` is changed to true in the future", config);
+        }
+        _ => (),
+    }
+    Ok(())
 }
