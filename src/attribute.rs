@@ -71,6 +71,13 @@ impl<'a> Parse<'a> for Attribute {
 
 impl<'a> ParseNamespace<'a> for Attribute {}
 impl Attribute {
+    pub fn new(name: &str, value: &str) -> Self {
+        Attribute::Instance {
+            name: Name::new(None, name),
+            value: AttributeValue::Value(value.into()),
+        }
+    }
+
     // [53] AttDef ::= S Name S AttType S DefaultDecl
     pub fn parse_definition(
         input: &str,
