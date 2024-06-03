@@ -111,7 +111,7 @@ struct Book {
     genre: String,
     description: String,
 }
-
+//TODO: make nom-xml-derive proc macro crate to generate this code if possible
 impl Book {
     fn update_field(&mut self, tag: &Tag, doc: &Document) {
         let field_name = &tag.name.local_part;
