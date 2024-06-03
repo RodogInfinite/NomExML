@@ -796,7 +796,6 @@ impl Document {
         input: &'a str,
         tag_name: &'a str,
         attributes: &Option<Vec<Attribute>>,
-        //entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> IResult<&'a str, Document> {
         let (input, _) = take_until(format!("<{}", tag_name).as_str())(input)?;
         let entity_references = &Rc::new(RefCell::new(HashMap::new()));
