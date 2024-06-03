@@ -110,7 +110,7 @@ use nom::{
     multi::{many0, many1, many_till},
     sequence::{pair, preceded, tuple},
 };
-use once_cell::unsync::Lazy;
+
 use prolog::{external_id::ExternalID, subset::entity::entity_declaration::EntityDeclaration};
 
 use std::{cell::RefCell, collections::HashMap, fmt, fs::File, io::Write, rc::Rc};
