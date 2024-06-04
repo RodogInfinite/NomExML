@@ -27,7 +27,7 @@
 //!             if let Attribute::Instance {
 //!                 name,
 //!                 value: AttributeValue::Value(attr_val),
-//!             } = attributes_vec.get(0).unwrap()
+//!             } = attributes_vec.first().unwrap()
 //!             {
 //!                 if name.local_part == "isbn" {
 //!                     self.isbn = attr_val.to_string();
@@ -84,7 +84,7 @@
 //!                 None
 //!             }
 //!         })
-//!         .for_each(|(tag, inner_doc)| book.update_field(tag, &inner_doc));
+//!         .for_each(|(tag, inner_doc)| book.update_field(tag, inner_doc));
 //!     println!("{book:#?}");
 //!     Ok(())
 //! }
@@ -117,7 +117,7 @@ impl Book {
             if let Attribute::Instance {
                 name,
                 value: AttributeValue::Value(attr_val),
-            } = attributes_vec.get(0).unwrap()
+            } = attributes_vec.first().unwrap()
             {
                 if name.local_part == "isbn" {
                     self.isbn = attr_val.to_string();
@@ -169,7 +169,7 @@ fn main() -> Result<()> {
                 None
             }
         })
-        .for_each(|(tag, inner_doc)| book.update_field(tag, &inner_doc));
+        .for_each(|(tag, inner_doc)| book.update_field(tag, inner_doc));
     println!("{book:#?}");
     Ok(())
 }
