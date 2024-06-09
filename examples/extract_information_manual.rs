@@ -29,9 +29,7 @@ struct AuthorName {
 }
 impl UpdateField for AuthorName {
     fn update_field(&mut self, tag: &Tag, doc: &Document) {
-        dbg!("AUTHOR NAME STUFF");
         let field_name = &tag.name.local_part;
-        dbg!(&doc);
         if let Document::Content(Some(value)) = &doc {
             match field_name.as_str() {
                 "first_name" => {
@@ -106,7 +104,6 @@ impl UpdateField for Book {
                 }
             }
         }
-        // dbg!(&doc);
         match &doc {
             Document::Nested(_) => {
                 doc.iter_with_depth(1).for_each(|record| {
@@ -160,10 +157,7 @@ fn main() -> Result<()> {
                 None
             }
         })
-        .for_each(|(tag, inner_doc)| {
-            // dbg!(&tag);
-            book.update_field(tag, inner_doc)
-        });
+        .for_each(|(tag, inner_doc)| book.update_field(tag, inner_doc));
     println!("{book:#?}");
     Ok(())
 }
