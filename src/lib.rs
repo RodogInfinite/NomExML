@@ -1080,3 +1080,23 @@ impl DynamicEquality for Document {
         }
     }
 }
+
+pub fn update_fields<'a, T>(doc: &'a Document, target: &mut T)
+where
+    T: UpdateField + Clone,
+{
+    doc.iter_with_depth(1)
+        .filter_map(|element| {
+            if let Document::Element(tag, inner_doc, _) = element {
+                Some((tag, inner_doc))
+            } else {
+                None
+            }
+        })
+        .for_each(|(tag, inner_doc)| {
+            target.update_field(tag, inner_doc);
+        });
+}
+pub trait UpdateField {
+    fn update_field(&mut self, tag: &Tag, doc: &Document);
+}
