@@ -47,45 +47,30 @@ impl UpdateField for AuthorName {
         }
     }
 }
-
 impl UpdateField for Author {
     fn update_field(&mut self, tag: &Tag, doc: &Document) {
-        let field_name = &tag.name.local_part;
-        let mut author_name = AuthorName::default();
-        if let Document::Nested(_) = &doc {
-            match field_name.as_str() {
-                "authors" => {
-                    doc.iter_with_depth(1).for_each(|record| {
-                        if let Document::Element(_, inner_doc, _) = &record {
-                            if let Document::Nested(ref elements) = **inner_doc {
-                                for element in elements {
-                                    if let Document::Element(tag, content, _) = element {
-                                        author_name.update_field(tag, content);
-                                    }
+        match (tag.name.local_part.as_str(), doc) {
+            ("pen_name", Document::Content(Some(value))) => {
+                self.pen_name = value.to_string();
+            }
+            ("authors", Document::Nested(elements)) => {
+                elements.iter().for_each(|record| {
+                    if let Document::Element(_, inner_doc, _) = record {
+                        let mut author_name = AuthorName::default();
+                        if let Document::Nested(inner_elements) = inner_doc.as_ref() {
+                            inner_elements.iter().for_each(|inner_record| {
+                                if let Document::Element(tag, content, _) = inner_record {
+                                    author_name.update_field(tag, content);
                                 }
-                                self.authors.push(author_name.clone());
-                                author_name = AuthorName::default();
-                            } else {
-                                eprintln!("Content is missing");
-                            }
+                            });
+                            self.authors.push(author_name);
+                        } else {
+                            eprintln!("Content is missing in Author authors");
                         }
-                    });
-                }
-                e => {
-                    eprintln!("Unknown field in Author: {}", e);
-                }
+                    }
+                });
             }
-        } else if let Document::Content(Some(value)) = &doc {
-            match field_name.as_str() {
-                "pen_name" => {
-                    self.pen_name = value.to_string();
-                }
-                e => {
-                    eprintln!("Unknown field in Author11: {}", e);
-                }
-            }
-        } else {
-            eprintln!("Content is missing in Author");
+            _ => eprintln!("Unknown field in Author: {}", tag.name.local_part),
         }
     }
 }
@@ -94,15 +79,17 @@ impl UpdateField for Book {
     fn update_field(&mut self, tag: &Tag, doc: &Document) {
         let field_name = &tag.name.local_part;
         if let Some(attributes_vec) = &tag.attributes {
-            if let Attribute::Instance {
-                name,
-                value: AttributeValue::Value(attr_val),
-            } = attributes_vec.first().unwrap()
-            {
-                if name.local_part == "isbn" {
-                    self.isbn = attr_val.to_string();
+            attributes_vec.iter().for_each(|attr| {
+                if let Attribute::Instance {
+                    name,
+                    value: AttributeValue::Value(attr_val),
+                } = attr
+                {
+                    if name.local_part == "isbn" {
+                        self.isbn = attr_val.to_string();
+                    }
                 }
-            }
+            });
         }
         match &doc {
             Document::Nested(_) => {
