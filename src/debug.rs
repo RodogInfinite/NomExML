@@ -166,7 +166,7 @@ impl Document {
                 }
             }
             Document::Element(tag1, document, tag2) => {
-                fmt_indented(f, indent, "Element(\n");
+                fmt_indented(f, indent, "Document::Element(\n");
                 tag1.fmt_indented_tag(f, indent + 4);
                 document.fmt_indented_doc(f, indent + 4);
                 tag2.fmt_indented_tag(f, indent + 4);
@@ -488,7 +488,7 @@ impl MarkupDeclaration {
     fn fmt_markup_decl(&self, f: &mut String, indent: usize) {
         match self {
             MarkupDeclaration::Element { name, content_spec } => {
-                fmt_indented(f, indent, "Element {\n");
+                fmt_indented(f, indent, "MarkupDeclaration::Element {\n");
                 fmt_indented(
                     f,
                     indent + 4,
