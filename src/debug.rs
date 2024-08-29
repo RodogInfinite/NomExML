@@ -393,7 +393,7 @@ impl DocType {
         );
         fmt_indented(f, indent + 4, "subset: Some([\n");
         for element in self.subset.as_ref().unwrap_or(&Vec::new()).iter() {
-            element.fmt_internal_subset(f, indent + 8);
+            element.fmt_subset(f, indent + 8);
         }
         fmt_indented(f, indent + 4, "]),\n");
         fmt_indented(f, indent, "},\n");
@@ -446,20 +446,17 @@ impl ID {
 impl fmt::Debug for Subset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = String::new();
-        self.fmt_internal_subset(&mut s, 0);
+        self.fmt_subset(&mut s, 0);
         write!(f, "{}", s)
     }
 }
 
 impl Subset {
-    fn fmt_internal_subset(&self, f: &mut String, indent: usize) {
+    fn fmt_subset(&self, f: &mut String, indent: usize) {
         match self {
             Subset::MarkupDecl(markup_declaration) => {
                 markup_declaration.fmt_markup_decl(f, indent);
             }
-            // InternalSubset::MarkupDecl(None) => {
-            //     fmt_indented(f, indent, "None");
-            // }
             Subset::DeclSep {
                 reference,
                 expansion,
@@ -469,7 +466,7 @@ impl Subset {
                 fmt_indented(f, indent + 4, "expansion: ");
                 if let Some(inner) = expansion.as_deref() {
                     let mut s = String::new();
-                    inner.fmt_internal_subset(&mut s, indent + 8);
+                    inner.fmt_subset(&mut s, indent + 8);
                     f.push_str(&format!("Some(\n{}\n", s));
                     fmt_indented(f, indent + 4, "),\n");
                 } else {
@@ -504,7 +501,7 @@ impl MarkupDeclaration {
                     }
                     None => f.push_str("None,\n"),
                 }
-                fmt_indented(f, indent, "},\n");
+                fmt_indented(f, indent, "}");
             }
 
             MarkupDeclaration::AttList { name, att_defs } => {
@@ -549,9 +546,8 @@ impl MarkupDeclaration {
                     }
                     EntityDecl::Parameter(parameter_declaration) => {
                         fmt_indented(f, indent, "Entity::Parameter {\n");
-                        // This part depends on how you want to format ParameterEntityDefinition
-                        fmt_indented(f, indent + 4, &format!("{:?},\n", parameter_declaration));
-                        fmt_indented(f, indent, "},\n");
+                        fmt_indented(f, indent + 4, &format!("{parameter_declaration:?}\n"));
+                        fmt_indented(f, indent, "}");
                     }
                 }
             }
@@ -568,7 +564,6 @@ impl MarkupDeclaration {
                     Document::Comment(comment_str) => {
                         fmt_indented(f, indent + 4, &format!("{:?}\n", comment_str));
                     }
-                    // If `Document` has other variants, you can match them here
                     _ => {
                         fmt_indented(f, indent + 4, "Unsupported comment variant,\n");
                     }
@@ -719,11 +714,10 @@ impl fmt::Debug for Reference {
 }
 
 impl fmt::Debug for EntityDeclaration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EntityDeclaration")
-            .field("name", &self.name)
-            .field("entity_def", &self.entity_def)
-            .finish()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_entity_declaration(&mut s, 0);
+        write!(f, "{}", s.trim_end())
     }
 }
 
@@ -732,16 +726,15 @@ impl EntityDeclaration {
         fmt_indented(f, indent, "EntityDeclaration {\n");
         fmt_indented(
             f,
-            indent + 4,
-            &format!("name: \n{}\n", self.name.fmt_qualified_name(indent + 8)),
+            indent + 8,
+            &format!("name: \n{}\n", self.name.fmt_qualified_name(indent + 12)),
         );
-        fmt_indented(f, indent + 4, "entity_def: ");
+        fmt_indented(f, indent + 4, "entity_def:\n");
         let mut s = String::new();
-        // Assuming there's a fmt_indented_entity_definition method for entity_def
         self.entity_def
             .fmt_indented_entity_definition(&mut s, indent + 8);
-        f.push_str(&format!("{}\n", s));
-        fmt_indented(f, indent, "},");
+        f.push_str(&format!("{}", s));
+        fmt_indented(f, indent+4, "},");
     }
 }
 
