@@ -763,7 +763,7 @@ impl EntityDeclaration {
         let mut s = String::new();
         self.entity_def
             .fmt_indented_entity_definition(&mut s, indent + 8);
-        f.push_str(&format!("{}", s));
+        f.push_str(&s.to_string());
         fmt_indented(f, indent + 4, "},");
     }
 }

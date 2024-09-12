@@ -120,11 +120,11 @@ impl<'a> Parse<'a> for Document {
     /// println!("{doc:?}");
     /// ```
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        match check_config(&args) {
+        match check_config(args) {
             Ok(_) => {
                 let entity_references = Rc::new(RefCell::new(HashMap::new()));
                 let (input, prolog_and_references) =
-                    opt(|i| Self::parse_prolog(i, entity_references.clone(), &args))(input)?;
+                    opt(|i| Self::parse_prolog(i, entity_references.clone(), args))(input)?;
 
                 let (prolog, new_entity_references) = match prolog_and_references {
                     Some((prolog, entity_references)) => (prolog, entity_references),
@@ -648,7 +648,7 @@ impl Document {
         config: &Config,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> Result<Option<Vec<Subset>>, Box<dyn std::error::Error>> {
-        match File::open(&file_path) {
+        match File::open(file_path) {
             Ok(mut file) => {
                 match parse_external_entity_file(&mut file, config, entity_references.clone()) {
                     Ok((entities, subsets)) => {
