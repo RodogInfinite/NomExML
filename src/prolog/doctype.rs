@@ -32,13 +32,14 @@ pub struct DocType {
 impl<'a> Parse<'a> for DocType {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        Config,
+        &'a Config,
     );
 
     type Output = IResult<&'a str, Self>;
 
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (entity_references, config) = args;
+        let mut merged_subsets = vec![];
         let (input, (_open_tag, _whitespace1, name, external_id, _whitespace2)) = tuple((
             tag("<!DOCTYPE"),
             Self::parse_multispace1,
@@ -48,14 +49,15 @@ impl<'a> Parse<'a> for DocType {
             })),
             Self::parse_multispace0,
         ))(input)?;
-
         if let Some(external_id) = external_id {
-            // let _ = external_id.get_external_entity_from_id(
-            //     input,
-            //     entity_references.clone(),
-            //     config.clone(),
-            // );
-
+            let mut external_subsets = match external_id.get_external_entity_from_id(
+                input,
+                entity_references.clone(),
+                config,
+            ) {
+                Ok(subsets) => subsets,
+                Err(_) => None,
+            };
             let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) =
                 tuple((
                     opt(delimited(
@@ -63,11 +65,7 @@ impl<'a> Parse<'a> for DocType {
                         |i| {
                             Subset::parse(
                                 i,
-                                (
-                                    entity_references.clone(),
-                                    config.clone(),
-                                    EntitySource::External,
-                                ),
+                                (entity_references.clone(), config, EntitySource::External),
                             )
                         },
                         pair(Self::parse_multispace0, tag("]")),
@@ -76,36 +74,63 @@ impl<'a> Parse<'a> for DocType {
                     tag(">"),
                     Self::parse_multispace0,
                 ))(input)?;
-
             if let Some(subset) = &mut subset {
-                subset.iter_mut().for_each(|subset| {
-                    match subset {
-                        //match internal_subset {
-                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
-                            entity_decl,
-                        )))
-                        | Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::Parameter(
-                            entity_decl,
-                        ))) => {
-                            if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
-                                &mut entity_decl.entity_def
-                            {
-                                ref_val.normalize_entity(entity_references.clone());
-                            }
+                subset.iter_mut().for_each(|subset| match subset {
+                    Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        entity_decl,
+                    )))
+                    | Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::Parameter(
+                        entity_decl,
+                    ))) => {
+                        if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
+                            &mut entity_decl.entity_def
+                        {
+                            ref_val.normalize_entity(entity_references.clone());
                         }
-
-                        _ => {}
                     }
+
+                    _ => {}
                 });
+                merged_subsets.extend(subset.clone());
             }
-            Ok((
-                input,
-                Self {
-                    name,
-                    external_id: Some(external_id),
-                    subset,
-                },
-            ))
+            if let Some(subset) = &mut external_subsets {
+                subset.iter_mut().for_each(|subset| match subset {
+                    Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::General(
+                        entity_decl,
+                    )))
+                    | Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::Parameter(
+                        entity_decl,
+                    ))) => {
+                        if let EntityDefinition::EntityValue(EntityValue::Reference(ref_val)) =
+                            &mut entity_decl.entity_def
+                        {
+                            ref_val.normalize_entity(entity_references.clone());
+                        }
+                    }
+                    _ => {}
+                });
+                merged_subsets.extend(subset.clone());
+            }
+            // we need to create a subsets that merges external subsets with subset
+            if merged_subsets.is_empty() {
+                Ok((
+                    input,
+                    Self {
+                        name,
+                        external_id: Some(external_id),
+                        subset: None,
+                    },
+                ))
+            } else {
+                Ok((
+                    input,
+                    Self {
+                        name,
+                        external_id: Some(external_id),
+                        subset: Some(merged_subsets),
+                    },
+                ))
+            }
         } else {
             let (input, (mut subset, _whitespace3, _close_tag, _whitespace4)) =
                 tuple((
@@ -114,11 +139,7 @@ impl<'a> Parse<'a> for DocType {
                         |i| {
                             Subset::parse(
                                 i,
-                                (
-                                    entity_references.clone(),
-                                    config.clone(),
-                                    EntitySource::Internal,
-                                ),
+                                (entity_references.clone(), config, EntitySource::Internal),
                             )
                         },
                         pair(Self::parse_multispace0, tag("]")),
