@@ -64,10 +64,7 @@ pub enum Document {
 # Key Methods:
 
 ## Document::parse
-The main way to parse an ***entire*** XML &str.
-
-
-
+The main way to parse an ***entire*** XML `&str`.
 
 ### Example:
 ```rust
@@ -75,7 +72,7 @@ use nom_xml::{parse::Parse, config::Config, Document};
 
 fn main() {
     let xml = "<root><child>Content</child></root>";
-    let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    let (_, doc) = Document::parse(xml, &Config::default()).unwrap();
     println!("{doc:?}");
 }
 ```
@@ -134,6 +131,8 @@ Element(
 A method for iterating to a specific depth of an XML tree. See the ['extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more details
 
 
+# Introducing `nom-xml-derive`
+As of `nom-xml` version 0.3.0, `nom-xml-derive` is available for use. The `nom-xml-derive` derive macro crate was created to reduce the boilerplate necessary for users to extract data into structs. See the differences between manual implementations and derived counterpart implementations in the [examples](https://github.com/RodogInfinite/NomExML/blob/main/examples).
 
 
 ---
@@ -144,7 +143,7 @@ A method for iterating to a specific depth of an XML tree. See the ['extract_inf
 | Implement full test suite | High | :construction: |
 | Implement all [production rules](src/docs/parser_implementation_tracking.md)  | High | :construction: |
 | Add ability to parse content and children from specific tags | High | ✅ |
-| Add better error handling | High | ✅ |
+| Add better error handling | High | :thought_balloon: |
 | Fix debug output | Medium | :thought_balloon: |
 | Add streaming for parsing large XML documents | Low | ❌ |
 | Implement Display | Low | :thought_balloon: |

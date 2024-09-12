@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, fs::File, rc::Rc};
 
 use crate::{
     error::Error, io::parse_external_entity_file, parse::Parse, prolog::subset::Subset, Config,
-    ExternalEntityParseConfig, IResult, Name, Result,
+    ExternalEntityParseConfig, IResult, Name,
 };
 use nom::{
     branch::alt,
@@ -79,8 +79,8 @@ impl ExternalID {
         &self,
         input: &str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        config: Config,
-    ) -> Result<()> {
+        config: &Config,
+    ) -> Result<Option<Vec<Subset>>, Box<dyn std::error::Error>> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -100,30 +100,17 @@ impl ExternalID {
                     Ok(mut file) => {
                         match parse_external_entity_file(
                             &mut file,
-                            &config,
+                            config,
                             entity_references.clone(),
-                        )
-                        .as_deref()
-                        {
-                            Ok(_entities) => {
-                                let (_input, (_subset, _whitespace1, _close_tag, _whitespace2)) =
+                        ) {
+                            Ok((_entities, subsets)) => {
+                                let (_input, (_whitespace1, _close_tag, _whitespace2)) =
                                     tuple((
-                                        |i| {
-                                            Subset::parse(
-                                                i,
-                                                (
-                                                    entity_references.clone(),
-                                                    config.clone(),
-                                                    EntitySource::External,
-                                                ),
-                                            )
-                                        },
                                         Self::parse_multispace0,
                                         tag(">"),
                                         Self::parse_multispace0,
                                     ))(input)?;
-
-                                Ok(())
+                                Ok(subsets)
                             }
                             _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                                 "Failed to match [entity] from `parse_external_entity_file`"

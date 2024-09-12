@@ -2,7 +2,7 @@ use crate::{
     namespaces::ParseNamespace,
     parse::Parse,
     prolog::subset::entity::{entity_value::EntityValue, EntitySource},
-    reference::Reference,
+    reference::{ParseReference, Reference},
     IResult, Name,
 };
 use nom::{
@@ -25,6 +25,7 @@ pub enum AttributeValue {
     Value(String),
     Values(Vec<AttributeValue>),
     Reference(Reference),
+    EmptyExternalReference,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -152,73 +153,181 @@ impl Attribute {
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
         entity_source: EntitySource,
     ) -> IResult<&str, AttributeValue> {
-        map(
-            alt((
-                delimited(
-                    tag("\""),
-                    many0(alt((
-                        map(
-                            take_till1(|c| c == '<' || c == '&' || c == '\"'),
-                            |s: &str| AttributeValue::Value(s.into()),
+        match entity_source {
+            EntitySource::Internal | EntitySource::None => {
+                map(
+                    alt((
+                        delimited(
+                            tag("\""),
+                            many0(alt((
+                                map(
+                                    take_till1(|c| c == '<' || c == '&' || c == '\"'),
+                                    |s: &str| AttributeValue::Value(s.into()),
+                                ),
+                                map(
+                                    |i| Reference::parse(i, entity_source.clone()),
+                                    |reference| {
+                                        reference.normalize_attribute(
+                                            entity_references.clone(),
+                                            entity_source.clone(),
+                                        )
+                                    },
+                                ),
+                            ))),
+                            tag("\""),
                         ),
-                        map(
-                            |i| Reference::parse(i, entity_source.clone()),
-                            |reference| {
-                                reference.normalize_attribute(
-                                    entity_references.clone(),
-                                    entity_source.clone(),
-                                )
-                            },
+                        delimited(
+                            tag("'"),
+                            many0(alt((
+                                map(
+                                    take_till1(|c| c == '<' || c == '&' || c == '\''),
+                                    |s: &str| AttributeValue::Value(s.into()),
+                                ),
+                                map(
+                                    |i| Reference::parse(i, entity_source.clone()),
+                                    |reference| {
+                                        reference.normalize_attribute(
+                                            entity_references.clone(),
+                                            entity_source.clone(),
+                                        )
+                                    },
+                                ),
+                            ))),
+                            tag("'"),
                         ),
-                    ))),
-                    tag("\""),
-                ),
-                delimited(
-                    tag("'"),
-                    many0(alt((
-                        map(
-                            take_till1(|c| c == '<' || c == '&' || c == '\''),
-                            |s: &str| AttributeValue::Value(s.into()),
-                        ),
-                        map(
-                            |i| Reference::parse(i, entity_source.clone()),
-                            |reference| {
-                                reference.normalize_attribute(
-                                    entity_references.clone(),
-                                    entity_source.clone(),
-                                )
-                            },
-                        ),
-                    ))),
-                    tag("'"),
-                ),
-            )),
-            |contents: Vec<AttributeValue>| {
-                let mut buffer = String::new();
-
-                for content in contents {
-                    if let AttributeValue::Value(mut value) = content {
-                        // End-of-Line Handling for each value
-                        let mut chars: Vec<char> = value.chars().collect();
-                        let mut i = 0;
-                        while i < chars.len() {
-                            if chars[i] == '\r' {
-                                if i + 1 < chars.len() && chars[i + 1] == '\n' {
-                                    chars.remove(i);
-                                } else {
-                                    chars[i] = '\n';
+                    )),
+                    |contents: Vec<AttributeValue>| {
+                        let mut buffer = String::new();
+                        for content in contents {
+                            if let AttributeValue::Value(mut value) = content {
+                                // End-of-Line Handling for each value
+                                let mut chars: Vec<char> = value.chars().collect();
+                                let mut i = 0;
+                                while i < chars.len() {
+                                    if chars[i] == '\r' {
+                                        if i + 1 < chars.len() && chars[i + 1] == '\n' {
+                                            chars.remove(i);
+                                        } else {
+                                            chars[i] = '\n';
+                                        }
+                                    }
+                                    i += 1;
                                 }
+                                value = chars.into_iter().collect();
+                                buffer.push_str(&value);
                             }
-                            i += 1;
                         }
-                        value = chars.into_iter().collect();
-                        buffer.push_str(&value);
-                    }
-                }
 
-                AttributeValue::Value(buffer)
-            },
-        )(input)
+                        AttributeValue::Value(buffer)
+                    },
+                )(input)
+            }
+
+            EntitySource::External => {
+                map(
+                    many0(alt((
+                        map(
+                            |i| {
+                                tuple((
+                                    |input| Reference::parse_parameter_reference(input),
+                                    Self::parse_multispace0,
+                                ))(i)
+                            },
+                            |(reference, _whitespace)| {
+                                reference.normalize_attribute(
+                                    entity_references.clone(),
+                                    entity_source.clone(),
+                                )
+                            },
+                        ),
+                        delimited(
+                            tag("\""),
+                            map(
+                                many0(alt((
+                                    map(
+                                        take_till1(|c| c == '<' || c == '&' || c == '\"'),
+                                        |s: &str| AttributeValue::Value(s.into()),
+                                    ),
+                                    map(
+                                        |i| Reference::parse(i, entity_source.clone()),
+                                        |reference| {
+                                            reference.normalize_attribute(
+                                                entity_references.clone(),
+                                                entity_source.clone(),
+                                            )
+                                        },
+                                    ),
+                                ))),
+                                |values| {
+                                    let mut buffer = String::new();
+                                    for value in values {
+                                        if let AttributeValue::Value(v) = value {
+                                            buffer.push_str(&v);
+                                        }
+                                    }
+                                    AttributeValue::Value(buffer)
+                                },
+                            ),
+                            tag("\""),
+                        ),
+                        delimited(
+                            tag("'"),
+                            map(
+                                many0(alt((
+                                    map(
+                                        take_till1(|c| c == '<' || c == '&' || c == '\''),
+                                        |s: &str| AttributeValue::Value(s.into()),
+                                    ),
+                                    map(
+                                        |i| Reference::parse(i, entity_source.clone()),
+                                        |reference| {
+                                            reference.normalize_attribute(
+                                                entity_references.clone(),
+                                                entity_source.clone(),
+                                            )
+                                        },
+                                    ),
+                                ))),
+                                |values| {
+                                    let mut buffer = String::new();
+                                    for value in values {
+                                        if let AttributeValue::Value(v) = value {
+                                            buffer.push_str(&v);
+                                        }
+                                    }
+                                    AttributeValue::Value(buffer)
+                                },
+                            ),
+                            tag("'"),
+                        ),
+                    ))),
+                    |contents: Vec<AttributeValue>| {
+                        let mut buffer = String::new();
+                        for content in contents {
+                            if let AttributeValue::Value(mut value) = content {
+                                // End-of-Line Handling for each value
+                                let mut chars: Vec<char> = value.chars().collect();
+                                let mut i = 0;
+                                while i < chars.len() {
+                                    if chars[i] == '\r' {
+                                        if i + 1 < chars.len() && chars[i + 1] == '\n' {
+                                            chars.remove(i);
+                                        } else {
+                                            chars[i] = '\n';
+                                        }
+                                    }
+                                    i += 1;
+                                }
+                                value = chars.into_iter().collect();
+                                buffer.push_str(&value);
+                            }
+                        }
+
+                        AttributeValue::Value(buffer)
+                    },
+                )(input)
+            }
+        }
     }
 
     // Namespaces (Third Edition) [15] Attribute ::= NSAttName Eq AttValue | QName Eq AttValue
@@ -408,7 +517,7 @@ impl<'a> Parse<'a> for DefaultDecl {
                         }
                     } else {
                         Err(nom::Err::Failure(nom::error::Error::new(
-                            input,
+                            format!("Failed to parse attvalue: {attvalue:?}"), // input,
                             nom::error::ErrorKind::Fail,
                         )))
                     }

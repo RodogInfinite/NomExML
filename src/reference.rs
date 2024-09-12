@@ -3,12 +3,9 @@
 use crate::{
     attribute::AttributeValue,
     parse::Parse,
-
     prolog::subset::entity::{entity_value::EntityValue, EntitySource},
-    //transcode::{decode_digit, decode_hex},
     transcode::Decode,
-    IResult,
-    Name,
+    Document, IResult, Name,
 };
 use nom::{
     branch::alt,
@@ -122,7 +119,7 @@ impl Reference {
                         } else {
                             Reference::EntityRef(entity.clone()).normalize_attribute(
                                 entity_references.clone(),
-                                EntitySource::External, //TODO COME BACK TO THIS
+                                EntitySource::External,
                             )
                         }
                     }
@@ -134,10 +131,29 @@ impl Reference {
                                 entity_references.clone(),
                                 entity_source.clone(),
                             ),
+                            EntityValue::Document(doc) => {
+                                if let Document::Empty = doc {
+                                    AttributeValue::EmptyExternalReference
+                                } else {
+                                    unimplemented!(
+                                        "Unexpected Document variant to convert to AttributeValue"
+                                    )
+                                }
+                            }
                             _ => panic!("Unexpected EntityValue variant"),
                         }
                     }
-                    None => AttributeValue::Value(name.local_part.clone()),
+                    None => {
+                        if entity_source == EntitySource::External {
+                            if let Reference::EntityRef(_name) = &self {
+                                AttributeValue::Reference(self.clone())
+                            } else {
+                                AttributeValue::Value(name.local_part.clone())
+                            }
+                        } else {
+                            AttributeValue::Value(name.local_part.clone())
+                        }
+                    }
                 }
             }
             Reference::CharRef(value) => AttributeValue::Value(value.clone()),

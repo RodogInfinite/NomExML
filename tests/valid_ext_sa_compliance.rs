@@ -23,7 +23,7 @@ use nom_xml::{
     ConditionalState, Document, Name,
 };
 use std::{error::Error, fs::File};
-fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
+fn test_valid_ext_sa_file(file_number: &str, config: &Config) -> Result<Document, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/ext-sa/{file_number}.xml"))?;
 
     let document = parse_entire_file(&mut file, config)?;
@@ -34,7 +34,7 @@ fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document,
 fn test_valid_ext_sa_001() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "001",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -92,7 +92,7 @@ fn test_valid_ext_sa_001() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_002() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "002",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -149,7 +149,7 @@ fn test_valid_ext_sa_002() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_003() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "003",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -206,7 +206,7 @@ fn test_valid_ext_sa_003() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_004() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "004",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -265,7 +265,7 @@ fn test_valid_ext_sa_004() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "005",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -351,7 +351,7 @@ fn test_valid_ext_sa_005() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_006() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "006",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -428,7 +428,7 @@ fn test_valid_ext_sa_006() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "007",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -491,7 +491,7 @@ fn test_valid_ext_sa_007() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "008",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -555,7 +555,7 @@ fn test_valid_ext_sa_008() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_009() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "009",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -615,7 +615,7 @@ fn test_valid_ext_sa_009() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_010() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "010",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -675,7 +675,7 @@ fn test_valid_ext_sa_010() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_011() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "011",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -740,7 +740,7 @@ fn test_valid_ext_sa_011() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "012",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -831,7 +831,7 @@ fn test_valid_ext_sa_012() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "013",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -932,7 +932,7 @@ fn test_valid_ext_sa_013() -> Result<(), Box<dyn Error>> {
 fn test_valid_ext_sa_014() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "014",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,

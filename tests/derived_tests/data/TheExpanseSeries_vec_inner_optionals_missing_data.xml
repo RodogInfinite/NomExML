@@ -13,25 +13,13 @@
     <!ELEMENT description (#PCDATA)>
 ]>
 <catalog>
-    <book isbn="978-0316129084">
-        <authored_by>
-            <pen_name>James S.A. Corey</pen_name>
-            <authors>
-                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
-                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
-            </authors>
-        </authored_by>
-        <title>Leviathan Wakes</title>
-        <genre>Science Fiction</genre>
-        <type>Novel</type>
-        <series_number>1</series_number>
-        <description>The first book in the Expanse series</description>
+    <book>
     </book>
     <book isbn="978-0316129060">
         <authored_by>
             <pen_name>James S.A. Corey</pen_name>
             <authors>
-                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author></author>
                 <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
             </authors>
         </authored_by>
@@ -46,7 +34,7 @@
             <pen_name>James S.A. Corey</pen_name>
             <authors>
                 <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
-                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+                <author></author>
             </authors>
         </authored_by>
         <title>Abaddon's Gate</title>
@@ -59,8 +47,8 @@
         <authored_by>
             <pen_name>James S.A. Corey</pen_name>
             <authors>
-                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
-                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+                <author></author>
+                <author></author>
             </authors>
         </authored_by>
         <title>Cibola Burn</title>
@@ -70,18 +58,6 @@
         <description>The fourth book in the Expanse series</description>
     </book>
     <book isbn="978-0316334716">
-        <authored_by>
-            <pen_name>James S.A. Corey</pen_name>
-            <authors>
-                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
-                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
-            </authors>
-        </authored_by>
-        <title>Nemesis Games</title>
-        <genre>Science Fiction</genre>
-        <type>Novel</type>
-        <series_number>5</series_number>
-        <description>The fifth book in the Expanse series</description>
     </book>
     <book isbn="978-0316334747">
         <authored_by>

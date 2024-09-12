@@ -53,7 +53,7 @@ use prolog::{external_id::ExternalID, subset::entity::entity_declaration::Entity
 
 use std::{cell::RefCell, collections::HashMap, fmt, fs::File, rc::Rc};
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+// pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub type IResult<I, O> = nom::IResult<I, O, Error>;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
@@ -109,22 +109,22 @@ pub enum Document {
     CDATA(String),
 }
 impl<'a> Parse<'a> for Document {
-    type Args = Config;
+    type Args = &'a Config;
     type Output = IResult<&'a str, Self>;
 
     /// ```rust
     /// use nom_xml::{parse::Parse, config::Config, Document};
     ///
     /// let xml = "<root><child>Content</child></root>";
-    /// let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    /// let (_, doc) = Document::parse(xml, &Config::default()).unwrap();
     /// println!("{doc:?}");
     /// ```
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
-        match check_config(&args) {
+        match check_config(args) {
             Ok(_) => {
                 let entity_references = Rc::new(RefCell::new(HashMap::new()));
                 let (input, prolog_and_references) =
-                    opt(|i| Self::parse_prolog(i, entity_references.clone(), args.clone()))(input)?;
+                    opt(|i| Self::parse_prolog(i, entity_references.clone(), args))(input)?;
 
                 let (prolog, new_entity_references) = match prolog_and_references {
                     Some((prolog, entity_references)) => (prolog, entity_references),
@@ -211,9 +211,7 @@ impl Document {
     fn determine_source_from_references(
         refs: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
     ) -> EntitySource {
-        let refs_borrow = refs.borrow(); // Immutable borrow for reading
-                                         // Define a logic or condition based on the actual data
-                                         // Example logic based on a placeholder condition
+        let refs_borrow = refs.borrow();
         if refs_borrow
             .keys()
             .any(|(_name, source)| *source == EntitySource::External)
@@ -230,17 +228,17 @@ impl Document {
     }
 
     //[22 prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
-    pub fn parse_prolog(
-        input: &str,
+    pub fn parse_prolog<'a>(
+        input: &'a str,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        config: Config,
-    ) -> PrologResult {
+        config: &'a Config,
+    ) -> PrologResult<'a> {
         let (input, xml_decl) = opt(|i| XmlDecl::parse(i, ()))(input)?;
         let (input, _) = Self::parse_multispace0(input)?;
         let (input, misc_before) =
             opt(|input| Misc::parse(input, MiscState::BeforeDoctype))(input)?;
         let (input, doc_type) =
-            opt(|i| DocType::parse(i, (entity_references.clone(), config.clone())))(input)?;
+            opt(|i| DocType::parse(i, (entity_references.clone(), config)))(input)?;
         let (input, misc_after) = match &doc_type {
             Some(_) => opt(|input| Misc::parse(input, MiscState::AfterDoctype))(input)?,
             None => (input, None),
@@ -508,7 +506,7 @@ impl Document {
                 let comment_string: String = comment_content.into_iter().collect();
                 if comment_string.contains("--") {
                     Err(nom::Err::Failure(nom::error::Error::new(
-                        input,
+                        format!("Failed to parse comment: {comment_string}. Content contains '--'"),
                         nom::error::ErrorKind::Verify,
                     )))
                 } else {
@@ -529,7 +527,10 @@ impl Document {
             (Some(start), Some(end), content, None) => {
                 if start.name != end.name {
                     return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                        input.to_string(),
+                        format!(
+                            "{start:?} != {end:?}\ninput:{input:#?}",
+                            input = input.to_string()
+                        ),
                         nom::error::ErrorKind::Verify,
                     ))));
                 }
@@ -541,7 +542,10 @@ impl Document {
             (Some(start), Some(end), _, Some(empty_tag)) => {
                 if start.name != end.name {
                     return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                        input.to_string(),
+                        format!(
+                            "{start:?} != {end:?}\ninput:{input:#?}",
+                            input = input.to_string()
+                        ),
                         nom::error::ErrorKind::Verify,
                     ))));
                 }
@@ -554,7 +558,10 @@ impl Document {
             (Some(_), None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
                     return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                        input.to_string(),
+                        format!(
+                            "{start:?} != {end:?}\ninput:{input:#?}",
+                            input = input.to_string()
+                        ),
                         nom::error::ErrorKind::Verify,
                     ))));
                 }
@@ -566,7 +573,10 @@ impl Document {
             (None, None, Document::Element(start, inner_content, end), None) => {
                 if start.name != end.name {
                     return Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                        input.to_string(),
+                        format!(
+                            "{start:?} != {end:?}\ninput:{input:#?}",
+                            input = input.to_string()
+                        ),
                         nom::error::ErrorKind::Verify,
                     ))));
                 }
@@ -592,7 +602,10 @@ impl Document {
                 Ok((input, document))
             }
             _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                input.to_string(),
+                format!(
+                    "Error Constructing Document element with input: {:#?}",
+                    input.to_string()
+                ),
                 nom::error::ErrorKind::Verify,
             )))),
         }
@@ -605,7 +618,10 @@ impl Document {
     ) -> IResult<&str, Document> {
         match documents.len() {
             0 => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
-                input.to_string(),
+                format!(
+                    "Error Constructing the Document. Parsed length is 0 with input: {:#?}",
+                    input.to_string()
+                ),
                 nom::error::ErrorKind::Verify,
             )))),
             1 => match prolog {
@@ -626,22 +642,22 @@ impl Document {
         }
     }
 
-    fn process_external_entity_file(
+    pub(crate) fn process_external_entity_file(
         file_path: String,
         name: &Name,
-        config: Config,
+        config: &Config,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<()> {
+    ) -> Result<Option<Vec<Subset>>, Box<dyn std::error::Error>> {
         match File::open(file_path) {
             Ok(mut file) => {
-                match parse_external_entity_file(&mut file, &config, entity_references.clone())
-                    .as_deref()
-                {
-                    Ok([entity]) => {
-                        entity_references
-                            .borrow_mut()
-                            .insert((name.clone(), EntitySource::External), entity.clone());
-                        Ok(())
+                match parse_external_entity_file(&mut file, config, entity_references.clone()) {
+                    Ok((entities, subsets)) => {
+                        entities.iter().for_each(|entity| {
+                            entity_references
+                                .borrow_mut()
+                                .insert((name.clone(), EntitySource::External), entity.clone());
+                        });
+                        Ok(subsets)
                     }
                     _ => Err(nom::Err::Error(Error::NomError(nom::error::Error::new(
                         "Failed to match [entity] from `parse_external_entity_file`".to_string(),
@@ -657,8 +673,8 @@ impl Document {
     fn get_external_entity_from_declaration(
         entity_declaration: EntityDecl,
         entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        config: Config,
-    ) -> Result<()> {
+        config: &Config,
+    ) -> Result<Option<Vec<Subset>>, Box<dyn std::error::Error>> {
         if let Config {
             external_parse_config:
                 ExternalEntityParseConfig {
@@ -734,12 +750,6 @@ impl Document {
             ))
             .into())
         }
-    }
-
-    /// The main interface for exracting content from the Document tree
-    /// See the  [`extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more information
-    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
-        DocumentIterator::new(self, Some(max_level))
     }
 
     /// The main interface for parsing the first element that matches criteria
@@ -891,6 +901,45 @@ impl Document {
         doc1.equals(pattern, method)
     }
 }
+
+impl Document {}
+
+impl Document {
+    // pub fn iter(&self) -> DocumentIterator {
+    //     DocumentIterator::new(self, None)
+    // }
+    /// The main interface for exracting content from the Document tree
+    /// See the  [`extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more information
+    pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new(self, Some(max_level))
+    }
+}
+
+impl<'a> IntoIterator for &'a Document {
+    type Item = &'a Document;
+    type IntoIter = DocumentIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        DocumentIterator::new(self, None)
+    }
+}
+
+pub trait DocumentIteratorExt {
+    fn iter_with_depth(&self, max_level: usize) -> DocumentIterator;
+}
+
+impl DocumentIteratorExt for Vec<Document> {
+    fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new_from_slice(self, Some(max_level))
+    }
+}
+
+impl<'a> DocumentIteratorExt for &'a [Document] {
+    fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
+        DocumentIterator::new_from_slice(self, Some(max_level))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocumentIterator<'a> {
     stack: Vec<(&'a Document, usize)>,
@@ -902,7 +951,13 @@ impl<'a> DocumentIterator<'a> {
         let stack = vec![(doc, 0)];
         DocumentIterator { stack, max_depth }
     }
+
+    fn new_from_slice(docs: &'a [Document], max_depth: Option<usize>) -> Self {
+        let stack = docs.iter().map(|d| (d, 0)).collect();
+        DocumentIterator { stack, max_depth }
+    }
 }
+
 impl<'a> Iterator for DocumentIterator<'a> {
     type Item = &'a Document;
 
@@ -929,7 +984,6 @@ impl<'a> Iterator for DocumentIterator<'a> {
 
             return Some(doc);
         }
-
         None
     }
 }
@@ -986,7 +1040,7 @@ impl<'a> Pattern<'a> {
     pub fn parse(
         &self,
         entity_references: &Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-    ) -> Result<Pattern> {
+    ) -> Result<Pattern, Box<dyn std::error::Error>> {
         let (_, doc) = Document::parse_element(self.xml, entity_references.clone())?;
 
         Ok(Self { xml: self.xml, doc })
@@ -1077,6 +1131,94 @@ impl DynamicEquality for Document {
             ComparisonMethod::Partial => self.partial_eq(pattern),
 
             ComparisonMethod::Strict => self.strict_eq(pattern),
+        }
+    }
+}
+
+pub trait UpdateFields {
+    fn update_fields(&mut self, doc: &Document) -> Result<(), Box<dyn std::error::Error>>
+    where
+        Self: std::fmt::Debug,
+    {
+        match doc {
+            Document::Element(tag, nested_doc, _) => {
+                self.update_attribute_fields(tag)?;
+                if let Document::Nested(elements) = nested_doc.as_ref() {
+                    elements
+                        .iter_with_depth(0)
+                        .filter_map(|element| {
+                            if let Document::Element(tag, inner_doc, _) = element {
+                                Some((tag, inner_doc))
+                            } else {
+                                None
+                            }
+                        })
+                        .try_for_each(|(tag, inner_doc)| self.update_field(tag, inner_doc))
+                } else {
+                    self.update_fields(nested_doc)
+                }
+            }
+            Document::Nested(elements) => elements
+                .iter_with_depth(0)
+                .filter_map(|element| {
+                    if let Document::Element(tag, inner_doc, _) = element {
+                        Some((tag, inner_doc))
+                    } else {
+                        None
+                    }
+                })
+                .try_for_each(|(tag, inner_doc)| self.update_field(tag, inner_doc)),
+            _ => Ok(()),
+        }
+    }
+    fn update_field(&mut self, tag: &Tag, doc: &Document)
+        -> Result<(), Box<dyn std::error::Error>>;
+    fn update_attribute_fields(&mut self, _tag: &Tag) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
+    }
+}
+
+impl<T> UpdateFields for Option<T>
+where
+    T: UpdateFields + Default + std::fmt::Debug,
+{
+    fn update_fields(&mut self, doc: &Document) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            Some(value) => value.update_fields(doc),
+            None => {
+                let mut new_value = T::default();
+                new_value.update_fields(doc)?;
+                *self = Some(new_value);
+                Ok(())
+            }
+        }
+    }
+
+    fn update_field(
+        &mut self,
+        tag: &Tag,
+        doc: &Document,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            Some(value) => value.update_field(tag, doc),
+            None => {
+                let mut new_value = T::default();
+                new_value.update_field(tag, doc)?;
+                *self = Some(new_value);
+                Ok(())
+            }
+        }
+    }
+
+    fn update_attribute_fields(&mut self, tag: &Tag) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            Some(value) => value.update_attribute_fields(tag),
+            None => {
+                let mut new_value = T::default();
+                new_value.update_attribute_fields(tag)?;
+                *self = Some(new_value);
+                Ok(())
+            }
         }
     }
 }

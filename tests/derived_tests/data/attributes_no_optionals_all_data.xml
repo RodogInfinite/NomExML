@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root-element>
+  <person>
+    <name first="John" middle="Michael" last="Doe"/>
+  </person>
+</root-element>
