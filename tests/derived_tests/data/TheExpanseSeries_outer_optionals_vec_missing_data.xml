@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE catalog [
+    <!ELEMENT catalog (book+)>
+    <!ELEMENT book (authored_by, title, genre, series_number, description)>
+    <!ATTLIST book isbn CDATA #REQUIRED>
+    <!ELEMENT authored_by (pen_name, authors)>
+    <!ELEMENT pen_name (#PCDATA)>
+    <!ELEMENT authors (author+)>
+    <!ELEMENT author (first_name, last_name)>
+    <!ELEMENT title (#PCDATA)>
+    <!ELEMENT genre (#PCDATA)>
+    <!ELEMENT series_number (#PCDATA)>
+    <!ELEMENT description (#PCDATA)>
+]>
+<catalog>
+    <book isbn="978-0316129084">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Leviathan Wakes</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>1</series_number>
+        <description>The first book in the Expanse series</description>
+    </book>
+    <book>
+    </book>
+    <book isbn="978-0316129077">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+
+        </authored_by>
+        <title>Abaddon's Gate</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>3</series_number>
+        <description>The third book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316334686">
+        <authored_by>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+    </book>
+    <book isbn="978-0316334716">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Nemesis Games</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>5</series_number>
+        <description>The fifth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316334747">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Babylon's Ashes</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>6</series_number>
+        <description>The sixth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332828">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Persepolis Rising</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>7</series_number>
+        <description>The seventh book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332873">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Tiamat's Wrath</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>8</series_number>
+        <description>The eighth book in the Expanse series</description>
+    </book>
+    <book isbn="978-0316332910">
+        <authored_by>
+            <pen_name>James S.A. Corey</pen_name>
+            <authors>
+                <author><first_name>Daniel</first_name><last_name>Abraham</last_name></author>
+                <author><first_name>Ty</first_name><last_name>Franck</last_name></author>
+            </authors>
+        </authored_by>
+        <title>Leviathan Falls</title>
+        <genre>Science Fiction</genre>
+        <type>Novel</type>
+        <series_number>9</series_number>
+        <description>The ninth book in the Expanse series</description>
+    </book>
+</catalog>

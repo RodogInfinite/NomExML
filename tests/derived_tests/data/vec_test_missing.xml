@@ -1,0 +1,25 @@
+<vectest>
+    <unsigned16>20</unsigned16>
+    <float32>1.1</float32>
+    <unsigned8>10</unsigned8>
+    <float64>22.2</float64>
+    <signed8>-10</signed8>
+    <unsigned128>50</unsigned128>
+    <signed16>-2</signed16>
+    <string>string</string>
+    <unsigned64>4</unsigned64>
+    <signed128>-50</signed128>
+    <unsigned16>2</unsigned16>
+    <unsigned8>1</unsigned8>
+    <float64>2.2</float64>
+    <signed128>-5</signed128>
+    <float32>11.1</float32>
+    <unsigned64>40</unsigned64>
+    <signed16>-20</signed16>
+    <signed32>-30</signed32>
+    <signed32>-3</signed32>
+    <signed8>-1</signed8>
+    <unsigned128>5</unsigned128>
+    <string>another string</string>
+    <string2swap>extracted from string2swap</string2swap>
+</vectest>
