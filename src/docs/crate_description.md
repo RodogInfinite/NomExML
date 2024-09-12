@@ -123,4 +123,8 @@ Element(
 
 ## [Document::iter_with_depth]
 
-A method for iterating to a specific depth of an XML tree. See the ['extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more details
+A method for iterating to a specific depth of an XML tree. See the ['extract_information_manual`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information_manual.rs) example for more details
+
+
+# Introducing `nom-xml-derive`
+As of `nom-xml` version 0.3.0, `nom-xml-derive` is available for use. The `nom-xml-derive` derive macro crate was created to reduce the boilerplate necessary for users to extract data into structs. See the differences between manual implementations and derived counterpart implementations in the [examples](https://github.com/RodogInfinite/NomExML/blob/main/examples).
