@@ -909,7 +909,7 @@ impl Document {
     //     DocumentIterator::new(self, None)
     // }
     /// The main interface for exracting content from the Document tree
-    /// See the  [`extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more information
+    /// See the  [`extract_information_manual`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information_manual.rs) example for more information
     pub fn iter_with_depth(&self, max_level: usize) -> DocumentIterator {
         DocumentIterator::new(self, Some(max_level))
     }
