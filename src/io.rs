@@ -1,17 +1,17 @@
 use crate::attribute::Attribute;
 use crate::parse::Parse;
 use crate::prolog::subset::entity::entity_value::EntityValue;
+use crate::prolog::subset::Subset;
 use crate::Name;
 
 use crate::config::Config;
 use crate::prolog::subset::entity::EntitySource;
-use crate::prolog::subset::markup_declaration::MarkupDeclaration;
 use crate::prolog::textdecl::TextDecl;
 use crate::reference::Reference;
-use crate::{error::Error, Document, Result};
+use crate::{error::Error, Document};
 use encoding_rs::*;
 use nom::branch::alt;
-use nom::combinator::{map, map_res, opt};
+use nom::combinator::{map, opt};
 
 use nom::multi::many1;
 
@@ -45,7 +45,10 @@ pub fn read_file(file: &mut File) -> std::io::Result<String> {
 /// Parse the entire file into a Document
 ///
 /// Note: Beware using for extremely large files as it will load the entire file into memory
-pub fn parse_entire_file(file: &mut File, config: Config) -> Result<Document> {
+pub fn parse_entire_file(
+    file: &mut File,
+    config: &Config,
+) -> Result<Document, Box<dyn std::error::Error>> {
     let data = read_file(file)?;
 
     let parse_result = Document::parse(&data, config);
@@ -72,7 +75,7 @@ pub fn parse_element_from_file(
     file: &mut File,
     tag_name: &str,
     attributes: &Option<Vec<Attribute>>,
-) -> Result<Document> {
+) -> Result<Document, Box<dyn std::error::Error>> {
     let data = read_file(file)?;
 
     let parse_result = Document::parse_element_by_tag_name(&data, tag_name, attributes);
@@ -90,67 +93,49 @@ pub fn parse_element_from_file(
     }
 }
 
-//
 pub(crate) fn parse_external_entity_file(
     file: &mut File,
     config: &Config,
     external_entity_references: Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-) -> Result<Vec<EntityValue>> {
+) -> Result<(Vec<EntityValue>, Option<Vec<Subset>>), Box<dyn std::error::Error>> {
     let mut data = read_file(file)?;
     data = data.replace("\r\n", "\n").replace('\r', "\n");
     let (input, _text_decl) = opt(|i| TextDecl::parse(i, ()))(data.as_str())?;
     //TODO: handle the text_decl such that if the encoding being used to parse the file is different, then the encoding is handled accordingly, i.e file being parsed again with the proper decoding
+    let args = (
+        external_entity_references.clone(),
+        config,
+        EntitySource::External,
+    );
+    let (input, subsets) = match Subset::parse(input, args) {
+        Ok((input, subsets)) => {
+            if subsets.is_empty() {
+                (input, None)
+            } else {
+                (input, Some(subsets))
+            }
+        }
+        _ => (input, None),
+    };
+
     let (_, entity_values) = alt((
-        map_res(
-            |i| Document::parse_prolog(i, external_entity_references.clone(), config.clone()),
-            |(doc_option, _entity_refs)| {
-                if let Some(doc) = doc_option {
-                    Ok(vec![EntityValue::Document(doc)])
-                } else {
-                    Err(Error::NomError(nom::error::Error::new(
-                        "parse_external_ent_file: Expected a Document, but found None. Prolog not parsed.".to_string(), nom::error::ErrorKind::Fail,
-                    )))
-                }
-            },
-        ),
-        many1(
-            map(
-                |i| Reference::parse(i, EntitySource::External),
-                EntityValue::Reference
-            )
-        ),
-        map_res(
-            |i| MarkupDeclaration::parse(i, (external_entity_references.clone(),EntitySource::External)),
-            |opt_markup_decl| {
-                        if opt_markup_decl.is_some() {
-                            Ok(
-                                opt_markup_decl
-                                .into_iter()
-                                .map(|markup_declaration| {
-                                    EntityValue::MarkupDecl(Box::new(markup_declaration))
-                                })
-                                .collect::<Vec<_>>()
-                        )
-                } else {
-                    Err(Error::NomError(nom::error::Error::new(
-                        "parse_external_ent_file: Expected a MarkupDeclaration, but found None.".to_string(), nom::error::ErrorKind::Fail,
-                    )))
-                }
-            },
-        ),
+        many1(map(
+            |i| Reference::parse(i, EntitySource::External),
+            EntityValue::Reference,
+        )),
         map(
-            |i| Document::parse_content(i, &external_entity_references,EntitySource::External),
-            |doc| {
-                vec![EntityValue::Document(doc)]
-            },
+            |i| Document::parse_content(i, &external_entity_references, EntitySource::External),
+            |doc| vec![EntityValue::Document(doc)],
         ),
     ))(input)
     .map_err(|err| match err {
-        nom::Err::Error(_e) | nom::Err::Failure(_e) => Box::new(Error::NomError(nom::error::Error::new(
-            input.to_string(), nom::error::ErrorKind::Fail,
-        ))),        nom::Err::Incomplete(_) => Box::new(Error::NomError(nom::error::Error::new(
-            "parse_external_ent_file: Incomplete input.".to_string(), nom::error::ErrorKind::Fail,
+        nom::Err::Error(_e) | nom::Err::Failure(_e) => Box::new(Error::NomError(
+            nom::error::Error::new(input.to_string(), nom::error::ErrorKind::Fail),
+        )),
+        nom::Err::Incomplete(_) => Box::new(Error::NomError(nom::error::Error::new(
+            "parse_external_ent_file: Incomplete input.".to_string(),
+            nom::error::ErrorKind::Fail,
         ))),
     })?;
-    Ok(entity_values)
+    Ok((entity_values, subsets))
 }
