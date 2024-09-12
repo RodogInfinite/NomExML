@@ -70,29 +70,6 @@ pub fn parse_entire_file(
     }
 }
 
-// Parse only the first matching element from a file
-pub fn parse_element_from_file(
-    file: &mut File,
-    tag_name: &str,
-    attributes: &Option<Vec<Attribute>>,
-) -> Result<Document, Box<dyn std::error::Error>> {
-    let data = read_file(file)?;
-
-    let parse_result = Document::parse_element_by_tag_name(&data, tag_name, attributes);
-    match parse_result {
-        Ok((_, document)) => Ok(document),
-        Err(nom::Err::Error(e) | nom::Err::Failure(e)) => Err(Error::NomError(
-            nom::error::Error::new(e.to_string(), nom::error::ErrorKind::Fail),
-        )
-        .into()),
-        Err(nom::Err::Incomplete(_)) => Err(Error::NomError(nom::error::Error::new(
-            "parse_element_from_file: Incomplete parsing".to_string(),
-            nom::error::ErrorKind::Fail,
-        ))
-        .into()),
-    }
-}
-
 pub(crate) fn parse_external_entity_file(
     file: &mut File,
     config: &Config,
