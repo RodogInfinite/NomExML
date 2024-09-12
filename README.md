@@ -128,7 +128,7 @@ Element(
 
 ## Document::iter_with_depth
 
-A method for iterating to a specific depth of an XML tree. See the ['extract_information`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information.rs) example for more details
+A method for iterating to a specific depth of an XML tree. See the ['extract_information_manual`](https://github.com/RodogInfinite/NomExML/blob/main/examples/extract_information_manual.rs) example for more details
 
 
 # Introducing `nom-xml-derive`
