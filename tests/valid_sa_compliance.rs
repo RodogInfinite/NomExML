@@ -31,7 +31,7 @@ use nom_xml::{
 };
 use std::{error::Error, fs::File};
 
-fn test_valid_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
+fn test_valid_sa_file(file_number: &str, config: &Config) -> Result<Document, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/sa/{file_number}.xml"))?;
 
     let document = parse_entire_file(&mut file, config)?;
@@ -40,7 +40,7 @@ fn test_valid_sa_file(file_number: &str, config: Config) -> Result<Document, Box
 
 #[test]
 fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("001", Config::default())?;
+    let document = test_valid_sa_file("001", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -76,7 +76,7 @@ fn test_valid_sa_001() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("002", Config::default())?;
+    let document = test_valid_sa_file("002", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -112,7 +112,7 @@ fn test_valid_sa_002() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("003", Config::default())?;
+    let document = test_valid_sa_file("003", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -148,7 +148,7 @@ fn test_valid_sa_003() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("004", Config::default())?;
+    let document = test_valid_sa_file("004", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -198,7 +198,7 @@ fn test_valid_sa_004() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("005", Config::default())?;
+    let document = test_valid_sa_file("005", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -248,7 +248,7 @@ fn test_valid_sa_005() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("006", Config::default())?;
+    let document = test_valid_sa_file("006", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -298,7 +298,7 @@ fn test_valid_sa_006() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("007", Config::default())?;
+    let document = test_valid_sa_file("007", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -334,7 +334,7 @@ fn test_valid_sa_007() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("008", Config::default())?;
+    let document = test_valid_sa_file("008", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -370,7 +370,7 @@ fn test_valid_sa_008() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("009", Config::default())?;
+    let document = test_valid_sa_file("009", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -406,7 +406,7 @@ fn test_valid_sa_009() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("010", Config::default())?;
+    let document = test_valid_sa_file("010", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -455,7 +455,7 @@ fn test_valid_sa_010() -> Result<(), Box<dyn Error>> {
 }
 #[test]
 fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("011", Config::default())?;
+    let document = test_valid_sa_file("011", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -519,7 +519,7 @@ fn test_valid_sa_011() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("012", Config::default())?;
+    let document = test_valid_sa_file("012", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -569,7 +569,7 @@ fn test_valid_sa_012() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("013", Config::default())?;
+    let document = test_valid_sa_file("013", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -619,7 +619,7 @@ fn test_valid_sa_013() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("014", Config::default())?;
+    let document = test_valid_sa_file("014", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -669,7 +669,7 @@ fn test_valid_sa_014() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("015", Config::default())?;
+    let document = test_valid_sa_file("015", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -719,7 +719,7 @@ fn test_valid_sa_015() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("016", Config::default())?;
+    let document = test_valid_sa_file("016", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -758,7 +758,7 @@ fn test_valid_sa_016() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("017", Config::default())?;
+    let document = test_valid_sa_file("017", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -803,7 +803,7 @@ fn test_valid_sa_017() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("017a", Config::default())?;
+    let document = test_valid_sa_file("017a", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -842,7 +842,7 @@ fn test_valid_sa_017a() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("018", Config::default())?;
+    let document = test_valid_sa_file("018", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -878,7 +878,7 @@ fn test_valid_sa_018() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("019", Config::default())?;
+    let document = test_valid_sa_file("019", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -914,7 +914,7 @@ fn test_valid_sa_019() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("020", Config::default())?;
+    let document = test_valid_sa_file("020", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -950,7 +950,7 @@ fn test_valid_sa_020() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("021", Config::default())?;
+    let document = test_valid_sa_file("021", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -986,7 +986,7 @@ fn test_valid_sa_021() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("022", Config::default())?;
+    let document = test_valid_sa_file("022", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1022,7 +1022,7 @@ fn test_valid_sa_022() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("023", Config::default())?;
+    let document = test_valid_sa_file("023", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1068,7 +1068,7 @@ fn test_valid_sa_023() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("024", Config::default())?;
+    let document = test_valid_sa_file("024", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1138,7 +1138,7 @@ fn test_valid_sa_024() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("025", Config::default())?;
+    let document = test_valid_sa_file("025", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1207,7 +1207,7 @@ fn test_valid_sa_025() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("026", Config::default())?;
+    let document = test_valid_sa_file("026", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1276,7 +1276,7 @@ fn test_valid_sa_026() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("027", Config::default())?;
+    let document = test_valid_sa_file("027", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1345,7 +1345,7 @@ fn test_valid_sa_027() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("028", Config::default())?;
+    let document = test_valid_sa_file("028", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1385,7 +1385,7 @@ fn test_valid_sa_028() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("029", Config::default())?;
+    let document = test_valid_sa_file("029", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1425,7 +1425,7 @@ fn test_valid_sa_029() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("030", Config::default())?;
+    let document = test_valid_sa_file("030", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1465,7 +1465,7 @@ fn test_valid_sa_030() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("031", Config::default())?;
+    let document = test_valid_sa_file("031", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1505,7 +1505,7 @@ fn test_valid_sa_031() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("032", Config::default())?;
+    let document = test_valid_sa_file("032", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1545,7 +1545,7 @@ fn test_valid_sa_032() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("033", Config::default())?;
+    let document = test_valid_sa_file("033", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1585,7 +1585,7 @@ fn test_valid_sa_033() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("034", Config::default())?;
+    let document = test_valid_sa_file("034", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1613,7 +1613,7 @@ fn test_valid_sa_034() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("035", Config::default())?;
+    let document = test_valid_sa_file("035", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1641,7 +1641,7 @@ fn test_valid_sa_035() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("036", Config::default())?;
+    let document = test_valid_sa_file("036", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1681,7 +1681,7 @@ fn test_valid_sa_036() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("037", Config::default())?;
+    let document = test_valid_sa_file("037", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1718,7 +1718,7 @@ fn test_valid_sa_037() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("038", Config::default())?;
+    let document = test_valid_sa_file("038", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1759,7 +1759,7 @@ fn test_valid_sa_038() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("039", Config::default())?;
+    let document = test_valid_sa_file("039", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1803,7 +1803,7 @@ fn test_valid_sa_039() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("040", Config::default())?;
+    let document = test_valid_sa_file("040", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1853,7 +1853,7 @@ fn test_valid_sa_040() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("041", Config::default())?;
+    let document = test_valid_sa_file("041", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1903,7 +1903,7 @@ fn test_valid_sa_041() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("042", Config::default())?;
+    let document = test_valid_sa_file("042", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1939,7 +1939,7 @@ fn test_valid_sa_042() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("043", Config::default())?;
+    let document = test_valid_sa_file("043", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -1989,7 +1989,7 @@ fn test_valid_sa_043() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("044", Config::default())?;
+    let document = test_valid_sa_file("044", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2093,7 +2093,7 @@ fn test_valid_sa_044() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("045", Config::default())?;
+    let document = test_valid_sa_file("045", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2151,7 +2151,7 @@ fn test_valid_sa_045() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("046", Config::default())?;
+    let document = test_valid_sa_file("046", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2215,7 +2215,7 @@ fn test_valid_sa_046() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("047", Config::default())?;
+    let document = test_valid_sa_file("047", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2251,7 +2251,7 @@ fn test_valid_sa_047() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("048", Config::default())?;
+    let document = test_valid_sa_file("048", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2287,7 +2287,7 @@ fn test_valid_sa_048() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("049", Config::default())?;
+    let document = test_valid_sa_file("049", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2323,7 +2323,7 @@ fn test_valid_sa_049() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("050", Config::default())?;
+    let document = test_valid_sa_file("050", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2359,7 +2359,7 @@ fn test_valid_sa_050() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("051", Config::default())?;
+    let document = test_valid_sa_file("051", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2395,7 +2395,7 @@ fn test_valid_sa_051() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("052", Config::default())?;
+    let document = test_valid_sa_file("052", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2431,7 +2431,7 @@ fn test_valid_sa_052() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("053", Config::default())?;
+    let document = test_valid_sa_file("053", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2494,7 +2494,7 @@ fn test_valid_sa_053() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("054", Config::default())?;
+    let document = test_valid_sa_file("054", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2531,7 +2531,7 @@ fn test_valid_sa_054() -> Result<(), Box<dyn Error>> {
 // TODO: analyze the misc to see if Some(Vec<Misc.content(Box<Document::Nested>)>) is correct
 #[test]
 fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("055", Config::default())?;
+    let document = test_valid_sa_file("055", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2575,7 +2575,7 @@ fn test_valid_sa_055() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("056", Config::default())?;
+    let document = test_valid_sa_file("056", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2611,7 +2611,7 @@ fn test_valid_sa_056() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("057", Config::default())?;
+    let document = test_valid_sa_file("057", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2655,7 +2655,7 @@ fn test_valid_sa_057() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("058", Config::default())?;
+    let document = test_valid_sa_file("058", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2705,7 +2705,7 @@ fn test_valid_sa_058() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("059", Config::default())?;
+    let document = test_valid_sa_file("059", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2829,7 +2829,7 @@ fn test_valid_sa_059() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("060", Config::default())?;
+    let document = test_valid_sa_file("060", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2870,7 +2870,7 @@ fn test_valid_sa_060() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("061", Config::default())?;
+    let document = test_valid_sa_file("061", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2906,7 +2906,7 @@ fn test_valid_sa_061() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("062", Config::default())?;
+    let document = test_valid_sa_file("062", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2946,7 +2946,7 @@ fn test_valid_sa_062() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("063", Config::default())?;
+    let document = test_valid_sa_file("063", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -2982,7 +2982,7 @@ fn test_valid_sa_063() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("064", Config::default())?;
+    let document = test_valid_sa_file("064", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3018,7 +3018,7 @@ fn test_valid_sa_064() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("065", Config::default())?;
+    let document = test_valid_sa_file("065", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3064,7 +3064,7 @@ fn test_valid_sa_065() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("066", Config::default())?;
+    let document = test_valid_sa_file("066", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3125,7 +3125,7 @@ fn test_valid_sa_066() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("067", Config::default())?;
+    let document = test_valid_sa_file("067", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3161,7 +3161,7 @@ fn test_valid_sa_067() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("068", Config::default())?;
+    let document = test_valid_sa_file("068", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3207,7 +3207,7 @@ fn test_valid_sa_068() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("069", Config::default())?;
+    let document = test_valid_sa_file("069", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3249,7 +3249,7 @@ fn test_valid_sa_069() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("070", Config::default())?;
+    let document = test_valid_sa_file("070", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3319,7 +3319,7 @@ fn test_valid_sa_070() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("071", Config::default())?;
+    let document = test_valid_sa_file("071", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3366,7 +3366,7 @@ fn test_valid_sa_071() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("072", Config::default())?;
+    let document = test_valid_sa_file("072", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3413,7 +3413,7 @@ fn test_valid_sa_072() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("073", Config::default())?;
+    let document = test_valid_sa_file("073", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3460,7 +3460,7 @@ fn test_valid_sa_073() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("074", Config::default())?;
+    let document = test_valid_sa_file("074", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3507,7 +3507,7 @@ fn test_valid_sa_074() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("075", Config::default())?;
+    let document = test_valid_sa_file("075", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3554,7 +3554,7 @@ fn test_valid_sa_075() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("076", Config::default())?;
+    let document = test_valid_sa_file("076", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3619,7 +3619,7 @@ fn test_valid_sa_076() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("077", Config::default())?;
+    let document = test_valid_sa_file("077", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3669,7 +3669,7 @@ fn test_valid_sa_077() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("078", Config::default())?;
+    let document = test_valid_sa_file("078", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3719,7 +3719,7 @@ fn test_valid_sa_078() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("079", Config::default())?;
+    let document = test_valid_sa_file("079", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3769,7 +3769,7 @@ fn test_valid_sa_079() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("080", Config::default())?;
+    let document = test_valid_sa_file("080", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3817,7 +3817,7 @@ fn test_valid_sa_080() -> Result<(), Box<dyn Error>> {
 // TODO: test 081
 #[test]
 fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("081", Config::default())?;
+    let document = test_valid_sa_file("081", &Config::default())?;
 
     assert_eq!(
         document,
@@ -3944,7 +3944,7 @@ fn test_valid_sa_081() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("082", Config::default())?;
+    let document = test_valid_sa_file("082", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -3993,7 +3993,7 @@ fn test_valid_sa_082() -> Result<(), Box<dyn Error>> {
 //TODO: test 083
 #[test]
 fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("083", Config::default())?;
+    let document = test_valid_sa_file("083", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4046,7 +4046,7 @@ fn test_valid_sa_083() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("084", Config::default())?;
+    let document = test_valid_sa_file("084", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4082,7 +4082,7 @@ fn test_valid_sa_084() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("085", Config::default())?;
+    let document = test_valid_sa_file("085", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4136,7 +4136,7 @@ fn test_valid_sa_085() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("086", Config::default())?;
+    let document = test_valid_sa_file("086", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4190,7 +4190,7 @@ fn test_valid_sa_086() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("087", Config::default())?;
+    let document = test_valid_sa_file("087", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4252,7 +4252,7 @@ fn test_valid_sa_087() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("088", Config::default())?;
+    let document = test_valid_sa_file("088", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4298,7 +4298,7 @@ fn test_valid_sa_088() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("089", Config::default())?;
+    let document = test_valid_sa_file("089", &Config::default())?;
 
     assert_eq!(
         document,
@@ -4347,7 +4347,7 @@ fn test_valid_sa_089() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("090", Config::default())?;
+    let document = test_valid_sa_file("090", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4413,7 +4413,7 @@ fn test_valid_sa_090() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("091", Config::default())?;
+    let document = test_valid_sa_file("091", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4479,7 +4479,7 @@ fn test_valid_sa_091() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("092", Config::default())?;
+    let document = test_valid_sa_file("092", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4545,7 +4545,7 @@ fn test_valid_sa_092() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("093", Config::default())?;
+    let document = test_valid_sa_file("093", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4581,7 +4581,7 @@ fn test_valid_sa_093() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("094", Config::default())?;
+    let document = test_valid_sa_file("094", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4639,7 +4639,7 @@ fn test_valid_sa_094() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("095", Config::default())?;
+    let document = test_valid_sa_file("095", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4697,7 +4697,7 @@ fn test_valid_sa_095() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("096", Config::default())?;
+    let document = test_valid_sa_file("096", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4749,7 +4749,7 @@ fn test_valid_sa_096() -> Result<(), Box<dyn Error>> {
 fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
     let document = test_valid_sa_file(
         "097",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -4830,7 +4830,7 @@ fn test_valid_sa_097() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("098", Config::default())?;
+    let document = test_valid_sa_file("098", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4869,7 +4869,7 @@ fn test_valid_sa_098() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("099", Config::default())?;
+    let document = test_valid_sa_file("099", &Config::default())?;
 
     assert_eq!(
         document,
@@ -4911,7 +4911,7 @@ fn test_valid_sa_099() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("100", Config::default())?;
+    let document = test_valid_sa_file("100", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -4964,7 +4964,7 @@ fn test_valid_sa_100() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("101", Config::default())?;
+    let document = test_valid_sa_file("101", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5010,7 +5010,7 @@ fn test_valid_sa_101() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("102", Config::default())?;
+    let document = test_valid_sa_file("102", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5060,7 +5060,7 @@ fn test_valid_sa_102() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("103", Config::default())?;
+    let document = test_valid_sa_file("103", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5099,7 +5099,7 @@ fn test_valid_sa_103() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("104", Config::default())?;
+    let document = test_valid_sa_file("104", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5149,7 +5149,7 @@ fn test_valid_sa_104() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("105", Config::default())?;
+    let document = test_valid_sa_file("105", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5199,7 +5199,7 @@ fn test_valid_sa_105() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("106", Config::default())?;
+    let document = test_valid_sa_file("106", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5249,7 +5249,7 @@ fn test_valid_sa_106() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("107", Config::default())?;
+    let document = test_valid_sa_file("107", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5299,7 +5299,7 @@ fn test_valid_sa_107() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("108", Config::default())?;
+    let document = test_valid_sa_file("108", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5357,7 +5357,7 @@ fn test_valid_sa_108() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("109", Config::default())?;
+    let document = test_valid_sa_file("109", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5408,7 +5408,7 @@ fn test_valid_sa_109() -> Result<(), Box<dyn Error>> {
 //TODO: Test 110. Need to verify normalization behavior for `\r\n` current parsing replaces all instances of that with `\n`
 #[test]
 fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("110", Config::default())?;
+    let document = test_valid_sa_file("110", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5466,7 +5466,7 @@ fn test_valid_sa_110() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("111", Config::default())?;
+    let document = test_valid_sa_file("111", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5517,7 +5517,7 @@ fn test_valid_sa_111() -> Result<(), Box<dyn Error>> {
 //TODO: test 112
 #[test]
 fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("112", Config::default())?;
+    let document = test_valid_sa_file("112", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5584,7 +5584,7 @@ fn test_valid_sa_112() -> Result<(), Box<dyn Error>> {
 }
 #[test]
 fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("113", Config::default())?;
+    let document = test_valid_sa_file("113", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5632,7 +5632,7 @@ fn test_valid_sa_113() -> Result<(), Box<dyn Error>> {
 //TODO: Test 114. may need to decode within the Document::Element section instead of directly in the attribute because CDATA is not supposed to decode and if it's in the content, then it should avoid decoding
 #[test]
 fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("114", Config::default())?;
+    let document = test_valid_sa_file("114", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5679,7 +5679,7 @@ fn test_valid_sa_114() -> Result<(), Box<dyn Error>> {
 //TODO: Test 115
 #[test]
 fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("115", Config::default())?;
+    let document = test_valid_sa_file("115", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5733,7 +5733,7 @@ fn test_valid_sa_115() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("116", Config::default())?;
+    let document = test_valid_sa_file("116", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5769,7 +5769,7 @@ fn test_valid_sa_116() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("117", Config::default())?;
+    let document = test_valid_sa_file("117", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5815,7 +5815,7 @@ fn test_valid_sa_117() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("118", Config::default())?;
+    let document = test_valid_sa_file("118", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![
@@ -5861,7 +5861,7 @@ fn test_valid_sa_118() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_valid_sa_119() -> Result<(), Box<dyn Error>> {
-    let document = test_valid_sa_file("119", Config::default())?;
+    let document = test_valid_sa_file("119", &Config::default())?;
     assert_eq!(
         document,
         Document::Nested(vec![

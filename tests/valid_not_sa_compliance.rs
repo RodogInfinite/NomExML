@@ -1,18 +1,26 @@
 use nom_xml::{
-    attribute::{AttType, Attribute, DefaultDecl},
+    attribute::{AttType, Attribute, AttributeValue, DefaultDecl},
     config::{Config, ExternalEntityParseConfig},
     io::parse_entire_file,
     prolog::{
         declaration_content::DeclarationContent,
         doctype::DocType,
         external_id::ExternalID,
-        subset::{entity::EntitySource, markup_declaration::MarkupDeclaration, Subset},
+        subset::{
+            entity::{
+                entity_declaration::{EntityDecl, EntityDeclaration},
+                entity_definition::EntityDefinition,
+                EntitySource,
+            },
+            markup_declaration::MarkupDeclaration,
+            Subset,
+        },
     },
     tag::{Tag, TagState},
     Document, Name,
 };
 use std::{error::Error, fs::File};
-fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document, Box<dyn Error>> {
+fn test_valid_ext_sa_file(file_number: &str, config: &Config) -> Result<Document, Box<dyn Error>> {
     let mut file = File::open(format!("tests/xmltest/valid/not-sa/{file_number}.xml"))?;
 
     let document = parse_entire_file(&mut file, config)?;
@@ -23,7 +31,7 @@ fn test_valid_ext_sa_file(file_number: &str, config: Config) -> Result<Document,
 fn test_valid_not_sa_001() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "001",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -69,7 +77,7 @@ fn test_valid_not_sa_001() -> Result<(), Box<dyn Error>> {
 fn test_valid_not_sa_002() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "002",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -112,11 +120,11 @@ fn test_valid_not_sa_002() -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
     let document = test_valid_ext_sa_file(
         "003",
-        Config {
+        &Config {
             external_parse_config: ExternalEntityParseConfig {
                 allow_ext_parse: true,
                 ignore_ext_parse_warning: true,
@@ -139,12 +147,22 @@ fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
                             name: Name::new(None, "doc"),
                             content_spec: Some(DeclarationContent::Empty),
                         }),
+                        Subset::MarkupDecl(MarkupDeclaration::Entity(EntityDecl::Parameter(
+                            EntityDeclaration {
+                                name: Name::new(None, "e"),
+                                entity_def: EntityDefinition::External {
+                                    id: ExternalID::System("003-2.ent".to_string()),
+                                    n_data: None,
+                                    text_decl: None
+                                }
+                            }
+                        ))),
                         Subset::MarkupDecl(MarkupDeclaration::AttList {
                             name: Name::new(None, "doc"),
                             att_defs: Some(vec![Attribute::Definition {
                                 name: Name::new(None, "a1"),
                                 att_type: AttType::CDATA,
-                                default_decl: DefaultDecl::Implied,
+                                default_decl: DefaultDecl::Value("v1".to_string()),
                                 source: EntitySource::External,
                             },]),
                         }),
@@ -154,7 +172,10 @@ fn test_valid_not_sa_003() -> Result<(), Box<dyn Error>> {
             Document::Element(
                 Tag {
                     name: Name::new(None, "doc"),
-                    attributes: None,
+                    attributes: Some(vec![Attribute::Instance {
+                        name: Name::new(None, "a1"),
+                        value: AttributeValue::Value("v1".to_string()),
+                    }]),
                     state: TagState::Start,
                 },
                 Box::new(Document::Empty),
