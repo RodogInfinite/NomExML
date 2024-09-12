@@ -96,7 +96,7 @@ impl Name {
             indent + 4,
             &format!("local_part: \"{}\",\n", local_part),
         );
-        fmt_indented(&mut f, indent, "},");
+        fmt_indented(&mut f, indent, "}");
 
         f
     }
@@ -137,6 +137,14 @@ impl Misc {
         fmt_indented(f, indent + 4, &format!("content: {:?}", self.content));
         fmt_indented(f, indent + 4, &format!("state: {:?},\n", self.state));
         fmt_indented(f, indent, "},\n");
+    }
+}
+
+impl fmt::Debug for Document {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        self.fmt_indented_doc(&mut s, 0);
+        writeln!(f, "{}", s)
     }
 }
 
@@ -193,7 +201,7 @@ impl Document {
                 fmt_indented(f, indent, &format!("Comment(\"{}\"),\n", comment));
             }
             Document::Empty => {
-                fmt_indented(f, indent, "Empty\n");
+                fmt_indented(f, indent, "Empty");
             }
             Document::EmptyTag(tag) => {
                 fmt_indented(f, indent, "EmptyTag(\n");
@@ -219,14 +227,6 @@ impl Document {
                 fmt_indented(f, indent, &format!("CDATA(\"{}\"),\n", cdata.clone()));
             }
         }
-    }
-}
-
-impl fmt::Debug for Document {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut s = String::new();
-        self.fmt_indented_doc(&mut s, 0);
-        writeln!(f, "{}", s)
     }
 }
 
@@ -501,7 +501,7 @@ impl MarkupDeclaration {
                     }
                     None => f.push_str("None,\n"),
                 }
-                fmt_indented(f, indent, "}");
+                fmt_indented(f, indent, "},\n");
             }
 
             MarkupDeclaration::AttList { name, att_defs } => {
@@ -535,22 +535,20 @@ impl MarkupDeclaration {
                 fmt_indented(f, indent, "},\n");
             }
 
-            MarkupDeclaration::Entity(entity_declaration) => {
-                match entity_declaration {
-                    EntityDecl::General(general_declaration) => {
-                        fmt_indented(f, indent, "Entity::General {\n");
-                        let mut s = String::new();
-                        general_declaration.fmt_indented_entity_declaration(&mut s, indent + 4);
-                        f.push_str(&format!("{}\n", s));
-                        fmt_indented(f, indent, "},\n");
-                    }
-                    EntityDecl::Parameter(parameter_declaration) => {
-                        fmt_indented(f, indent, "Entity::Parameter {\n");
-                        fmt_indented(f, indent + 4, &format!("{parameter_declaration:?}\n"));
-                        fmt_indented(f, indent, "}");
-                    }
+            MarkupDeclaration::Entity(entity_declaration) => match entity_declaration {
+                EntityDecl::General(general_declaration) => {
+                    fmt_indented(f, indent, "Entity::General {\n");
+                    let mut s = String::new();
+                    general_declaration.fmt_indented_entity_declaration(&mut s, indent + 4);
+                    f.push_str(&format!("{}\n", s));
+                    fmt_indented(f, indent, "},\n");
                 }
-            }
+                EntityDecl::Parameter(parameter_declaration) => {
+                    fmt_indented(f, indent, "Entity::Parameter {\n");
+                    fmt_indented(f, indent + 4, &format!("{parameter_declaration:?}\n"));
+                    fmt_indented(f, indent, "},\n");
+                }
+            },
 
             MarkupDeclaration::ProcessingInstruction(ProcessingInstruction { target, data }) => {
                 fmt_indented(f, indent, "ProcessingInstruction {\n");
@@ -628,6 +626,9 @@ impl AttributeValue {
                 fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
                 fmt_indented(f, indent, "),\n");
             }
+            AttributeValue::EmptyExternalReference => {
+                fmt_indented(f, indent, "EmptyExternalReference\n");
+            }
         }
     }
 }
@@ -645,6 +646,7 @@ impl Attribute {
                 fmt_indented(f, indent + 4, "name: \n");
                 let formatted_name = name.fmt_qualified_name(indent + 8);
                 f.push_str(&formatted_name);
+                f.push('\n');
                 fmt_indented(f, indent + 4, &format!("att_type: {:?},\n", att_type));
                 fmt_indented(
                     f,
@@ -700,15 +702,43 @@ impl fmt::Debug for Prefix {
     }
 }
 
+// impl fmt::Debug for Reference {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         match self {
+//             Reference::EntityRef(name) => f
+//                 .debug_struct("EntityRef")
+//                 .field("name", &format_args!("\n{}", name.fmt_qualified_name(12)))
+//                 .finish(),
+
+//             Reference::CharRef(value) => f.debug_struct("CharRef").field("value", value).finish(),
+//         }
+//     }
+// }
+
 impl fmt::Debug for Reference {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Reference::EntityRef(name) => f
-                .debug_struct("EntityRef")
-                .field("name", &format_args!("\n{}", name.fmt_qualified_name(12)))
-                .finish(),
+        let mut s = String::new();
+        self.fmt_indented_reference(&mut s, 0);
+        write!(f, "{}", s)
+    }
+}
 
-            Reference::CharRef(value) => f.debug_struct("CharRef").field("value", value).finish(),
+impl Reference {
+    fn fmt_indented_reference(&self, f: &mut String, indent: usize) {
+        match self {
+            Reference::EntityRef(name) => {
+                fmt_indented(f, indent, "EntityRef {\n");
+                fmt_indented(f, indent + 4, "name:\n");
+                let name_str = name.fmt_qualified_name(indent + 10);
+                f.push_str(&name_str);
+                f.push('\n');
+                fmt_indented(f, indent, "},\n");
+            }
+            Reference::CharRef(value) => {
+                fmt_indented(f, indent, "CharRef {\n");
+                fmt_indented(f, indent + 4, &format!("value: {:?},\n", value));
+                fmt_indented(f, indent, "},\n");
+            }
         }
     }
 }
@@ -734,7 +764,7 @@ impl EntityDeclaration {
         self.entity_def
             .fmt_indented_entity_definition(&mut s, indent + 8);
         f.push_str(&format!("{}", s));
-        fmt_indented(f, indent+4, "},");
+        fmt_indented(f, indent + 4, "},");
     }
 }
 
@@ -750,18 +780,16 @@ impl EntityDefinition {
     fn fmt_indented_entity_definition(&self, f: &mut String, indent: usize) {
         match self {
             EntityDefinition::EntityValue(value) => {
-                f.push_str("EntityValue(\n");
-                let mut s = String::new();
-                value.fmt_indented_entity_value(&mut s, indent + 4);
-                f.push_str(s.as_str());
-                fmt_indented(f, indent, ")");
+                fmt_indented(f, indent, "EntityDefinition::EntityValue(\n");
+                value.fmt_indented_entity_value(f, indent + 4);
+                fmt_indented(f, indent, ")\n");
             }
             EntityDefinition::External {
                 id,
                 n_data,
                 text_decl,
             } => {
-                fmt_indented(f, indent, "External {\n");
+                fmt_indented(f, indent, "EntityDefinition::External {\n");
                 fmt_indented(f, indent + 4, &format!("id: {:?},\n", id));
                 fmt_indented(f, indent + 4, &format!("n_data: {:?},\n", n_data));
                 fmt_indented(f, indent + 4, &format!("text_decl: {:?},\n", text_decl));
@@ -773,29 +801,9 @@ impl EntityDefinition {
 
 impl std::fmt::Debug for EntityValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EntityValue::Value(value) => {
-                f.debug_struct("EntityValue").field("Value", value).finish()
-            }
-            EntityValue::Reference(reference) => f
-                .debug_struct("EntityValue")
-                .field("Reference", reference)
-                .finish(),
-            EntityValue::ParameterReference(reference) => f
-                .debug_struct("EntityValue")
-                .field("PerameterReference", reference)
-                .finish(),
-            EntityValue::Document(document) => f
-                .debug_struct("EntityValue")
-                .field("Document", document)
-                .finish(),
-            EntityValue::MarkupDecl(internal_subset) => {
-                f // Handle the new variant here
-                    .debug_struct("EntityValue")
-                    .field("MarkupDecl", internal_subset)
-                    .finish()
-            }
-        }
+        let mut s = String::new();
+        self.fmt_indented_entity_value(&mut s, 0);
+        write!(f, "{}", s)
     }
 }
 
@@ -803,29 +811,29 @@ impl EntityValue {
     fn fmt_indented_entity_value(&self, f: &mut String, indent: usize) {
         match self {
             EntityValue::Value(value) => {
-                fmt_indented(f, indent - 4, "Value(\n");
-                fmt_indented(f, indent, &format!("{:?}\n", value));
-                fmt_indented(f, indent - 4, "),\n");
+                fmt_indented(f, indent, "Value(\n");
+                fmt_indented(f, indent, &format!("{value:?}\n"));
+                fmt_indented(f, indent + 4, "),\n");
             }
             EntityValue::Reference(reference) => {
                 fmt_indented(f, indent, "Reference(\n");
-                fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
+                fmt_indented(f, indent + 4, &format!("{reference:?},\n"));
                 fmt_indented(f, indent, "),\n");
             }
             EntityValue::ParameterReference(reference) => {
                 fmt_indented(f, indent, "PerameterReference(\n");
-                fmt_indented(f, indent + 4, &format!("{:?},\n", reference));
+                fmt_indented(f, indent + 4, &format!("{reference:?},\n"));
                 fmt_indented(f, indent, "),\n");
             }
             EntityValue::Document(document) => {
                 fmt_indented(f, indent, "Document(\n");
-                fmt_indented(f, indent + 4, &format!("{:?}\n", document));
-                fmt_indented(f, indent, ")\n");
+                fmt_indented(f, indent + 4, &format!("{document:?}"));
+                fmt_indented(f, indent, ")");
             }
-            EntityValue::MarkupDecl(internal_subset) => {
+            EntityValue::MarkupDecl(subset) => {
                 // Handle the new variant here
                 fmt_indented(f, indent, "MarkupDecl(\n");
-                fmt_indented(f, indent + 4, &format!("{:?},\n", internal_subset));
+                fmt_indented(f, indent + 4, &format!("{subset:?},\n"));
                 fmt_indented(f, indent, "),\n");
             }
         }
