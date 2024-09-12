@@ -75,7 +75,7 @@ use nom_xml::{parse::Parse, config::Config, Document};
 
 fn main() {
     let xml = "<root><child>Content</child></root>";
-    let (_, doc) = Document::parse(xml, Config::default()).unwrap();
+    let (_, doc) = Document::parse(xml, &Config::default()).unwrap();
     println!("{doc:?}");
 }
 ```
