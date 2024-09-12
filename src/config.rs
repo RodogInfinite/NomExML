@@ -1,4 +1,4 @@
-use crate::{warnln, Result};
+use crate::warnln;
 
 use std::io::Write;
 /// Config is currently for setting up the parser to allow or prevent external entity parsing.
@@ -27,7 +27,7 @@ pub struct TargetedParsingConfig {
     pub parse_multiple: bool, // True to parse multiple elements, false for a single element
 }
 
-pub(crate) fn check_config(config: &Config) -> Result<()> {
+pub(crate) fn check_config(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     match config {
         Config {
             external_parse_config:
