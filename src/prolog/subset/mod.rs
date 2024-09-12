@@ -1,6 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{reference::Reference, Document, IResult, Name};
+use crate::{
+    config::ExternalEntityParseConfig, prolog::external_id::ExternalID, reference::Reference,
+    Document, IResult, Name,
+};
 
 use self::{
     entity::entity_declaration::{EntityDecl, EntityDeclaration},
@@ -12,6 +15,7 @@ pub mod entity;
 
 pub mod markup_declaration;
 
+use entity::entity_definition::EntityDefinition;
 use nom::{branch::alt, combinator::map, multi::many0};
 
 use crate::{
@@ -47,7 +51,7 @@ impl<'a> ParseNamespace<'a> for Subset {}
 impl<'a> Parse<'a> for Subset {
     type Args = (
         Rc<RefCell<HashMap<(Name, EntitySource), EntityValue>>>,
-        Config,
+        &'a Config,
         EntitySource,
     );
     type Output = IResult<&'a str, Vec<Subset>>;
@@ -55,12 +59,10 @@ impl<'a> Parse<'a> for Subset {
     //[28b]	intSubset ::= (markupdecl | DeclSep)*
     fn parse(input: &'a str, args: Self::Args) -> Self::Output {
         let (entity_references, config, entity_source) = args;
-
         let (input, parsed) = many0(alt((
             |i| {
                 let (i, decl_sep) =
                     Self::parse_decl_sep(i, entity_references.clone(), entity_source.clone())?;
-
                 match decl_sep {
                     Some(decl_sep) => Ok((i, Some(decl_sep))),
                     None => Ok((i, None)),
@@ -83,101 +85,175 @@ impl<'a> Parse<'a> for Subset {
             },
         )))(input)?;
         let mut consolidated: Vec<Subset> = vec![];
-        for mut subset in parsed {
-            if let Some(Subset::MarkupDecl(MarkupDeclaration::Entity(entity))) = subset.clone() {
-                let _ = Document::get_external_entity_from_declaration(
-                    entity.clone(),
-                    entity_references.clone(),
-                    config.clone(),
-                );
-            };
-            if let Some(Subset::DeclSep {
-                reference: Reference::EntityRef(name),
-                expansion,
-            }) = &mut subset
-            {
-                if let Some(EntityValue::MarkupDecl(inner_expansion)) = entity_references
-                    .borrow()
-                    .get(&(name.clone(), EntitySource::Internal))
-                {
-                    let mut modified_inner_expansion = *inner_expansion.clone();
-
-                    if let MarkupDeclaration::AttList {
-                        att_defs: Some(ref mut defs),
-                        ..
-                    } = modified_inner_expansion
-                    {
-                        for attribute in defs {
-                            if let Attribute::Definition { ref mut source, .. } = attribute {
-                                *source = EntitySource::Internal;
+        let mut external_subsets: Vec<Subset> = vec![];
+        for mut subset in parsed.into_iter().flatten() {
+            match &mut subset {
+                Subset::MarkupDecl(markup_declaration) => match markup_declaration {
+                    MarkupDeclaration::Entity(entity) => {
+                        match entity {
+                            EntityDecl::Parameter(EntityDeclaration {
+                                name,
+                                entity_def:
+                                    EntityDefinition::External {
+                                        id: ExternalID::System(ext_file),
+                                        ..
+                                    },
+                                ..
+                            }) => {
+                                let Config {
+                                    external_parse_config:
+                                        ExternalEntityParseConfig {
+                                            allow_ext_parse,
+                                            base_directory,
+                                            ..
+                                        },
+                                } = config;
+                                if *allow_ext_parse {
+                                    let file_path = match base_directory {
+                                        Some(base) => format!("{}/{}", base, ext_file),
+                                        None => ext_file.clone(),
+                                    };
+                                    let _processed_external_entity =
+                                        Document::process_external_entity_file(
+                                            file_path,
+                                            name,
+                                            config,
+                                            entity_references.clone(),
+                                        );
+                                    if let Ok(Some(ext_subsets)) =
+                                        Document::get_external_entity_from_declaration(
+                                            entity.clone(),
+                                            entity_references.clone(),
+                                            config,
+                                        )
+                                    {
+                                        external_subsets.extend(ext_subsets.clone())
+                                    }
+                                }
+                            }
+                            _ => {
+                                if let Ok(Some(ext_subsets)) =
+                                    Document::get_external_entity_from_declaration(
+                                        entity.clone(),
+                                        entity_references.clone(),
+                                        config,
+                                    )
+                                {
+                                    consolidated.extend(ext_subsets);
+                                }
                             }
                         }
+
                     }
-
-                    *expansion = Some(Box::new(Subset::MarkupDecl(
-                        modified_inner_expansion.clone(),
-                    )));
-                }
-
-                if let Some(EntityValue::MarkupDecl(inner_expansion)) = entity_references
-                    .borrow()
-                    .get(&(name.clone(), EntitySource::External))
-                {
-                    let mut modified_inner_expansion = *inner_expansion.clone();
-
-                    if let MarkupDeclaration::AttList {
-                        att_defs: Some(ref mut defs),
-                        ..
-                    } = modified_inner_expansion
+                    MarkupDeclaration::AttList {
+                        name,
+                        att_defs: Some(new_defs),
+                    } =>
                     {
-                        for attribute in defs {
-                            if let Attribute::Definition { ref mut source, .. } = attribute {
-                                *source = EntitySource::External;
-                            }
-                        }
-                    }
-
-                    *expansion = Some(Box::new(Subset::MarkupDecl(
-                        modified_inner_expansion.clone(),
-                    )));
-                }
-
-                if let Some(Subset::MarkupDecl(MarkupDeclaration::AttList {
-                    name,
-                    att_defs: Some(new_defs),
-                })) = expansion.as_deref()
-                {
-                    if let Some(Subset::MarkupDecl(MarkupDeclaration::AttList { att_defs: Some(existing_defs), .. })) = consolidated.iter_mut().find(|i| {
+                        if let Some(existing) = consolidated.iter_mut().find(|i| {
                             matches!(i, Subset::MarkupDecl(MarkupDeclaration::AttList { name: existing_name, .. }) if existing_name == name)
                         }) {
-                            existing_defs.extend(new_defs.clone());
-                            continue;
-                        }
-                    consolidated.push(Subset::MarkupDecl(MarkupDeclaration::AttList {
-                        name: name.clone(),
-                        att_defs: Some(new_defs.clone()),
-                    }));
-                }
-            }
-
-            if let Some(Subset::MarkupDecl(MarkupDeclaration::AttList {
-                name,
-                att_defs: Some(new_defs),
-            })) = &subset
-            {
-                if let Some(existing) = consolidated.iter_mut().find(|i| {
-                    matches!(i, Subset::MarkupDecl(MarkupDeclaration::AttList { name: existing_name, .. }) if existing_name == name)
-                }) {
-                    if let Subset::MarkupDecl(MarkupDeclaration::AttList { att_defs: Some(existing_defs), .. }) = existing {
-                        existing_defs.extend(new_defs.clone());
+                            if let Subset::MarkupDecl(MarkupDeclaration::AttList { att_defs: Some(existing_defs), .. }) = existing {
+                                existing_defs.extend(new_defs.clone());
+                            }
+                            continue
+                         }
                     }
-                    continue
-                 }
-            }
+                    _ => {
+                        // Do nothing. Unneeded? processing for other types
+                    }
+                },
+                Subset::DeclSep {
+                    reference: Reference::EntityRef(name),
+                    expansion,
+                } => {
+                    if let Some(EntityValue::MarkupDecl(inner_expansion)) = entity_references
+                        .borrow()
+                        .get(&(name.clone(), EntitySource::Internal))
+                    {
+                        let mut modified_inner_expansion = *inner_expansion.clone();
 
-            if let Some(subset) = subset {
-                consolidated.push(subset);
-            };
+                        if let MarkupDeclaration::AttList {
+                            att_defs: Some(ref mut defs),
+                            ..
+                        } = modified_inner_expansion
+                        {
+                            for attribute in defs {
+                                if let Attribute::Definition { ref mut source, .. } = attribute {
+                                    *source = EntitySource::Internal;
+                                }
+                            }
+                        }
+
+                        *expansion = Some(Box::new(Subset::MarkupDecl(
+                            modified_inner_expansion.clone(),
+                        )));
+                    }
+
+                    if let Some(entity_value) = entity_references
+                        .borrow()
+                        .get(&(name.clone(), EntitySource::External))
+                    {
+                        match entity_value {
+                        EntityValue::MarkupDecl(inner_expansion) => {
+                            let mut modified_inner_expansion = *inner_expansion.clone();
+                            if let MarkupDeclaration::AttList {
+                                att_defs: Some(ref mut defs),
+                                ..
+                            } = modified_inner_expansion
+                            {
+                                for attribute in defs {
+                                    if let Attribute::Definition { ref mut source, .. } = attribute {
+                                        *source = EntitySource::External;
+                                    }
+                                }
+                            }
+
+                            *expansion = Some(Box::new(Subset::MarkupDecl(
+                                modified_inner_expansion.clone(),
+                            )));
+                        },
+                        EntityValue::Document(_doc) => {
+                            for external_subset in &external_subsets {
+                                *expansion = Some(Box::new(external_subset.clone()));
+                            }
+
+                        },
+                        EntityValue::ParameterReference(_reference) => {
+                            unimplemented!("External EntityValue::ParameterReference encountered, needs implementation")
+                        },
+                        EntityValue::Reference(_reference) => {
+                            unimplemented!("External EntityValue::Reference encountered, needs implementation")
+                        },
+                        EntityValue::Value(_val) => {
+                            unimplemented!("External EntityValue::Value encountered, needs implementation")
+                        },
+
+                    }}
+
+
+                    if let Some(Subset::MarkupDecl(MarkupDeclaration::AttList {
+                        name,
+                        att_defs: Some(new_defs),
+                    })) = expansion.as_deref()
+                    {
+                        if let Some(Subset::MarkupDecl(MarkupDeclaration::AttList { att_defs: Some(existing_defs), .. })) = consolidated.iter_mut().find(|i| {
+                                matches!(i, Subset::MarkupDecl(MarkupDeclaration::AttList { name: existing_name, .. }) if existing_name == name)
+                            }) {
+                                existing_defs.extend(new_defs.clone());
+                                continue;
+                            }
+                        consolidated.push(Subset::MarkupDecl(MarkupDeclaration::AttList {
+                            name: name.clone(),
+                            att_defs: Some(new_defs.clone()),
+                        }));
+                    }
+                }
+                variant => {
+                        unimplemented!("Subset Variant unimplemented: {variant:#?}");
+                    }
+            }
+            consolidated.push(subset);
         }
         Ok((input, consolidated))
     }
@@ -233,10 +309,7 @@ pub trait ParseDeclSep {
                     .get(&(name.clone(), entity_source.clone()))
                     .cloned()
             }
-            Reference::CharRef(_) => {
-                // Handle character references here if needed
-                None
-            }
+            Reference::CharRef(_) => None,
         }
     }
 }
